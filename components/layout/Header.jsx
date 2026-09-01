@@ -219,7 +219,7 @@ export default function Header() {
         <div
           className={`overflow-hidden border-t border-slate-100 bg-white transition-[max-height,opacity] duration-200 md:hidden ${
             menuOpen
-              ? "max-h-[420px] opacity-100"
+              ? "max-h-105 opacity-100"
               : "max-h-0 opacity-0"
           }`}
         >

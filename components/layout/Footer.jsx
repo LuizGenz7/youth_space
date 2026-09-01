@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Footer() {
+  const pathname = usePathname();
+
   return (
     <footer className="border-t border-slate-200 bg-white">
       <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8">
@@ -21,8 +26,8 @@ export default function Footer() {
             </Link>
 
             <p className="mt-5 text-sm leading-6 text-slate-500">
-              A Zambian platform connecting people with young talent, skills and
-              local services.
+              A Zambian platform connecting people with young talent, skills
+              and local services.
             </p>
           </div>
 
@@ -36,6 +41,7 @@ export default function Footer() {
                 ["Talents", "/talents"],
                 ["Categories", "/categories"],
               ]}
+              pathname={pathname}
             />
 
             <FooterColumn
@@ -45,6 +51,7 @@ export default function Footer() {
                 ["Guidelines", "/guidelines"],
                 ["Contact", "/contact"],
               ]}
+              pathname={pathname}
             />
 
             <FooterColumn
@@ -53,6 +60,7 @@ export default function Footer() {
                 ["Privacy", "/privacy"],
                 ["Terms", "/terms"],
               ]}
+              pathname={pathname}
             />
           </div>
         </div>
@@ -73,7 +81,7 @@ export default function Footer() {
    FOOTER COLUMN
 ========================================================= */
 
-function FooterColumn({ title, links }) {
+function FooterColumn({ title, links, pathname }) {
   return (
     <div>
       <p className="text-xs font-black uppercase tracking-wider text-slate-400">
@@ -81,15 +89,24 @@ function FooterColumn({ title, links }) {
       </p>
 
       <div className="mt-4 space-y-3">
-        {links.map(([label, href]) => (
-          <Link
-            key={label}
-            href={href}
-            className="block text-sm text-slate-600 transition hover:text-slate-950"
-          >
-            {label}
-          </Link>
-        ))}
+        {links.map(([label, href]) => {
+          const isActive = pathname === href;
+
+          return (
+            <Link
+              key={label}
+              href={href}
+              className={`block text-sm transition ${
+                isActive
+                  ? "font-bold text-slate-950"
+                  : "font-medium text-slate-600 hover:text-slate-950"
+              }`}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {label}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

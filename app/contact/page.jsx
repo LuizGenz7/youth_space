@@ -43,16 +43,16 @@ export default function ContactPage() {
               className="group flex items-center gap-2.5"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-slate-950 transition group-hover:scale-105">
-                T
+                Y
               </div>
 
               <div className="leading-none">
                 <p className="text-[15px] font-black tracking-tight text-white">
-                  TechGU
+                  Youth Space
                 </p>
 
                 <p className="mt-1 text-[9px] text-white/40">
-                  Tech Generative Universe
+                  Discover. Connect. Create.
                 </p>
               </div>
             </Link>
@@ -74,20 +74,20 @@ export default function ContactPage() {
               </span>
 
               <span className="text-[10px] font-bold text-white/70">
-                Let's build something
+                We&apos;d love to hear from you
               </span>
             </div>
 
             <h1 className="mt-6 text-4xl font-black leading-[1.02] tracking-[-0.055em] text-white sm:text-5xl lg:text-6xl xl:text-7xl">
-              Have an idea?
+              Have a question?
               <br />
-              Let's talk.
+              Let&apos;s talk.
             </h1>
 
             <p className="mt-6 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
-              Whether you need a website, mobile application, digital
-              product or simply want to discuss an idea, the TechGU
-              team would love to hear from you.
+              Whether you have a question about Youth Space, want to report
+              something, need help with your profile or simply want to share
+              an idea, we&apos;re here to listen.
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function ContactPage() {
 
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
-              Contact TechGU
+              Contact Youth Space
             </p>
 
             <h2 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-4xl">
@@ -111,9 +111,8 @@ export default function ContactPage() {
             </h2>
 
             <p className="mt-4 max-w-md text-sm leading-7 text-slate-500">
-              Tell us what you're building, what you're trying to
-              solve, or what you need help with. We'll take it from
-              there.
+              Tell us what you need help with, what you&apos;re building, or
+              how we can make Youth Space better.
             </p>
 
             {/* Quick response */}
@@ -124,8 +123,8 @@ export default function ContactPage() {
               </p>
 
               <p className="mt-2 text-xs leading-5 text-slate-500">
-                WhatsApp us and we'll get back to you as soon as
-                possible.
+                WhatsApp us for a quick conversation with the Youth Space
+                team.
               </p>
 
               <a
@@ -147,7 +146,7 @@ export default function ContactPage() {
               icon={<MessageCircle size={20} />}
               label="WhatsApp"
               title="0962 063 468"
-              description="Chat with TechGU directly."
+              description="Chat with the Youth Space team directly."
               href="https://wa.me/260962063468"
               action="Message us"
             />
@@ -156,41 +155,37 @@ export default function ContactPage() {
               icon={<Mail size={20} />}
               label="Email"
               title="techgu@gmail.com"
-              description="Send us your idea or enquiry."
+              description="Send us your question, idea or enquiry."
               href="mailto:techgu@gmail.com"
               action="Send email"
             />
 
-            <ContactCard
-              icon={<Globe size={20} />}
-              label="Website"
-              title="techgu.com"
-              description="Explore TechGU and our products."
-              href="https://techgu.com"
-              action="Visit website"
-            />
+            {/* TechGU */}
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-950 p-6 sm:col-span-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">
-                TechGU
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:col-span-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                A TechGU product
               </p>
 
-              <h3 className="mt-3 text-2xl font-black tracking-[-0.035em] text-white">
-                Turning Ideas Into Innovation.
+              <h3 className="mt-3 text-2xl font-black tracking-[-0.035em] text-slate-950">
+                Youth Space is built by TechGU.
               </h3>
 
-              <p className="mt-3 max-w-xl text-sm leading-6 text-white/50">
-                We build digital experiences, products and
-                technology that turn ideas into something real.
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
+                TechGU is the technology company behind Youth Space. We build
+                digital products and experiences that turn ideas into
+                innovation.
               </p>
 
-              <Link
-                href="/"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-slate-100"
+              <a
+                href="https://techgu.com"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-slate-800"
               >
-                Explore TechGU
-                <ArrowRight size={15} />
-              </Link>
+                Visit TechGU
+                <Globe size={15} />
+              </a>
             </div>
           </div>
         </div>
@@ -203,12 +198,17 @@ export default function ContactPage() {
       <footer className="border-t border-slate-100">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-6 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-10 xl:px-14">
           <p className="text-[10px] font-medium text-slate-400">
-            © {new Date().getFullYear()} TechGU. All rights reserved.
+            © {new Date().getFullYear()} Youth Space. All rights reserved.
           </p>
 
-          <p className="text-[10px] font-medium text-slate-400">
-            Tech Generative Universe
-          </p>
+          <a
+            href="https://techgu.com"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[10px] font-bold text-slate-400 transition hover:text-slate-950"
+          >
+            A TechGU product
+          </a>
         </div>
       </footer>
     </main>
