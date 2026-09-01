@@ -18,6 +18,22 @@ import {
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
+
+function FilterPill({ children, active = false }) {
+  return (
+    <button
+      type="button"
+      className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-bold transition ${
+        active
+          ? "bg-slate-950 text-white"
+          : "border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-950"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 /* =========================================================
    HOME PAGE
 ========================================================= */
@@ -86,7 +102,7 @@ function Hero() {
         }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-5 pb-24 pt-20 sm:px-6 lg:px-8 lg:pb-32 lg:pt-28">
+      <div className="relative mx-auto max-w-7xl px-5 pb-24 pt-24 sm:px-6 lg:px-8 lg:pb-32 lg:pt-28">
         {/* =====================================================
             HERO CONTENT
         ===================================================== */}
@@ -192,21 +208,21 @@ function Hero() {
         </div>
 
         {/* =====================================================
-            DISCOVERY PREVIEW
-        ===================================================== */}
+    DISCOVERY PREVIEW
+===================================================== */}
 
-        <div className="mx-auto mt-20 max-w-6xl">
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_30px_80px_-30px_rgba(15,23,42,0.25)]">
+        <div className="mx-auto mt-16 w-full max-w-5xl sm:mt-20">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_60px_-25px_rgba(15,23,42,0.18)] sm:rounded-3xl">
             {/* Preview header */}
 
-            <div className="flex h-16 items-center justify-between border-b border-slate-100 px-5 sm:px-7">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-xs font-black text-white">
+            <div className="flex h-14 items-center justify-between border-b border-slate-100 px-4 sm:h-16 sm:px-6">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-[11px] font-black text-white sm:h-9 sm:w-9">
                   Y
                 </div>
 
-                <div>
-                  <p className="text-xs font-black text-slate-950">
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-black text-slate-950 sm:text-xs">
                     Youth Space
                   </p>
 
@@ -215,84 +231,74 @@ function Hero() {
                   </p>
                 </div>
               </div>
-              `
-              <div className="flex items-center gap-2">
-                {/* Location */}
 
-                <div className="hidden h-8 items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 sm:flex">
-                  <MapPin size={12} className="text-slate-500" />
+              <div className="flex shrink-0 items-center gap-2">
+                <div className="hidden items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 sm:flex">
+                  <MapPin size={12} className="text-slate-400" />
 
                   <span className="text-[9px] font-bold text-slate-500">
                     Zambia
                   </span>
                 </div>
 
-                {/* Talent count */}
+                <div className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                  <Users size={12} className="text-slate-400" />
 
-                <div className="flex h-8 items-center gap-1.5 rounded-full bg-slate-100 px-2.5">
-                  <Users size={12} className="text-slate-500" />
-
-                  <span className="text-[9px] font-bold text-slate-600">
+                  <span className="text-[9px] font-bold text-slate-500">
                     2.4k+
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Preview content */}
+            {/* Preview body */}
 
-            <div className="p-5 sm:p-7">
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+            <div className="p-4 sm:p-6">
+              {/* Heading */}
+
+              <div className="flex items-end justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
                     Discover
                   </p>
 
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">
+                  <h3 className="mt-1.5 text-lg font-black tracking-[-0.025em] text-slate-950 sm:text-xl">
                     People worth discovering
                   </h3>
 
-                  <p className="mt-1.5 text-xs text-slate-400">
+                  <p className="mt-1 text-[11px] text-slate-400 sm:text-xs">
                     Explore skills, services and creative work.
                   </p>
                 </div>
 
                 <Link
                   href="/discover"
-                  className="hidden items-center gap-1 text-xs font-bold text-slate-500 transition hover:text-slate-950 sm:flex"
+                  className="hidden shrink-0 items-center gap-1 text-[11px] font-bold text-slate-500 transition hover:text-slate-950 sm:flex"
                 >
                   View all
-                  <ChevronRight size={14} />
+                  <ChevronRight size={13} />
                 </Link>
               </div>
 
               {/* Categories */}
 
-              <div className="mt-6 flex gap-2 overflow-hidden">
-                <span className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-bold text-white">
-                  All
-                </span>
+              <div className="mt-5 -mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+                <div className="flex w-max gap-1.5">
+                  <FilterPill active>All</FilterPill>
 
-                <span className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[10px] font-semibold text-slate-500">
-                  Technology
-                </span>
+                  <FilterPill>Technology</FilterPill>
 
-                <span className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[10px] font-semibold text-slate-500">
-                  Fashion
-                </span>
+                  <FilterPill>Fashion</FilterPill>
 
-                <span className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[10px] font-semibold text-slate-500">
-                  Beauty
-                </span>
+                  <FilterPill>Beauty</FilterPill>
 
-                <span className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[10px] font-semibold text-slate-500">
-                  Food
-                </span>
+                  <FilterPill>Food</FilterPill>
+                </div>
               </div>
 
-              {/* Preview cards */}
+              {/* Cards */}
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-4 grid gap-2.5 sm:gap-3 lg:grid-cols-4">
                 <PreviewCard
                   category="Barbering"
                   title="Fresh cuts & grooming"
@@ -323,20 +329,20 @@ function Hero() {
               </div>
             </div>
 
-            {/* Preview footer */}
+            {/* Footer */}
 
-            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-5 py-3.5 sm:px-7">
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-950" />
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-4 py-3 sm:px-6">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-950" />
 
-                <span className="text-[10px] font-semibold text-slate-400">
+                <span className="truncate text-[9px] font-semibold text-slate-400 sm:text-[10px]">
                   Discover talent across Zambia
                 </span>
               </div>
 
               <Link
                 href="/discover"
-                className="text-[10px] font-bold text-slate-600 transition hover:text-slate-950"
+                className="shrink-0 text-[9px] font-bold text-slate-600 transition hover:text-slate-950 sm:text-[10px]"
               >
                 Explore
               </Link>
