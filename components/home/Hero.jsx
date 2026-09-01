@@ -1,6 +1,11 @@
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
 import {
   ArrowRight,
+  CheckCircle2,
   ChevronRight,
   Heart,
   MapPin,
@@ -8,10 +13,11 @@ import {
   Sparkles,
   UserRound,
   Users,
+  BriefcaseBusiness,
 } from "lucide-react";
-import Link from "next/link";
 
 import FilterPill from "./FilterPill";
+import { talents } from "@/data/talents";
 
 /* =========================================================
    HERO
@@ -27,53 +33,14 @@ export default function Hero() {
   ];
 
   /*
-   * MVP preview data.
+   * The preview is derived directly from the shared talents data.
    *
-   * Later this will come from Firestore:
-   * top 4 published posts ordered by likesCount DESC.
+   * Later:
+   * Firebase → published talents → sort by likes → top 4.
    */
-  const topTalents = [
-    {
-      id: "1",
-      category: "Barbering",
-      title: "Fresh cuts & grooming",
-      name: "John Mwale",
-      initials: "JM",
-      location: "Lusaka",
-      likes: 248,
-      image: null,
-    },
-    {
-      id: "2",
-      category: "Technology",
-      title: "Flutter Developer",
-      name: "Brian Mwale",
-      initials: "BM",
-      location: "Lusaka",
-      likes: 214,
-      image: null,
-    },
-    {
-      id: "3",
-      category: "Fashion",
-      title: "Custom dressmaking",
-      name: "Alice Chanda",
-      initials: "AC",
-      location: "Ndola",
-      likes: 189,
-      image: null,
-    },
-    {
-      id: "4",
-      category: "Food",
-      title: "Custom celebration cakes",
-      name: "Mary Ngoma",
-      initials: "MN",
-      location: "Kitwe",
-      likes: 176,
-      image: null,
-    },
-  ];
+  const topTalents = [...talents]
+    .sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))
+    .slice(0, 4);
 
   return (
     <section className="relative overflow-hidden border-b border-slate-200 bg-slate-50">
@@ -82,11 +49,11 @@ export default function Hero() {
       ===================================================== */}
 
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 -top-40 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-white blur-3xl" />
+        <div className="absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-white blur-3xl" />
 
-        <div className="absolute -right-40 top-32 h-96 w-96 rounded-full bg-slate-200/50 blur-3xl" />
+        <div className="absolute right-[-160px] top-32 h-96 w-96 rounded-full bg-slate-200/50 blur-3xl" />
 
-        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-slate-200/40 blur-3xl" />
+        <div className="absolute bottom-[-160px] left-[-160px] h-96 w-96 rounded-full bg-slate-200/40 blur-3xl" />
       </div>
 
       {/* Subtle grid */}
@@ -98,7 +65,8 @@ export default function Hero() {
             "linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)",
           backgroundSize: "64px 64px",
           maskImage: "linear-gradient(to bottom, black, transparent 75%)",
-          WebkitMaskImage: "linear-gradient(to bottom, black, transparent 75%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, black, transparent 75%)",
         }}
       />
 
@@ -128,7 +96,9 @@ export default function Hero() {
 
           <h1 className="mx-auto mt-8 max-w-4xl text-5xl font-black leading-[0.94] tracking-[-0.065em] text-slate-950 sm:text-6xl lg:text-[78px]">
             Discover people who
-            <span className="block text-slate-400">can make it happen.</span>
+            <span className="block text-slate-400">
+              can make it happen.
+            </span>
           </h1>
 
           {/* Description */}
@@ -196,6 +166,7 @@ export default function Hero() {
               className="group inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-bold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl"
             >
               Explore talent
+
               <ArrowRight
                 size={16}
                 className="transition-transform group-hover:translate-x-1"
@@ -249,7 +220,7 @@ export default function Hero() {
                   <Users size={12} className="text-slate-400" />
 
                   <span className="text-[9px] font-bold text-slate-500">
-                    2.4k+
+                    {talents.length}+
                   </span>
                 </div>
               </div>
@@ -288,7 +259,7 @@ export default function Hero() {
 
               {/* Categories */}
 
-              <div className="mt-5 -mx-4 overflow-x-auto px-4 scrollbar-none [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+              <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-none [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
                 <div className="flex w-max gap-1.5">
                   <FilterPill active>All</FilterPill>
                   <FilterPill>Technology</FilterPill>
@@ -298,11 +269,14 @@ export default function Hero() {
                 </div>
               </div>
 
-              {/* Top 4 */}
+              {/* Top talents */}
 
-              <div className="mt-4 grid gap-2.5 sm:gap-3 lg:grid-cols-4">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {topTalents.map((talent) => (
-                  <PreviewCard key={talent.id} {...talent} />
+                  <PreviewCard
+                    key={talent.id}
+                    {...talent}
+                  />
                 ))}
               </div>
             </div>
@@ -356,7 +330,7 @@ export default function Hero() {
 }
 
 /* =========================================================
-   TOP TALENT PREVIEW CARD
+   TALENT PREVIEW CARD
 ========================================================= */
 
 function PreviewCard({
@@ -366,73 +340,199 @@ function PreviewCard({
   name,
   initials,
   location,
-  likes,
+  likes = 0,
+  workCount = 0,
+  skills = [],
+  available = false,
+  verified = false,
   image,
 }) {
+  const [imageError, setImageError] = useState(false);
+
+  const showImage = image && !imageError;
+
   return (
     <Link
       href={`/talents/${id}`}
-      className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg"
+      className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl"
     >
-      {/* Work image */}
+      {/* =================================================
+          IMAGE
+      ================================================= */}
 
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-        {image ? (
+        {showImage ? (
           <Image
             src={image}
             alt={`${title} by ${name}`}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover transition duration-500 group-hover:scale-105"
+            onError={() => setImageError(true)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-slate-100">
-            <UserRound size={42} strokeWidth={1.5} className="text-slate-300" />
-          </div>
+          <TalentImageFallback
+            initials={initials}
+            category={category}
+          />
         )}
+
+        {/* Image gradient */}
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/30 to-transparent" />
 
         {/* Likes */}
 
-        <div className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[9px] font-black text-slate-700 shadow-sm backdrop-blur">
+        <div className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black text-slate-700 shadow-sm backdrop-blur">
           <Heart size={11} />
+
           {likes}
         </div>
+
+        {/* Availability */}
+
+        {available && (
+          <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-bold text-slate-700 shadow-sm backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+
+            Available
+          </div>
+        )}
       </div>
 
-      {/* Content */}
+      {/* =================================================
+          CONTENT
+      ================================================= */}
 
       <div className="p-4">
-        {/* Category */}
+        {/* Category + verified */}
 
-        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
-          {category}
-        </span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
+            {category}
+          </span>
+
+          {verified && (
+            <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold text-slate-500">
+              <CheckCircle2
+                size={12}
+                className="fill-slate-950 text-white"
+              />
+
+              Verified
+            </span>
+          )}
+        </div>
 
         {/* Work title */}
 
-        <h3 className="mt-1.5 line-clamp-1 text-sm font-black text-slate-900">
+        <h3 className="mt-1.5 line-clamp-1 text-sm font-black tracking-tight text-slate-900">
           {title}
         </h3>
 
-        {/* Full name */}
+        {/* Talent */}
 
         <div className="mt-3 flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[8px] font-black text-slate-700">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[8px] font-black text-slate-700">
             {initials}
           </div>
 
-          <p className="truncate text-xs font-bold text-slate-700">{name}</p>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold text-slate-800">
+              {name}
+            </p>
+
+            <div className="mt-0.5 flex items-center gap-1 text-[9px] text-slate-400">
+              <MapPin size={9} />
+
+              <span className="truncate">
+                {location}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Location */}
+        {/* Skills */}
 
-        <div className="mt-3 flex items-center gap-1 text-[10px] text-slate-400">
-          <MapPin size={10} />
+        {skills.length > 0 && (
+          <div className="mt-3 flex gap-1.5 overflow-hidden">
+            {skills.slice(0, 2).map((skill) => (
+              <span
+                key={skill}
+                className="truncate rounded-md bg-slate-50 px-2 py-1 text-[8px] font-bold text-slate-500"
+              >
+                {skill}
+              </span>
+            ))}
 
-          <span className="truncate">{location}</span>
+            {skills.length > 2 && (
+              <span className="shrink-0 rounded-md bg-slate-50 px-2 py-1 text-[8px] font-bold text-slate-400">
+                +{skills.length - 2}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Bottom stats */}
+
+        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+          <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
+            <BriefcaseBusiness size={11} />
+
+            <span>
+              {workCount} {workCount === 1 ? "work" : "works"}
+            </span>
+          </div>
+
+          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-500 transition group-hover:text-slate-950">
+            View
+
+            <ChevronRight
+              size={11}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </span>
         </div>
       </div>
     </Link>
+  );
+}
+
+/* =========================================================
+   IMAGE FALLBACK
+========================================================= */
+
+function TalentImageFallback({ initials, category }) {
+  return (
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-white">
+      {/* Decorative shapes */}
+
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-slate-200/60 blur-2xl" />
+
+      <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-slate-200/50 blur-2xl" />
+
+      {/* Avatar */}
+
+      <div className="relative flex flex-col items-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {initials ? (
+            <span className="text-sm font-black text-slate-500">
+              {initials}
+            </span>
+          ) : (
+            <UserRound
+              size={30}
+              strokeWidth={1.5}
+              className="text-slate-300"
+            />
+          )}
+        </div>
+
+        <span className="mt-2 max-w-[120px] truncate text-[8px] font-black uppercase tracking-[0.14em] text-slate-300">
+          {category || "Talent"}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -443,9 +543,13 @@ function PreviewCard({
 function HeroValue({ title, description }) {
   return (
     <div className="text-center sm:text-left">
-      <p className="text-sm font-black text-slate-900">{title}</p>
+      <p className="text-sm font-black text-slate-900">
+        {title}
+      </p>
 
-      <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        {description}
+      </p>
     </div>
   );
 }

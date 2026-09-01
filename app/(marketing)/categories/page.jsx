@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -21,6 +24,7 @@ import {
 
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import Image from "next/image";
 
 /* =========================================================
    CATEGORIES PAGE
@@ -43,11 +47,40 @@ export default function CategoriesPage() {
 /* =========================================================
    HERO
 ========================================================= */
-
 function CategoriesHero() {
+  const [imageError, setImageError] = useState(false);
+
   return (
-    <section className="border-b border-slate-200 bg-slate-50">
-      <div className="mx-auto max-w-7xl px-5 pb-12 pt-28 sm:px-6 sm:pb-16 sm:pt-32 lg:px-8 lg:pb-20">
+    <section className="relative overflow-hidden border-b border-slate-200 bg-slate-50">
+      {/* =================================================
+          BACKGROUND IMAGE
+      ================================================= */}
+
+      {!imageError && (
+        <Image
+          src="https://images.unsplash.com/photo-1521737711867-e3b97375f902"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          onError={() => setImageError(true)}
+        />
+      )}
+
+      {/* =================================================
+          OVERLAY
+      ================================================= */}
+
+      {!imageError && (
+        <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px]" />
+      )}
+
+      {/* =================================================
+          CONTENT
+      ================================================= */}
+
+      <div className="relative z-10 mx-auto max-w-7xl px-5 pb-12 pt-28 sm:px-6 sm:pb-16 sm:pt-32 lg:px-8 lg:pb-20">
         <div className="max-w-3xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
             Categories
@@ -55,14 +88,12 @@ function CategoriesHero() {
 
           <h1 className="mt-4 text-4xl font-black tracking-[-0.05em] sm:text-5xl lg:text-6xl">
             Find the right people
-            <span className="block text-slate-400">
-              for what you need.
-            </span>
+            <span className="block text-slate-400">for what you need.</span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-600 sm:text-lg sm:leading-8">
-            Browse services, skills and creative talent from young people
-            across Zambia.
+            Browse services, skills and creative talent from young people across
+            Zambia.
           </p>
 
           {/* Search */}
@@ -83,10 +114,7 @@ function CategoriesHero() {
                 type="button"
                 className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 sm:px-5"
               >
-                <span className="hidden sm:inline">
-                  Search
-                </span>
-
+                <span className="hidden sm:inline">Search</span>
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -96,7 +124,6 @@ function CategoriesHero() {
     </section>
   );
 }
-
 /* =========================================================
    CONTENT
 ========================================================= */
@@ -105,7 +132,6 @@ function CategoriesContent() {
   return (
     <section>
       <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-
         {/* =================================================
             LOCATION
         ================================================= */}
@@ -126,7 +152,6 @@ function CategoriesContent() {
             className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:px-4 sm:text-sm"
           >
             <MapPin size={14} />
-
             Zambia
           </button>
         </div>
@@ -144,10 +169,7 @@ function CategoriesContent() {
 
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {popularCategories.map((category) => (
-              <CategoryCard
-                key={category.slug}
-                {...category}
-              />
+              <CategoryCard key={category.slug} {...category} />
             ))}
           </div>
         </section>
@@ -173,10 +195,7 @@ function CategoriesContent() {
 
           <div className="mt-8 space-y-10">
             {categoryGroups.map((group) => (
-              <CategoryGroup
-                key={group.title}
-                {...group}
-              />
+              <CategoryGroup key={group.title} {...group} />
             ))}
           </div>
         </section>
@@ -197,11 +216,7 @@ function CategoriesContent() {
    SECTION HEADING
 ========================================================= */
 
-function SectionHeading({
-  eyebrow,
-  title,
-  description,
-}) {
+function SectionHeading({ eyebrow, title, description }) {
   return (
     <div>
       <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
@@ -223,13 +238,7 @@ function SectionHeading({
    POPULAR CATEGORY CARD
 ========================================================= */
 
-function CategoryCard({
-  icon: Icon,
-  title,
-  count,
-  description,
-  slug,
-}) {
+function CategoryCard({ icon: Icon, title, count, description, slug }) {
   return (
     <Link
       href={`/talents?category=${slug}`}
@@ -239,9 +248,7 @@ function CategoryCard({
         <Icon size={19} />
       </div>
 
-      <h3 className="mt-4 text-sm font-black sm:text-base">
-        {title}
-      </h3>
+      <h3 className="mt-4 text-sm font-black sm:text-base">{title}</h3>
 
       <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
         {description}
@@ -269,17 +276,18 @@ function FeaturedCategory() {
   return (
     <Link
       href="/talents?category=hair-beauty"
-      className="group relative block overflow-hidden rounded-3xl bg-slate-950"
+      className="group relative block overflow-hidden bg-slate-950"
     >
       <div className="grid min-h-[360px] lg:grid-cols-2">
-
         {/* Image */}
 
         <div className="relative min-h-[220px] overflow-hidden bg-slate-800 lg:min-h-[360px]">
-          <img
+          <Image
             src="/images/categories/hair-beauty.jpg"
             alt="Hair and beauty services"
-            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+            fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="object-cover transition duration-700 group-hover:scale-105"
           />
 
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-slate-950/20" />
@@ -301,8 +309,8 @@ function FeaturedCategory() {
           </h2>
 
           <p className="mt-3 max-w-md text-sm leading-6 text-slate-300">
-            Discover talented hairstylists, braiders, makeup artists and
-            beauty professionals near you.
+            Discover talented hairstylists, braiders, makeup artists and beauty
+            professionals near you.
           </p>
 
           <div className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-bold">
@@ -317,23 +325,16 @@ function FeaturedCategory() {
     </Link>
   );
 }
-
 /* =========================================================
    CATEGORY GROUP
 ========================================================= */
 
-function CategoryGroup({
-  title,
-  description,
-  categories,
-}) {
+function CategoryGroup({ title, description, categories }) {
   return (
     <div>
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h3 className="text-lg font-black sm:text-xl">
-            {title}
-          </h3>
+          <h3 className="text-lg font-black sm:text-xl">{title}</h3>
 
           <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
             {description}
@@ -343,10 +344,7 @@ function CategoryGroup({
 
       <div className="mt-4 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
         {categories.map((category) => (
-          <CategoryListItem
-            key={category.slug}
-            {...category}
-          />
+          <CategoryListItem key={category.slug} {...category} />
         ))}
       </div>
     </div>
@@ -357,12 +355,7 @@ function CategoryGroup({
    CATEGORY LIST ITEM
 ========================================================= */
 
-function CategoryListItem({
-  icon: Icon,
-  title,
-  count,
-  slug,
-}) {
+function CategoryListItem({ icon: Icon, title, count, slug }) {
   return (
     <Link
       href={`/talents?category=${slug}`}
@@ -373,13 +366,9 @@ function CategoryListItem({
       </div>
 
       <div className="min-w-0 flex-1">
-        <h4 className="truncate text-sm font-black">
-          {title}
-        </h4>
+        <h4 className="truncate text-sm font-black">{title}</h4>
 
-        <p className="mt-0.5 text-[11px] text-slate-400">
-          {count} providers
-        </p>
+        <p className="mt-0.5 text-[11px] text-slate-400">{count} providers</p>
       </div>
 
       <ChevronRight
@@ -411,7 +400,7 @@ function JoinCTA() {
         </p>
 
         <Link
-          href="/join"
+          href="/register"
           className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white transition hover:bg-slate-800"
         >
           List your talent

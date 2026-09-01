@@ -1,91 +1,98 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Heart,
+  MapPin,
+  UserRound,
+} from "lucide-react";
+
+import SectionHeading from "./SectionHeading";
+import { talents } from "@/data/talents";
+import { works } from "@/data/works";
+
 /* =========================================================
    LATEST WORK
 ========================================================= */
 
-import Image from "next/image";
-import { Heart, MapPin, UserRound } from "lucide-react";
-import Link from "next/link";
-import SectionHeading from "./SectionHeading";
-
 export default function LatestWork() {
   /*
-   * MVP:
-   * This data will eventually come from Firestore.
+   * Youth Space explicitly chooses which works appear here.
    *
-   * Query:
-   * - latest published work
-   * - orderBy createdAt desc
-   * - limit 4
+   * IMPORTANT:
+   * We do not automatically select the newest works.
+   *
+   * Later this list can come from Firebase.
    */
 
-  const latestWork = [
-    {
-      id: "work-1",
-      talentId: "1",
-      title: "Modern brand identity",
-      category: "Design",
-      person: "Martha Banda",
-      location: "Kitwe",
-      initials: "MB",
-      image: "",
-      likes: 84,
-    },
-    {
-      id: "work-2",
-      talentId: "2",
-      title: "School management app",
-      category: "Technology",
-      person: "Brian Mwale",
-      location: "Lusaka",
-      initials: "BM",
-      image: "",
-      likes: 72,
-    },
-    {
-      id: "work-3",
-      talentId: "3",
-      title: "Wedding photography",
-      category: "Photography",
-      person: "John Phiri",
-      location: "Lusaka",
-      initials: "JP",
-      image: "",
-      likes: 65,
-    },
-    {
-      id: "work-4",
-      talentId: "4",
-      title: "Custom wedding dress",
-      category: "Fashion",
-      person: "Alice Chanda",
-      location: "Ndola",
-      initials: "AC",
-      image: "",
-      likes: 58,
-    },
+  const selectedWorkIds = [
+    "work-18-1",
+    "work-16-1",
+    "work-14-2",
+    "work-9-1",
+    "work-12-1",
   ];
+
+  /*
+   * Resolve selected work records.
+   *
+   * The order of selectedWorkIds is preserved.
+   */
+
+  const featuredWorks = selectedWorkIds
+    .map((workId) =>
+      works.find(
+        (work) => String(work.id) === String(workId),
+      ),
+    )
+    .filter(Boolean)
+    .map((work) => {
+      /*
+       * Every work belongs to a talent.
+       */
+
+      const talent = talents.find(
+        (talent) =>
+          String(talent.id) === String(work.talentId),
+      );
+
+      if (!talent) return null;
+
+      return {
+        work,
+        talent,
+      };
+    })
+    .filter(Boolean);
 
   return (
     <section className="bg-white">
       <div className="mx-auto max-w-7xl px-5 py-20 sm:px-6 sm:py-24 lg:px-8">
         <SectionHeading
-          eyebrow="Latest work"
-          title="See what young people are creating."
-          description="Browse recent work shared by members of Youth Space."
+          eyebrow="Chosen by Youth Space"
+          title="Work worth discovering."
+          description="Explore work selected by Youth Space from talented young Zambians."
           href="/discover"
           link="Discover all"
         />
 
-        {/* Work grid */}
-
-        <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
-          {latestWork.map((work) => (
-            <WorkCard
-              key={work.id}
-              {...work}
-            />
-          ))}
-        </div>
+        {featuredWorks.length > 0 ? (
+          <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
+            {featuredWorks.map(({ work, talent }) => (
+              <WorkCard
+                key={work.id}
+                work={work}
+                talent={talent}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyWork />
+        )}
       </div>
     </section>
   );
@@ -95,19 +102,27 @@ export default function LatestWork() {
    WORK CARD
 ========================================================= */
 
-function WorkCard({
-  id,
-  talentId,
-  title,
-  category,
-  person,
-  location,
-  initials,
-  image,
-  likes,
-}) {
+function WorkCard({ work, talent }) {
+  const {
+    id: talentId,
+    name,
+    initials,
+    role,
+    category: talentCategory,
+    location,
+    verified = false,
+  } = talent;
+
+  const category =
+    work.category ||
+    talentCategory ||
+    role ||
+    "Work";
+
+  const likes = work.likes ?? 0;
+
   return (
-    <article className="group overflow-hidden rounded-3xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl">
       {/* =================================================
           IMAGE
       ================================================= */}
@@ -115,85 +130,313 @@ function WorkCard({
       <Link
         href={`/talents/${talentId}`}
         className="block"
+        aria-label={`View ${work.title} by ${name}`}
       >
-        <div className="relative aspect-square overflow-hidden bg-slate-100">
-          {image ? (
-            <Image
-              src={image}
-              alt={`${title} by ${person}`}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-              className="object-cover transition duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-200 via-slate-100 to-slate-50">
-              <UserRound
-                size={46}
-                strokeWidth={1.5}
-                className="text-slate-300"
-              />
-            </div>
-          )}
-
-          {/* Category */}
-
-          <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-slate-700 shadow-sm backdrop-blur">
-            {category}
-          </span>
-
-          {/* Likes */}
-
-          <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black text-slate-700 shadow-sm backdrop-blur">
-            <Heart size={11} />
-            {likes}
-          </div>
-        </div>
+        <WorkImage
+          src={work.image}
+          alt={`${work.title} by ${name}`}
+          initials={initials}
+          category={category}
+          likes={likes}
+        />
       </Link>
 
       {/* =================================================
           CONTENT
       ================================================= */}
 
-      <div className="p-4 sm:p-5">
-        {/* Work title */}
+      <div className="flex flex-1 flex-col p-4">
+        {/* =================================================
+            CATEGORY + VERIFIED
+        ================================================= */}
+
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
+            {category}
+          </span>
+
+          {verified && (
+            <span
+              className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold text-slate-500"
+              title="Verified talent"
+            >
+              <CheckCircle2
+                size={12}
+                className="fill-slate-950 text-white"
+              />
+
+              Verified
+            </span>
+          )}
+        </div>
+
+        {/* =================================================
+            WORK TITLE
+        ================================================= */}
 
         <Link href={`/talents/${talentId}`}>
-          <h3 className="line-clamp-1 text-sm font-black text-slate-950 transition group-hover:text-slate-600">
-            {title}
+          <h3 className="mt-2 line-clamp-2 text-sm font-black tracking-tight text-slate-900 transition-colors group-hover:text-slate-600">
+            {work.title}
           </h3>
         </Link>
 
-        {/* Creator */}
+        {/* =================================================
+            TALENT
+        ================================================= */}
 
         <Link
           href={`/talents/${talentId}`}
-          className="mt-4 flex items-center gap-2.5"
+          className="mt-3 flex items-center gap-2"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[9px] font-black text-slate-700">
-            {initials}
+          {/* Avatar */}
+
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[8px] font-black text-slate-700">
+            {initials || (
+              <UserRound
+                size={13}
+                strokeWidth={1.8}
+                className="text-slate-400"
+              />
+            )}
           </div>
+
+          {/* Talent information */}
 
           <div className="min-w-0">
             <p className="truncate text-xs font-bold text-slate-800">
-              {person}
+              {name}
             </p>
 
-            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
-              <MapPin size={10} />
-              <span className="truncate">{location}</span>
-            </div>
+            {location && (
+              <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[9px] text-slate-400">
+                <MapPin
+                  size={9}
+                  className="shrink-0"
+                />
+
+                <span className="truncate">
+                  {location}
+                </span>
+              </div>
+            )}
           </div>
         </Link>
 
-        {/* Engagement */}
+        {/* =================================================
+            BOTTOM
+        ================================================= */}
 
-        <div className="mt-4 flex items-center border-t border-slate-100 pt-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
-            <Heart size={11} />
-            <span>{likes} likes</span>
+        <div className="mt-auto">
+          {/* Likes */}
+
+          <div className="mt-4 flex items-center border-t border-slate-100 pt-3">
+            <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
+              <Heart size={11} />
+
+              <span>
+                {likes} {likes === 1 ? "like" : "likes"}
+              </span>
+            </div>
           </div>
+
+          {/* =================================================
+              VIEW TALENT
+          ================================================= */}
+
+          <Link
+            href={`/talents/${talentId}`}
+            className="group/button mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-bold text-white transition hover:bg-slate-800 hover:shadow-md"
+          >
+            View talent
+
+            <ArrowRight
+              size={14}
+              className="transition-transform duration-200 group-hover/button:translate-x-0.5"
+            />
+          </Link>
         </div>
       </div>
     </article>
+  );
+}
+
+/* =========================================================
+   WORK IMAGE
+========================================================= */
+
+function WorkImage({
+  src,
+  alt,
+  initials,
+  category,
+  likes,
+}) {
+  const [imageError, setImageError] = useState(false);
+
+  const showImage =
+    Boolean(src) && !imageError;
+
+  return (
+    <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+      {/* =================================================
+          FALLBACK
+      ================================================= */}
+
+      <WorkImageFallback
+        initials={initials}
+        category={category}
+      />
+
+      {/* =================================================
+          IMAGE
+      ================================================= */}
+
+      {showImage && (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
+          className="relative z-10 object-cover transition duration-500 group-hover:scale-105"
+          onError={() => setImageError(true)}
+        />
+      )}
+
+      {/* =================================================
+          GRADIENT
+      ================================================= */}
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-20 bg-gradient-to-t from-slate-950/30 to-transparent" />
+
+      {/* =================================================
+          CATEGORY
+      ================================================= */}
+
+      <div className="absolute left-2.5 top-2.5 z-30 max-w-[65%]">
+        <span className="inline-flex max-w-full truncate rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-700 shadow-sm backdrop-blur">
+          {category}
+        </span>
+      </div>
+
+      {/* =================================================
+          LIKES
+      ================================================= */}
+
+      <div className="absolute right-2.5 top-2.5 z-30 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black text-slate-700 shadow-sm backdrop-blur">
+        <Heart size={11} />
+
+        {likes}
+      </div>
+
+      {/* =================================================
+          SELECTED
+      ================================================= */}
+
+      <div className="absolute bottom-2.5 left-2.5 z-30 flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-bold text-slate-700 shadow-sm backdrop-blur">
+        <CheckCircle2
+          size={11}
+          className="fill-slate-950 text-white"
+          aria-hidden="true"
+        />
+
+        Youth Space Pick
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   WORK IMAGE FALLBACK
+========================================================= */
+
+function WorkImageFallback({
+  initials,
+  category,
+}) {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-white">
+      {/* Decorative shapes */}
+
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-slate-200/60 blur-2xl" />
+
+      <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-slate-200/50 blur-2xl" />
+
+      {/* Center */}
+
+      <div className="relative flex flex-col items-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {initials ? (
+            <span className="text-sm font-black text-slate-500">
+              {initials}
+            </span>
+          ) : (
+            <UserRound
+              size={30}
+              strokeWidth={1.5}
+              className="text-slate-300"
+            />
+          )}
+        </div>
+
+        <span className="mt-2 max-w-[120px] truncate text-[8px] font-black uppercase tracking-[0.14em] text-slate-300">
+          {category || "Work"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+function EmptyWork() {
+  return (
+    <div className="mt-10 flex min-h-56 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50">
+      <div className="text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
+          <BriefcaseIcon />
+        </div>
+
+        <p className="mt-3 text-sm font-black text-slate-700">
+          No featured work yet
+        </p>
+
+        <p className="mt-1 text-xs text-slate-400">
+          Work chosen by Youth Space will appear here.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   EMPTY ICON
+========================================================= */
+
+function BriefcaseIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="text-slate-300"
+      aria-hidden="true"
+    >
+      <rect
+        x="3"
+        y="7"
+        width="18"
+        height="13"
+        rx="2"
+      />
+
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+
+      <path d="M3 12h18" />
+    </svg>
   );
 }

@@ -5,23 +5,24 @@ import Link from "next/link";
 import {
   ArrowDownAZ,
   ArrowRight,
-  Check,
+  CakeSlice,
+  Camera,
   ChevronDown,
   ChevronRight,
   Code2,
   MapPin,
-  Search,
   Scissors,
+  Search,
   Shirt,
-  Sparkles,
-  Camera,
-  CakeSlice,
   SlidersHorizontal,
+  Sparkles,
   X,
 } from "lucide-react";
 
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import TalentCard from "@/components/talents/TalentCard";
+import { talents } from "@/data/talents";
 
 /* =========================================================
    TALENTS PAGE
@@ -35,7 +36,7 @@ export default function TalentsPage() {
   const [visibleCount, setVisibleCount] = useState(8);
 
   const filteredTalents = useMemo(() => {
-    let results = [...talents];
+    let results = talents;
 
     /* Search */
 
@@ -49,6 +50,7 @@ export default function TalentsPage() {
           talent.category,
           talent.location,
           talent.description,
+          ...talent.skills,
         ]
           .join(" ")
           .toLowerCase()
@@ -220,7 +222,20 @@ export default function TalentsPage() {
             <>
               <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {visibleTalents.map((talent) => (
-                  <TalentCard key={talent.id} talent={talent} />
+                  <TalentCard
+                    key={talent.id}
+                    id={talent.id}
+                    image={talent.image}
+                    initials={talent.initials}
+                    name={talent.name}
+                    role={talent.role}
+                    location={talent.location}
+                    skills={talent.skills}
+                    likes={talent.likes}
+                    workCount={talent.workCount}
+                    verified={talent.verified}
+                    available={talent.available}
+                  />
                 ))}
               </div>
 
@@ -365,11 +380,7 @@ function QuickCategories({ activeCategory, onCategoryChange }) {
               <div>
                 <p className="text-xs font-black">{item.title}</p>
 
-                <p
-                  className={`mt-0.5 text-[10px] ${
-                    active ? "text-slate-400" : "text-slate-400"
-                  }`}
-                >
+                <p className="mt-0.5 text-[10px] text-slate-400">
                   {item.count} talents
                 </p>
               </div>
@@ -385,7 +396,7 @@ function QuickCategories({ activeCategory, onCategoryChange }) {
    FILTER BUTTON
 ========================================================= */
 
-function FilterButton({ icon: Icon, label, options, value, onChange }) {
+function FilterButton({ icon: Icon, options, value, onChange }) {
   return (
     <div className="relative">
       <select
@@ -423,94 +434,8 @@ function FilterChip({ label, onRemove }) {
       className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
     >
       {label}
-
       <X size={12} />
     </button>
-  );
-}
-
-/* =========================================================
-   TALENT CARD
-========================================================= */
-
-function TalentCard({ talent }) {
-  return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg">
-      {/* Image */}
-
-      <Link href={`/talents/${talent.id}`}>
-        <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-          {talent.image ? (
-            <img
-              src={talent.image}
-              alt=""
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-200 via-slate-100 to-slate-50">
-              <span className="text-3xl font-black text-slate-300">
-                {talent.initials}
-              </span>
-            </div>
-          )}
-
-          {/* Availability */}
-
-          {talent.available && (
-            <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[10px] font-black text-slate-700 shadow-sm backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-              Available
-            </div>
-          )}
-
-          {/* Verified */}
-
-          {talent.verified && (
-            <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-950 shadow-sm backdrop-blur">
-              <Check size={14} strokeWidth={3} />
-            </div>
-          )}
-        </div>
-      </Link>
-
-      {/* Content */}
-
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-black">{talent.name}</h3>
-
-            <p className="mt-1 truncate text-xs font-medium text-slate-500">
-              {talent.role}
-            </p>
-          </div>
-
-          <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-[9px] font-black text-slate-500">
-            {talent.category}
-          </span>
-        </div>
-
-        <p className="mt-3 line-clamp-2 text-xs leading-5 text-slate-500">
-          {talent.description}
-        </p>
-
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex min-w-0 items-center gap-1.5 text-[10px] text-slate-400">
-            <MapPin size={11} />
-
-            <span className="truncate">{talent.location}</span>
-          </div>
-
-          <Link
-            href={`/talents/${talent.id}`}
-            className="inline-flex items-center gap-1 text-[10px] font-black text-slate-700 transition hover:text-slate-950"
-          >
-            View
-            <ChevronRight size={13} />
-          </Link>
-        </div>
-      </div>
-    </article>
   );
 }
 
@@ -582,212 +507,5 @@ const categories = [
     title: "Technology",
     count: "54",
     icon: Code2,
-  },
-];
-
-/* =========================================================
-   SAMPLE TALENTS
-   Replace with Firebase later.
-========================================================= */
-
-const talents = [
-  {
-    id: 1,
-    name: "John Mwale",
-    role: "Fresh cuts & grooming",
-    category: "Barbers",
-    location: "Lusaka",
-    initials: "JM",
-    description: "Clean fades, modern cuts and everyday grooming for men.",
-    available: true,
-    verified: true,
-  },
-  {
-    id: 2,
-    name: "Brian Phiri",
-    role: "Men's barbering",
-    category: "Barbers",
-    location: "Lusaka",
-    initials: "BP",
-    description: "Professional barber specialising in fades and classic cuts.",
-    available: true,
-    verified: false,
-  },
-  {
-    id: 3,
-    name: "Moses Banda",
-    role: "Modern fades",
-    category: "Barbers",
-    location: "Ndola",
-    initials: "MB",
-    description: "Modern fades, styling and grooming for every occasion.",
-    available: false,
-    verified: true,
-  },
-  {
-    id: 4,
-    name: "Peter Chanda",
-    role: "Cuts & styling",
-    category: "Barbers",
-    location: "Kitwe",
-    initials: "PC",
-    description: "Sharp cuts and personal styling with attention to detail.",
-    available: true,
-    verified: false,
-  },
-  {
-    id: 5,
-    name: "David Zulu",
-    role: "Professional barbering",
-    category: "Barbers",
-    location: "Lusaka",
-    initials: "DZ",
-    description: "Clean professional cuts and grooming services.",
-    available: true,
-    verified: true,
-  },
-  {
-    id: 6,
-    name: "Martha Banda",
-    role: "Hair & beauty",
-    category: "Hair & Beauty",
-    location: "Kitwe",
-    initials: "MB",
-    description: "Hair styling, beauty care and personalised treatments.",
-    available: true,
-    verified: true,
-  },
-  {
-    id: 7,
-    name: "Ruth Mwansa",
-    role: "Braiding & styling",
-    category: "Hair & Beauty",
-    location: "Lusaka",
-    initials: "RM",
-    description: "Creative braiding and protective hairstyles.",
-    available: false,
-    verified: false,
-  },
-  {
-    id: 8,
-    name: "Grace Phiri",
-    role: "Natural hair",
-    category: "Hair & Beauty",
-    location: "Ndola",
-    initials: "GP",
-    description: "Natural hair care, styling and protective hairstyles.",
-    available: true,
-    verified: true,
-  },
-  {
-    id: 9,
-    name: "Alice Chanda",
-    role: "Custom dressmaking",
-    category: "Dressmakers",
-    location: "Ndola",
-    initials: "AC",
-    description: "Custom clothing made to your measurements and style.",
-    available: true,
-    verified: true,
-  },
-  {
-    id: 10,
-    name: "Mary Phiri",
-    role: "Women's fashion",
-    category: "Dressmakers",
-    location: "Lusaka",
-    initials: "MP",
-    description: "Women's fashion, custom outfits and alterations.",
-    available: true,
-    verified: false,
-  },
-  {
-    id: 11,
-    name: "Chileshe Banda",
-    role: "Custom clothing",
-    category: "Dressmakers",
-    location: "Kitwe",
-    initials: "CB",
-    description: "Custom clothing and modern African-inspired fashion.",
-    available: false,
-    verified: true,
-  },
-  {
-    id: 12,
-    name: "Mary Ngoma",
-    role: "Celebration cakes",
-    category: "Cakes",
-    location: "Kitwe",
-    initials: "MN",
-    description: "Beautiful custom cakes for birthdays and special events.",
-    available: true,
-    verified: true,
-  },
-  {
-    id: 13,
-    name: "Gift Banda",
-    role: "Birthday cakes",
-    category: "Cakes",
-    location: "Lusaka",
-    initials: "GB",
-    description: "Creative birthday cakes, cupcakes and desserts.",
-    available: true,
-    verified: false,
-  },
-  {
-    id: 14,
-    name: "John Phiri",
-    role: "Portrait photography",
-    category: "Photography",
-    location: "Lusaka",
-    initials: "JP",
-    description: "Portrait photography for individuals, brands and creatives.",
-    available: true,
-    verified: true,
-  },
-  {
-    id: 15,
-    name: "Brian Zulu",
-    role: "Event photography",
-    category: "Photography",
-    location: "Ndola",
-    initials: "BZ",
-    description: "Capturing events, celebrations and unforgettable moments.",
-    available: false,
-    verified: true,
-  },
-  {
-    id: 16,
-    name: "Brian Mwale",
-    role: "Flutter Developer",
-    category: "Technology",
-    location: "Lusaka",
-    initials: "BM",
-    description:
-      "Mobile applications built with Flutter and modern technology.",
-    available: true,
-    verified: true,
-  },
-  {
-    id: 17,
-    name: "David Banda",
-    role: "Web Developer",
-    category: "Technology",
-    location: "Ndola",
-    initials: "DB",
-    description: "Modern responsive websites and web applications.",
-    available: true,
-    verified: false,
-  },
-  {
-    id: 18,
-    name: "Martha Phiri",
-    role: "UI/UX Designer",
-    category: "Technology",
-    location: "Lusaka",
-    initials: "MP",
-    description: "Clean user interfaces and thoughtful digital experiences.",
-    available: true,
-    verified: true,
   },
 ];
