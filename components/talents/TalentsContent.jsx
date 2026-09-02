@@ -27,7 +27,11 @@ import TalentCard from "@/components/talents/TalentCard";
 import { talents } from "@/data/talents";
 import { categories } from "@/data/categories";
 
-const INITIAL_VISIBLE_COUNT = 8;
+const INITIAL_CATEGORY_COUNT = 6;
+const CATEGORIES_PER_LOAD = 6;
+
+const INITIAL_TALENTS_PER_CATEGORY = 6;
+const TALENTS_PER_CATEGORY_LOAD = 6;
 
 const locations = ["All locations", "Lusaka", "Ndola", "Kitwe", "Livingstone"];
 
@@ -67,12 +71,26 @@ function CategoryIcon({ name, size = 17 }) {
   }
 }
 
-const categoriesWithCounts = categories.map((category) => ({
-  ...category,
-  count: talents.filter(
-    (talent) => normalize(talent.category) === normalize(category.name),
-  ).length,
-}));
+/*
+|--------------------------------------------------------------------------
+| Category counts
+|--------------------------------------------------------------------------
+*/
+
+const categoriesWithCounts = categories
+  .map((category) => ({
+    ...category,
+    count: talents.filter(
+      (talent) => normalize(talent.category) === normalize(category.name),
+    ).length,
+  }))
+  .filter((category) => category.count > 0);
+
+/*
+|--------------------------------------------------------------------------
+| Main component
+|--------------------------------------------------------------------------
+*/
 
 export default function TalentsContent() {
   const router = useRouter();
@@ -84,7 +102,31 @@ export default function TalentsContent() {
   const location = searchParams.get("location") || "All locations";
   const sort = searchParams.get("sort") || "Recommended";
 
-  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
+  /*
+   * How many categories are currently visible.
+   */
+  const [visibleCategoryCount, setVisibleCategoryCount] = useState(
+    INITIAL_CATEGORY_COUNT,
+  );
+
+  /*
+   * Each category gets its own independent visible count.
+   *
+   * Example:
+   *
+   * {
+   *   Barbers: 12,
+   *   Photographers: 6,
+   *   Designers: 18
+   * }
+   */
+  const [categoryLimits, setCategoryLimits] = useState({});
+
+  /*
+   |--------------------------------------------------------------------------
+   | Active category
+   |--------------------------------------------------------------------------
+   */
 
   const activeCategory = useMemo(() => {
     if (!categoryParam) {
@@ -99,6 +141,12 @@ export default function TalentsContent() {
   }, [categoryParam]);
 
   const activeCategoryName = activeCategory?.name || "";
+
+  /*
+   |--------------------------------------------------------------------------
+   | URL filters
+   |--------------------------------------------------------------------------
+   */
 
   function updateParams(updates = {}) {
     const params = new URLSearchParams(searchParams.toString());
@@ -131,7 +179,7 @@ export default function TalentsContent() {
       search: value.trim() ? value : null,
     });
 
-    setVisibleCount(INITIAL_VISIBLE_COUNT);
+    resetCategoryLimits();
   }
 
   function changeCategory(value) {
@@ -139,7 +187,7 @@ export default function TalentsContent() {
       category: value,
     });
 
-    setVisibleCount(INITIAL_VISIBLE_COUNT);
+    resetCategoryLimits();
   }
 
   function changeLocation(value) {
@@ -147,7 +195,7 @@ export default function TalentsContent() {
       location: value,
     });
 
-    setVisibleCount(INITIAL_VISIBLE_COUNT);
+    resetCategoryLimits();
   }
 
   function changeSort(value) {
@@ -155,7 +203,7 @@ export default function TalentsContent() {
       sort: value,
     });
 
-    setVisibleCount(INITIAL_VISIBLE_COUNT);
+    resetCategoryLimits();
   }
 
   function clearFilters() {
@@ -163,12 +211,32 @@ export default function TalentsContent() {
       scroll: false,
     });
 
-    setVisibleCount(INITIAL_VISIBLE_COUNT);
+    resetCategoryLimits();
   }
+
+  function resetCategoryLimits() {
+    setCategoryLimits({});
+    setVisibleCategoryCount(INITIAL_CATEGORY_COUNT);
+  }
+
+  /*
+   |--------------------------------------------------------------------------
+   | Filter talents
+   |--------------------------------------------------------------------------
+   |
+   | We filter the local dataset here for the MVP.
+   |
+   | Later, this same category structure can be replaced with
+   | Firestore queries without changing the UI.
+   |
+   */
 
   const filteredTalents = useMemo(() => {
     let results = [...talents];
 
+    /*
+     * Search
+     */
     if (search.trim()) {
       const query = normalize(search);
 
@@ -183,13 +251,15 @@ export default function TalentsContent() {
           ...(talent.skills || []),
         ]
           .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+          .join(" ");
 
-        return searchableContent.includes(query);
+        return normalize(searchableContent).includes(query);
       });
     }
 
+    /*
+     * Category
+     */
     if (activeCategoryName) {
       results = results.filter(
         (talent) =>
@@ -197,12 +267,18 @@ export default function TalentsContent() {
       );
     }
 
+    /*
+     * Location
+     */
     if (location !== "All locations") {
       results = results.filter(
         (talent) => normalize(talent.location) === normalize(location),
       );
     }
 
+    /*
+     * Sort
+     */
     if (sort === "A-Z") {
       results.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -218,9 +294,74 @@ export default function TalentsContent() {
     return results;
   }, [search, activeCategoryName, location, sort]);
 
-  const visibleTalents = filteredTalents.slice(0, visibleCount);
+  /*
+   |--------------------------------------------------------------------------
+   | Build category sections
+   |--------------------------------------------------------------------------
+   |
+   | Instead of rendering every talent together, we group them by category.
+   */
 
-  const hasMore = visibleCount < filteredTalents.length;
+  const categorySections = useMemo(() => {
+    return categoriesWithCounts
+      .map((category) => {
+        const categoryTalents = filteredTalents.filter(
+          (talent) => normalize(talent.category) === normalize(category.name),
+        );
+
+        return {
+          ...category,
+          talents: categoryTalents,
+        };
+      })
+      .filter((category) => category.talents.length > 0);
+  }, [filteredTalents]);
+
+  /*
+   |--------------------------------------------------------------------------
+   | Categories to display
+   |--------------------------------------------------------------------------
+   */
+
+  const visibleCategories = activeCategoryName
+    ? categorySections.filter(
+        (category) =>
+          normalize(category.name) === normalize(activeCategoryName),
+      )
+    : categorySections.slice(0, visibleCategoryCount);
+
+  const hasMoreCategories =
+    !activeCategoryName && visibleCategoryCount < categorySections.length;
+
+  /*
+   |--------------------------------------------------------------------------
+   | Category load more
+   |--------------------------------------------------------------------------
+   */
+
+  function getCategoryLimit(categoryName) {
+    return categoryLimits[categoryName] || INITIAL_TALENTS_PER_CATEGORY;
+  }
+
+  function loadMoreTalents(categoryName) {
+    setCategoryLimits((current) => ({
+      ...current,
+      [categoryName]:
+        getCategoryLimit(categoryName) + TALENTS_PER_CATEGORY_LOAD,
+    }));
+  }
+
+  function loadMoreCategories() {
+    setVisibleCategoryCount((current) => current + CATEGORIES_PER_LOAD);
+  }
+
+  /*
+   |--------------------------------------------------------------------------
+   | Total results
+   |--------------------------------------------------------------------------
+   */
+
+  const totalResults = filteredTalents.length;
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
@@ -235,18 +376,19 @@ export default function TalentsContent() {
             onCategoryChange={changeCategory}
           />
 
+          {/* Filters */}
           <div className="mt-8 border-b border-slate-200 pb-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-sm font-bold text-slate-950">
-                  {filteredTalents.length}{" "}
-                  {filteredTalents.length === 1 ? "talent" : "talents"} found
+                  {totalResults} {totalResults === 1 ? "talent" : "talents"}{" "}
+                  found
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
                   {activeCategoryName
                     ? `Showing ${activeCategoryName} talents.`
-                    : "Discover people offering skills and services."}
+                    : "Browse talented people by category."}
                 </p>
               </div>
 
@@ -305,50 +447,50 @@ export default function TalentsContent() {
             )}
           </div>
 
-          {visibleTalents.length > 0 ? (
-            <>
-              <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {visibleTalents.map((talent) => (
-                  <TalentCard
-                    key={talent.id}
-                    id={talent.id}
-                    image={talent.image}
-                    initials={talent.initials}
-                    name={talent.name}
-                    role={talent.role}
-                    location={talent.location}
-                    skills={talent.skills}
-                    likes={talent.likes}
-                    workCount={talent.workCount}
-                    verified={talent.verified}
-                    available={talent.available}
-                  />
-                ))}
-              </div>
+          {/* Category sections */}
+          {visibleCategories.length > 0 ? (
+            <div className="mt-10 space-y-14">
+              {visibleCategories.map((category) => {
+                const limit = getCategoryLimit(category.name);
 
-              {hasMore && (
-                <div className="mt-8 flex justify-center">
+                const visibleTalents = category.talents.slice(0, limit);
+
+                const hasMore = limit < category.talents.length;
+
+                return (
+                  <CategorySection
+                    key={category.id}
+                    category={category}
+                    talents={visibleTalents}
+                    total={category.talents.length}
+                    hasMore={hasMore}
+                    onLoadMore={() => loadMoreTalents(category.name)}
+                  />
+                );
+              })}
+
+              {/* Load more categories */}
+              {hasMoreCategories && (
+                <div className="flex justify-center pt-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      setVisibleCount(
-                        (current) => current + INITIAL_VISIBLE_COUNT,
-                      )
-                    }
+                    onClick={loadMoreCategories}
                     className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
                   >
-                    Load more
+                    Load more categories
                     <ChevronDown size={16} />
                   </button>
                 </div>
               )}
 
-              {!hasMore && filteredTalents.length > INITIAL_VISIBLE_COUNT && (
-                <p className="mt-8 text-center text-xs font-medium text-slate-400">
-                  You've reached the end of the results.
-                </p>
-              )}
-            </>
+              {!hasMoreCategories &&
+                !activeCategoryName &&
+                categorySections.length > INITIAL_CATEGORY_COUNT && (
+                  <p className="text-center text-xs font-medium text-slate-400">
+                    You've reached the end of the categories.
+                  </p>
+                )}
+            </div>
           ) : (
             <EmptyState onClear={clearFilters} />
           )}
@@ -360,25 +502,128 @@ export default function TalentsContent() {
   );
 }
 
+/*
+|--------------------------------------------------------------------------
+| Category Section
+|--------------------------------------------------------------------------
+*/
+
+function CategorySection({ category, talents, total, hasMore, onLoadMore }) {
+  return (
+    <section>
+      {/* Section heading */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+            <CategoryIcon name={category.icon} size={18} />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black tracking-tight text-slate-950">
+                {category.name}
+              </h2>
+
+              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
+                {total}
+              </span>
+            </div>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Talented people offering {category.name.toLowerCase()}.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Talent cards */}
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {talents.map((talent) => (
+          <TalentCard
+            key={talent.id}
+            id={talent.id}
+            image={talent.image}
+            initials={talent.initials}
+            name={talent.name}
+            role={talent.role}
+            location={talent.location}
+            skills={talent.skills}
+            likes={talent.likes}
+            workCount={talent.workCount}
+            verified={talent.verified}
+            available={talent.available}
+          />
+        ))}
+      </div>
+
+      {/* Category-specific load more */}
+      {hasMore && (
+        <div className="mt-7 flex justify-center">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
+          >
+            Load more {category.name.toLowerCase()}
+            <ChevronDown size={16} />
+          </button>
+        </div>
+      )}
+
+      {!hasMore && total > 6 && (
+        <p className="mt-6 text-center text-xs font-medium text-slate-400">
+          You've reached the end of {category.name.toLowerCase()}.
+        </p>
+      )}
+    </section>
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Hero
+|--------------------------------------------------------------------------
+*/
+
 function TalentsHero({ search, onSearch }) {
   return (
-    <section className="border-b border-slate-200 bg-slate-50">
-      <div className="mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
+    <section
+      className="relative overflow-hidden border-b border-slate-200 bg-slate-50"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=2000&q=85')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-slate-950/65" />
+
+      {/* Subtle extra gradient for better text readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/55 to-slate-950/30" />
+
+      <div className="relative mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
         <div className="max-w-3xl">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+          {/* Eyebrow */}
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
             Talents
           </p>
 
-          <h1 className="mt-4 text-4xl font-black tracking-tighter sm:text-5xl lg:text-6xl">
+          {/* Heading */}
+          <h1 className="mt-4 text-4xl font-black tracking-tighter text-white sm:text-5xl lg:text-6xl">
             Find the right
-            <span className="block text-slate-400">person for the job.</span>
+            <span className="block text-white/60">
+              person for the job.
+            </span>
           </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
-            Browse talented young people offering creative skills, professional
-            services and local expertise.
+          {/* Description */}
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75 sm:text-base sm:leading-7">
+            Browse talented young people offering creative skills,
+            professional services and local expertise.
           </p>
 
+          {/* Search */}
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -386,35 +631,41 @@ function TalentsHero({ search, onSearch }) {
             }}
             className="mt-7"
           >
-            <div className="flex items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-slate-400 focus-within:ring-4 focus-within:ring-slate-950/4">
+            <div className="flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl transition focus-within:border-white/40 focus-within:ring-4 focus-within:ring-white/10">
+              {/* Search icon */}
               <div className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400">
                 <Search size={19} />
               </div>
 
+              {/* Input */}
               <input
                 type="search"
                 value={search}
                 onChange={(event) => onSearch(event.target.value)}
                 placeholder="Search talents, skills or services..."
-                className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium outline-none placeholder:text-slate-400 sm:text-base"
+                className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 sm:text-base"
               />
 
+              {/* Clear */}
               {search && (
                 <button
                   type="button"
                   onClick={() => onSearch("")}
-                  className="mr-1 flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Clear search"
                 >
                   <X size={16} />
                 </button>
               )}
 
+              {/* Search button */}
               <button
                 type="submit"
-                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800"
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98]"
               >
-                <span className="hidden sm:inline">Search</span>
+                <span className="hidden sm:inline">
+                  Search
+                </span>
 
                 <ArrowRight size={16} />
               </button>
@@ -425,6 +676,14 @@ function TalentsHero({ search, onSearch }) {
     </section>
   );
 }
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Quick Categories
+|--------------------------------------------------------------------------
+*/
 
 function QuickCategories({ activeCategory, onCategoryChange }) {
   return (
@@ -471,6 +730,12 @@ function QuickCategories({ activeCategory, onCategoryChange }) {
   );
 }
 
+/*
+|--------------------------------------------------------------------------
+| Category Button
+|--------------------------------------------------------------------------
+*/
+
 function CategoryButton({ title, count, icon, active, onClick }) {
   return (
     <button
@@ -503,6 +768,12 @@ function CategoryButton({ title, count, icon, active, onClick }) {
   );
 }
 
+/*
+|--------------------------------------------------------------------------
+| Filter Button
+|--------------------------------------------------------------------------
+*/
+
 function FilterButton({ icon: Icon, options, value, onChange }) {
   return (
     <div className="relative">
@@ -531,6 +802,12 @@ function FilterButton({ icon: Icon, options, value, onChange }) {
   );
 }
 
+/*
+|--------------------------------------------------------------------------
+| Filter Chip
+|--------------------------------------------------------------------------
+*/
+
 function FilterChip({ label, onRemove }) {
   return (
     <button
@@ -543,6 +820,12 @@ function FilterChip({ label, onRemove }) {
     </button>
   );
 }
+
+/*
+|--------------------------------------------------------------------------
+| Empty State
+|--------------------------------------------------------------------------
+*/
 
 function EmptyState({ onClear }) {
   return (

@@ -1,55 +1,38 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
   BriefcaseBusiness,
-  CakeSlice,
-  Camera,
-  ChevronDown,
   ChevronRight,
-  Code2,
+  Heart,
   MapPin,
-  Scissors,
   Search,
-  Shirt,
   Sparkles,
   TrendingUp,
+  UserRound,
+  Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
 
+import { useState } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import TalentCard from "@/components/talents/TalentCard";
+import WorkCard from "@/components/home/WorkCard";
 
 import { talents } from "@/data/talents";
 import { categories } from "@/data/categories";
+import { works } from "@/data/works";
 
 /* =========================================================
    CONFIG
 ========================================================= */
 
-const INITIAL_CATEGORY_COUNT = 6;
-const CATEGORIES_PER_LOAD = 6;
-
-const INITIAL_TALENTS_PER_CATEGORY = 6;
-const TALENTS_PER_CATEGORY_LOAD = 6;
-
-const TRENDING_COUNT = 10;
-
-/* =========================================================
-   CATEGORY ICONS
-========================================================= */
-
-const categoryIcons = {
-  scissors: Scissors,
-  sparkles: Sparkles,
-  shirt: Shirt,
-  "cake-slice": CakeSlice,
-  camera: Camera,
-  code: Code2,
-  briefcase: BriefcaseBusiness,
-};
+const TOP_CATEGORIES_COUNT = 10;
+const TOP_TALENTS_COUNT = 10;
+const NEW_TALENTS_COUNT = 6;
+const TRENDING_WORKS_COUNT = 10;
 
 /* =========================================================
    DISCOVER PAGE
@@ -75,56 +58,70 @@ export default function DiscoverPage() {
 
 function DiscoverHero() {
   return (
-    <section className="border-b border-slate-200 bg-slate-50">
-      <div className="mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
+    <section
+      className="relative overflow-hidden border-b border-slate-200 bg-slate-950"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=2200&q=85')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      {/* Dark overlay */}
+
+      <div className="absolute inset-0 bg-slate-950/65" />
+
+      {/* Directional gradient */}
+
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-950/50" />
+
+      {/* Bottom fade */}
+
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-950/70 to-transparent" />
+
+      <div className="relative mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
         <div className="max-w-3xl">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-            Discover
-          </p>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
+              Discover
+            </p>
 
-          <h1 className="mt-4 text-4xl font-black tracking-[-0.05em] sm:text-5xl lg:text-6xl">
-            Find people who can
-            <span className="block text-slate-400">
-              make it happen.
-            </span>
-          </h1>
+            <h1 className="mt-4 text-4xl font-black tracking-tighter text-white sm:text-5xl lg:text-6xl">
+              Find talent.
+              <span className="block text-white/60">Find possibilities.</span>
+            </h1>
 
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
-            Explore talented young people offering creative
-            skills, professional services and local expertise.
-          </p>
-
-          {/* Search */}
-
-          <div className="mt-7">
-            <form
-              action="/talents"
-              method="GET"
-              className="flex items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-slate-400 focus-within:ring-4 focus-within:ring-slate-950/[0.04]"
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400">
-                <Search size={19} />
-              </div>
-
-              <input
-                name="search"
-                type="search"
-                placeholder="Search talents, skills or services..."
-                className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 sm:text-base"
-              />
-
-              <button
-                type="submit"
-                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98]"
-              >
-                <span className="hidden sm:inline">
-                  Search
-                </span>
-
-                <ArrowRight size={16} />
-              </button>
-            </form>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75 sm:text-base sm:leading-7">
+              Discover talented young people, useful skills, creative work and
+              services from the Youth Space community.
+            </p>
           </div>
+
+          <form
+            action="/talents"
+            method="GET"
+            className="mt-7 flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400">
+              <Search size={19} />
+            </div>
+
+            <input
+              name="search"
+              type="search"
+              placeholder="Search talents or skills..."
+              className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400"
+            />
+
+            <button
+              type="submit"
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98]"
+            >
+              <span className="hidden sm:inline">Search</span>
+
+              <ArrowRight size={16} />
+            </button>
+          </form>
         </div>
       </div>
     </section>
@@ -136,263 +133,353 @@ function DiscoverHero() {
 ========================================================= */
 
 function DiscoverContent() {
-  /*
-   * categories.js is the single source of truth.
-   *
-   * We do not create the category list from talents.
-   *
-   * categories.js
-   *      ↓
-   *   Discover
-   *      ↓
-   * talents.js
-   *
-   * Category metadata comes from categories.js.
-   * Talent records come from talents.js.
-   */
-
-  /*
-   * Calculate the number of talents in each category.
-   *
-   * Counts are NOT hard-coded.
-   */
-  const categoriesWithCounts = useMemo(() => {
-    return categories.map((category) => ({
-      ...category,
-
-      count: talents.filter(
-        (talent) =>
-          talent.category?.trim().toLowerCase() ===
-          category.name?.trim().toLowerCase(),
-      ).length,
-    }));
-  }, []);
-
-  /*
-   * Number of category sections currently displayed.
-   *
-   * Initial: 6
-   * Load more: +6
-   */
-  const [visibleCategoryCount, setVisibleCategoryCount] =
-    useState(INITIAL_CATEGORY_COUNT);
-
-  /*
-   * Each category has its own talent limit.
-   */
-  const [categoryLimits, setCategoryLimits] =
-    useState({});
-
-  const visibleCategories =
-    categoriesWithCounts.slice(
-      0,
-      visibleCategoryCount,
-    );
-
-  const hasMoreCategories =
-    visibleCategoryCount <
-    categoriesWithCounts.length;
-
   /* =======================================================
-     LOAD MORE CATEGORIES
+     CATEGORY DATA
   ======================================================= */
 
-  function loadMoreCategories() {
-    setVisibleCategoryCount((current) =>
-      Math.min(
-        current + CATEGORIES_PER_LOAD,
-        categoriesWithCounts.length,
-      ),
-    );
-  }
+  const categoriesWithCounts = categories.map((category) => ({
+    ...category,
+
+    count: talents.filter(
+      (talent) =>
+        talent.category?.trim().toLowerCase() ===
+        category.name?.trim().toLowerCase(),
+    ).length,
+  }));
 
   /* =======================================================
-     LOAD MORE TALENTS
+     TOP 10 CATEGORIES
   ======================================================= */
 
-  function loadMoreTalents(categoryId) {
-    setCategoryLimits((current) => ({
-      ...current,
-      [categoryId]:
-        (current[categoryId] ||
-          INITIAL_TALENTS_PER_CATEGORY) +
-        TALENTS_PER_CATEGORY_LOAD,
-    }));
-  }
+  const topCategories = [...categoriesWithCounts]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, TOP_CATEGORIES_COUNT);
+
+  /* =======================================================
+     TOP 10 TALENTS
+  ======================================================= */
+
+  const topTalents = [...talents]
+    .sort((a, b) => {
+      const scoreA = Number(a.likes || 0) + Number(a.workCount || 0);
+
+      const scoreB = Number(b.likes || 0) + Number(b.workCount || 0);
+
+      return scoreB - scoreA;
+    })
+    .slice(0, TOP_TALENTS_COUNT);
+
+  /* =======================================================
+     NEW TALENTS
+  ======================================================= */
+
+  const newTalents = [...talents]
+    .sort((a, b) => {
+      if (!a.createdAt || !b.createdAt) {
+        return 0;
+      }
+
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    })
+    .slice(0, NEW_TALENTS_COUNT);
+
+  /* =======================================================
+     TRENDING WORKS
+
+     Exactly the 10 works with the highest likes.
+  ======================================================= */
+
+  const trendingWorks = [...works]
+    .sort((a, b) => Number(b.likes || 0) - Number(a.likes || 0))
+    .slice(0, TRENDING_WORKS_COUNT);
+
+  /* =======================================================
+     COMMUNITY STATS
+  ======================================================= */
+
+  const totalTalents = talents.length;
+  const totalCategories = categories.length;
+  const totalWorks = works.length;
 
   return (
     <section>
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
         {/* =================================================
-            DISCOVERY HEADER
+            DISCOVERY INTRO
         ================================================= */}
 
-        <div className="border-b border-slate-200 pb-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-black">
-                Explore talent
-              </h2>
+        <div className="flex flex-col gap-5 border-b border-slate-200 pb-7 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+              Explore Youth Space
+            </p>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Discover people offering skills and services.
-              </p>
-            </div>
+            <h2 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">
+              There&apos;s talent everywhere.
+            </h2>
 
-            {/* Location */}
-
-            <button
-              type="button"
-              className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              <MapPin size={15} />
-
-              Zambia
-
-              <ChevronDown size={14} />
-            </button>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+              Take a look around and discover someone who can do something
+              amazing.
+            </p>
           </div>
 
-          {/* =================================================
-              QUICK CATEGORIES
-          ================================================= */}
-
-          <div className="mt-6">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-                Browse categories
-              </p>
-
-              <Link
-                href="/categories"
-                className="hidden items-center gap-1 text-xs font-bold text-slate-500 transition hover:text-slate-950 sm:flex"
-              >
-                All categories
-
-                <ChevronRight size={14} />
-              </Link>
-            </div>
-
-            <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-none sm:mx-0 sm:px-0">
-              {visibleCategories
-                .slice(0, 8)
-                .map((category, index) => (
-                  <QuickCategory
-                    key={category.id}
-                    category={category}
-                    active={index === 0}
-                  />
-                ))}
-            </div>
+          <div className="inline-flex h-10 w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700">
+            <MapPin size={15} />
+            Zambia
           </div>
         </div>
 
         {/* =================================================
-            TRENDING
+            COMMUNITY STATS
         ================================================= */}
 
-        <TrendingSection />
+        <div className="mt-7 flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
+          <div className="min-w-[160px] flex-1 sm:min-w-0">
+            <StatCard icon={Users} value={totalTalents} label="Talents" />
+          </div>
 
-        {/* =================================================
-            CATEGORY SECTIONS
-        ================================================= */}
+          <div className="min-w-[160px] flex-1 sm:min-w-0">
+            <StatCard
+              icon={BriefcaseBusiness}
+              value={totalCategories}
+              label="Categories"
+            />
+          </div>
 
-        <div className="mt-16 space-y-16 sm:mt-20 sm:space-y-24">
-          {visibleCategories.map((category) => {
-            const categoryTalents = talents.filter(
-              (talent) =>
-                talent.category?.trim().toLowerCase() ===
-                category.name?.trim().toLowerCase(),
-            );
-
-            const limit =
-              categoryLimits[category.id] ||
-              INITIAL_TALENTS_PER_CATEGORY;
-
-            return (
-              <DiscoverCategory
-                key={category.id}
-                category={category}
-                items={categoryTalents}
-                limit={limit}
-                onLoadMore={() =>
-                  loadMoreTalents(category.id)
-                }
-              />
-            );
-          })}
+          <div className="min-w-[160px] flex-1 sm:min-w-0">
+            <StatCard icon={Sparkles} value={totalWorks} label="Works" />
+          </div>
         </div>
 
         {/* =================================================
-            LOAD MORE CATEGORIES
+            TOP CATEGORIES
         ================================================= */}
 
-        {hasMoreCategories && (
-          <div className="mt-16 flex justify-center border-t border-slate-200 pt-8 sm:mt-24 sm:pt-10">
-            <button
-              type="button"
-              onClick={loadMoreCategories}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
-            >
-              Load more categories
+        <TopCategoriesSection
+          categories={topCategories}
+          className="mt-12 sm:mt-16"
+        />
 
-              <ChevronDown size={16} />
-            </button>
-          </div>
-        )}
+        {/* =================================================
+            NETWORK BANNER
+        ================================================= */}
 
-        {!hasMoreCategories &&
-          categoriesWithCounts.length > 0 && (
-            <div className="mt-16 border-t border-slate-200 pt-8 text-center sm:mt-24">
-              <p className="text-xs font-medium text-slate-400">
-                You've reached the end of the categories.
-              </p>
+        <DiscoverBanner
+          eyebrow="Every skill has a story"
+          title="Someone out there is good at what you need."
+          description="Explore the community and discover young people turning their skills into something meaningful."
+          actionLabel="Explore all talents"
+          actionHref="/talents"
+          image="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1600&q=85"
+          imageAlt="Young people connecting and building together"
+          className="mt-12 sm:mt-16"
+        />
 
-              <Link
-                href="/categories"
-                className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-slate-700 transition hover:text-slate-950"
-              >
-                Explore all categories
+        {/* =================================================
+            TOP TALENTS
+        ================================================= */}
 
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-          )}
+        <TalentSection
+          eyebrow="Community favourites"
+          title="Top 10 talents"
+          description="Meet some of the talents getting the most attention."
+          talents={topTalents}
+          href="/talents"
+          className="mt-12 sm:mt-16"
+        />
+
+        {/* =================================================
+            NEW TALENTS POSTER
+        ================================================= */}
+
+        <DiscoverPoster
+          eyebrow="Fresh faces"
+          title="There is always someone new to discover."
+          description="Meet young people who are bringing their skills and ideas to Youth Space."
+          actionLabel="Discover more talents"
+          actionHref="/talents"
+          image="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=85"
+          imageAlt="Young people working together"
+          className="mt-12 sm:mt-16"
+        />
+
+        {/* =================================================
+            NEW TALENTS
+        ================================================= */}
+
+        <TalentSection
+          eyebrow="Just joined"
+          title="New talents"
+          description="Discover some of the newest people in the community."
+          talents={newTalents}
+          href="/talents"
+          className="mt-12 sm:mt-16"
+        />
+
+        {/* =================================================
+            TRENDING WORKS
+        ================================================= */}
+
+        <TrendingWorksSection
+          works={trendingWorks}
+          className="mt-12 sm:mt-20"
+        />
+
+        {/* =================================================
+            BOTTOM CTA
+        ================================================= */}
+
+        <DiscoverPoster
+          eyebrow="Youth Space"
+          title="Your skill could be someone else's opportunity."
+          description="Put your talent out there and let people discover what you can do."
+          actionLabel="View talents"
+          actionHref="/talents"
+          image="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1800&q=85"
+          imageAlt="Young people collaborating"
+          className="mt-12 sm:mt-20"
+        />
       </div>
     </section>
   );
 }
 
 /* =========================================================
-   TRENDING SECTION
+   STAT CARD
 ========================================================= */
 
-function TrendingSection() {
-  const trendingTalents = useMemo(() => {
-    return [...talents]
-      .sort((a, b) => {
-        const scoreA =
-          Number(a.likes || 0) +
-          Number(a.workCount || 0);
+function StatCard({ icon: Icon, value, label }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+          <Icon size={17} />
+        </div>
 
-        const scoreB =
-          Number(b.likes || 0) +
-          Number(b.workCount || 0);
+        <div className="min-w-0">
+          <p className="text-lg font-black leading-none">{value}</p>
 
-        return scoreB - scoreA;
-      })
-      .slice(0, TRENDING_COUNT);
-  }, []);
+          <p className="mt-1 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+            {label}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  if (!trendingTalents.length) {
+/* =========================================================
+   TOP CATEGORIES
+========================================================= */
+
+function TopCategoriesSection({ categories, className = "" }) {
+  if (!categories.length) {
     return null;
   }
 
   return (
-    <section className="mt-12 border-b border-slate-200 pb-12 sm:mt-16 sm:pb-16">
+    <section className={className}>
+      <SectionHeading
+        eyebrow="Explore"
+        title="Top 10 categories"
+        description="Browse the skills and services available in the community."
+        href="/categories"
+        linkLabel="View all"
+      />
+
+      <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {categories.map((category, index) => (
+          <Link
+            key={category.id}
+            href={`/talents?category=${encodeURIComponent(category.name)}`}
+            className="group rounded-2xl border border-slate-200 bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <CategoryIcon icon={category.icon} />
+
+              <span className="text-[10px] font-black text-slate-300">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+            </div>
+
+            <h3 className="mt-5 truncate text-sm font-black">
+              {category.name}
+            </h3>
+
+            <p className="mt-1 text-xs text-slate-400">
+              {category.count} {category.count === 1 ? "talent" : "talents"}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   TALENT SECTION
+========================================================= */
+
+function TalentSection({
+  eyebrow,
+  title,
+  description,
+  talents,
+  href,
+  className = "",
+}) {
+  if (!talents.length) {
+    return null;
+  }
+
+  return (
+    <section className={className}>
+      <SectionHeading
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        href={href}
+        linkLabel="View all"
+      />
+
+      <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {talents.map((talent) => (
+          <TalentCard
+            key={talent.id}
+            id={talent.id}
+            image={talent.image}
+            initials={talent.initials}
+            name={talent.name}
+            role={talent.role}
+            category={talent.category}
+            location={talent.location}
+            skills={talent.skills}
+            likes={talent.likes}
+            workCount={talent.workCount}
+            verified={talent.verified}
+            available={talent.available}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   TRENDING WORKS
+========================================================= */
+
+function TrendingWorksSection({ works, className = "" }) {
+  if (!works.length) {
+    return null;
+  }
+
+  return (
+    <section className={className}>
       <div className="flex items-end gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
-          <TrendingUp size={18} />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
+          <TrendingUp size={19} />
         </div>
 
         <div>
@@ -401,209 +488,252 @@ function TrendingSection() {
           </p>
 
           <h2 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">
-            Top 10 trending
+            Trending works
           </h2>
         </div>
       </div>
 
       <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
-        Discover talents getting attention from the community.
+        The 10 works receiving the most likes from the community.
       </p>
 
       <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {trendingTalents.map((talent) => (
-          <TalentCard
-            key={talent.id}
-            id={talent.id}
-            image={talent.image}
-            initials={talent.initials}
-            name={talent.name}
-            role={talent.role}
-            location={talent.location}
-            skills={talent.skills}
-            likes={talent.likes}
-            workCount={talent.workCount}
-            verified={talent.verified}
-            available={talent.available}
-          />
-        ))}
+        {works.map((work) => {
+          const talent = talents.find(
+            (item) => String(item.id) === String(work.talentId),
+          );
+
+          if (!talent) {
+            return null;
+          }
+
+          return <WorkCard key={work.id} work={work} talent={talent} />;
+        })}
       </div>
     </section>
   );
 }
 
 /* =========================================================
-   DISCOVER CATEGORY
+   DISCOVER BANNER
 ========================================================= */
 
-function DiscoverCategory({
-  category,
-  items,
-  limit,
-  onLoadMore,
+function DiscoverBanner({
+  eyebrow,
+  title,
+  description,
+  actionLabel,
+  actionHref,
+  image,
+  imageAlt,
+  className = "",
 }) {
-  if (!items?.length) {
-    return null;
-  }
-
-  const visibleItems = items.slice(0, limit);
-
-  const hasMore =
-    visibleItems.length < items.length;
+  const [imageError, setImageError] = useState(false);
 
   return (
-    <section>
-      {/* Category Header */}
+    <section
+      className={`overflow-hidden border border-slate-200 bg-slate-950 ${className}`}
+    >
+      <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
+        {/* Content */}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-start gap-3 sm:gap-4">
-          <CategoryIcon icon={category.icon} />
+        <div className="relative z-10 px-6 py-9 sm:px-10 sm:py-12 lg:py-14">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-white/40">
+            {eyebrow}
+          </p>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">
-                {category.name}
-              </h2>
+          <h2 className="mt-3 max-w-2xl text-2xl font-black tracking-tight text-white sm:text-3xl">
+            {title}
+          </h2>
 
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500">
-                {category.count}
-              </span>
-            </div>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-white/60">
+            {description}
+          </p>
 
-            <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
-              {category.description}
-            </p>
-          </div>
+          <Link
+            href={actionHref}
+            className="group mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-slate-100 active:scale-[0.98]"
+          >
+            {actionLabel}
+
+            <ArrowRight
+              size={15}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
         </div>
 
+        {/* Image */}
+
+        <div className="relative min-h-[240px] overflow-hidden bg-slate-800">
+          {!imageError ? (
+            <Image
+              src={image}
+              alt={imageAlt}
+              fill
+              sizes="(max-width: 1024px) 100vw, 40vw"
+              className="object-cover transition duration-700 hover:scale-105"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <BannerImageFallback />
+          )}
+
+          {/* Image overlay */}
+
+          {!imageError && (
+            <>
+              <div className="absolute inset-0 bg-slate-950/25" />
+
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/20 to-transparent" />
+            </>
+          )}
+
+          {/* Decorative mark */}
+
+          <div className="absolute bottom-6 right-6 flex h-12 w-12 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white backdrop-blur-md">
+            <Users size={19} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =========================================================
+   DISCOVER POSTER
+========================================================= */
+
+function DiscoverPoster({
+  eyebrow,
+  title,
+  description,
+  actionLabel,
+  actionHref,
+  image,
+  imageAlt,
+  className = "",
+}) {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <section
+      className={`relative min-h-[320px] overflow-hidden bg-slate-950 ${className}`}
+    >
+      {/* Background image */}
+
+      {!imageError ? (
+        <Image
+          src={image}
+          alt={imageAlt}
+          fill
+          sizes="100vw"
+          className="object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <BannerImageFallback />
+      )}
+
+      {/* Dark overlays */}
+
+      {!imageError && (
+        <>
+          <div className="absolute inset-0 bg-slate-950/70" />
+
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/45" />
+        </>
+      )}
+
+      {/* Content */}
+
+      <div className="relative z-10 flex min-h-[320px] items-center px-6 py-10 sm:px-10 sm:py-14 lg:px-14">
+        <div className="max-w-2xl">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-white/45">
+            {eyebrow}
+          </p>
+
+          <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
+            {title}
+          </h2>
+
+          <p className="mt-4 max-w-xl text-sm leading-6 text-white/65 sm:text-base">
+            {description}
+          </p>
+
+          <Link
+            href={actionHref}
+            className="group mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-slate-100 active:scale-[0.98]"
+          >
+            {actionLabel}
+
+            <ArrowRight
+              size={15}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
+        </div>
+      </div>
+
+      {/* Decorative circles */}
+
+      <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-[45px] border-white/[0.05]" />
+
+      <div className="pointer-events-none absolute -bottom-28 right-24 h-64 w-64 rounded-full border-[35px] border-white/[0.05]" />
+    </section>
+  );
+}
+
+/* =========================================================
+   BANNER FALLBACK
+========================================================= */
+
+function BannerImageFallback() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
+      <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full border-[50px] border-white/[0.04]" />
+
+      <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full border-[50px] border-white/[0.04]" />
+
+      <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-white/5 text-white/40 backdrop-blur">
+        <Users size={30} strokeWidth={1.5} />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   SECTION HEADING
+========================================================= */
+
+function SectionHeading({ eyebrow, title, description, href, linkLabel }) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+          {eyebrow}
+        </p>
+
+        <h2 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">
+          {title}
+        </h2>
+
+        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+          {description}
+        </p>
+      </div>
+
+      {href && (
         <Link
-          href={`/talents?category=${encodeURIComponent(
-            category.name,
-          )}`}
-          className="hidden items-center gap-1 text-sm font-bold text-slate-600 transition hover:text-slate-950 sm:flex"
+          href={href}
+          className="inline-flex w-fit items-center gap-1 text-sm font-black text-slate-500 transition hover:text-slate-950"
         >
-          View all
+          {linkLabel}
 
           <ChevronRight size={15} />
         </Link>
-      </div>
-
-      {/* Talent Cards */}
-
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-7 sm:grid-cols-2 lg:grid-cols-4">
-        {visibleItems.map((talent) => (
-          <TalentCard
-            key={talent.id}
-            id={talent.id}
-            image={talent.image}
-            initials={talent.initials}
-            name={talent.name}
-            role={talent.role}
-            location={talent.location}
-            skills={talent.skills}
-            likes={talent.likes}
-            workCount={talent.workCount}
-            verified={talent.verified}
-            available={talent.available}
-          />
-        ))}
-      </div>
-
-      {/* Load More Talents */}
-
-      {hasMore && (
-        <div className="mt-7 flex justify-center">
-          <button
-            type="button"
-            onClick={onLoadMore}
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
-          >
-            Load more talents
-
-            <ChevronDown size={16} />
-          </button>
-        </div>
       )}
-
-      {/* Mobile View All */}
-
-      <div className="mt-5 flex justify-center sm:hidden">
-        <Link
-          href={`/talents?category=${encodeURIComponent(
-            category.name,
-          )}`}
-          className="inline-flex items-center gap-1 text-sm font-bold text-slate-600 transition hover:text-slate-950"
-        >
-          View all {category.name.toLowerCase()}
-
-          <ArrowRight size={14} />
-        </Link>
-      </div>
-
-      {/* Category End */}
-
-      {!hasMore && (
-        <div className="mt-6 flex justify-center">
-          <Link
-            href={`/talents?category=${encodeURIComponent(
-              category.name,
-            )}`}
-            className="hidden items-center gap-1 text-sm font-bold text-slate-500 transition hover:text-slate-950 sm:inline-flex"
-          >
-            Explore all{" "}
-            {category.name.toLowerCase()}
-
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-      )}
-    </section>
-  );
-}
-
-/* =========================================================
-   QUICK CATEGORY
-========================================================= */
-
-function QuickCategory({
-  category,
-  active = false,
-}) {
-  return (
-    <Link
-      href={`/talents?category=${encodeURIComponent(
-        category.name,
-      )}`}
-      className={`group flex min-w-[150px] shrink-0 items-center gap-3 rounded-2xl border p-3.5 transition active:scale-[0.98] ${
-        active
-          ? "border-slate-950 bg-slate-950 text-white shadow-md"
-          : "border-slate-200 bg-white text-slate-950 hover:border-slate-300 hover:shadow-sm"
-      }`}
-    >
-      <CategoryIcon
-        icon={category.icon}
-        active={active}
-      />
-
-      <div className="min-w-0">
-        <p className="truncate text-xs font-black">
-          {category.name}
-        </p>
-
-        <p
-          className={`mt-0.5 text-[10px] ${
-            active
-              ? "text-white/50"
-              : "text-slate-400"
-          }`}
-        >
-          {category.count}{" "}
-          {category.count === 1
-            ? "talent"
-            : "talents"}
-        </p>
-      </div>
-    </Link>
+    </div>
   );
 }
 
@@ -611,23 +741,12 @@ function QuickCategory({
    CATEGORY ICON
 ========================================================= */
 
-function CategoryIcon({
-  icon,
-  active = false,
-}) {
-  const Icon =
-    categoryIcons[icon] ||
-    BriefcaseBusiness;
+export function CategoryIcon({ icon }) {
+  const Icon = icon || BriefcaseBusiness;
 
   return (
-    <div
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${
-        active
-          ? "bg-white/10 text-white"
-          : "bg-slate-100 text-slate-700"
-      }`}
-    >
-      <Icon size={19} />
+    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+      <Icon size={18} />
     </div>
   );
 }

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "techpush": "git add . && git commit -m \"Update Youth Space\" && git push"
   },
   "dependencies": {
     "clsx": "^2.1.1",

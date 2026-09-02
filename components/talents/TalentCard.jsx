@@ -27,6 +27,7 @@ export default function TalentCard({
   available = false,
 }) {
   const [imageError, setImageError] = useState(false);
+  const [loved, setLoved] = useState(false);
 
   const showImage = Boolean(image) && !imageError;
 
@@ -107,6 +108,7 @@ export default function TalentCard({
             </span>
           )}
         </div>
+
         {/* =================================================
             TALENT
         ================================================= */}
@@ -167,22 +169,54 @@ export default function TalentCard({
         <div className="mt-auto">
           {/* Stats */}
 
-          <div className="mt-4 flex items-center gap-4 border-t border-slate-100 pt-3">
-            <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
-              <Heart size={11} />
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
+                <Heart size={11} />
 
-              <span>
-                {likes} {likes === 1 ? "like" : "likes"}
-              </span>
+                <span>
+                  {likes} {likes === 1 ? "like" : "likes"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
+                <BriefcaseBusiness size={11} />
+
+                <span>
+                  {workCount}{" "}
+                  {workCount === 1 ? "work" : "works"}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
-              <BriefcaseBusiness size={11} />
+            {/* =================================================
+                LOVE
+            ================================================= */}
 
-              <span>
-                {workCount} {workCount === 1 ? "work" : "works"}
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={() => setLoved((current) => !current)}
+              aria-label={
+                loved
+                  ? `Remove love from ${name}`
+                  : `Love ${name}`
+              }
+              aria-pressed={loved}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition active:scale-95 ${
+                loved
+                  ? "bg-slate-950 text-white"
+                  : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              }`}
+            >
+              <Heart
+                size={14}
+                className={
+                  loved
+                    ? "fill-white"
+                    : ""
+                }
+              />
+            </button>
           </div>
 
           {/* =================================================

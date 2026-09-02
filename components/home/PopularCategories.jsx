@@ -24,38 +24,6 @@ function normalize(value) {
 }
 
 /* =========================================================
-   CATEGORY ICON
-========================================================= */
-
-function CategoryIcon({ name }) {
-  switch (name) {
-    case "scissors":
-      return <Scissors size={17} />;
-
-    case "sparkles":
-      return <Sparkles size={17} />;
-
-    case "shirt":
-      return <Shirt size={17} />;
-
-    case "cake-slice":
-      return <CakeSlice size={17} />;
-
-    case "camera":
-      return <Camera size={17} />;
-
-    case "code":
-      return <Code2 size={17} />;
-
-    case "briefcase":
-      return <BriefcaseBusiness size={17} />;
-
-    default:
-      return <BriefcaseBusiness size={17} />;
-  }
-}
-
-/* =========================================================
    POPULAR CATEGORIES
 ========================================================= */
 
@@ -63,8 +31,7 @@ export default function PopularCategories() {
   const popularCategories = categories
     .map((category) => {
       const count = talents.filter(
-        (talent) =>
-          normalize(talent.category) === normalize(category.name)
+        (talent) => normalize(talent.category) === normalize(category.name),
       ).length;
 
       return {
@@ -85,9 +52,7 @@ export default function PopularCategories() {
               Explore
             </p>
 
-            <p className="mt-1 text-sm text-slate-600">
-              Popular categories
-            </p>
+            <p className="mt-1 text-sm text-slate-600">Popular categories</p>
           </div>
 
           <Link
@@ -101,10 +66,7 @@ export default function PopularCategories() {
 
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {popularCategories.map((category) => (
-            <MiniCategory
-              key={category.id}
-              category={category}
-            />
+            <MiniCategory key={category.id} category={category} />
           ))}
         </div>
       </div>
@@ -115,6 +77,15 @@ export default function PopularCategories() {
 /* =========================================================
    MINI CATEGORY
 ========================================================= */
+export function CategoryIcon({ icon }) {
+  const Icon = icon || BriefcaseBusiness;
+
+  return (
+    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+      <Icon size={18} />
+    </div>
+  );
+}
 
 function MiniCategory({ category }) {
   return (
@@ -123,7 +94,7 @@ function MiniCategory({ category }) {
       className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
     >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition group-hover:bg-slate-950 group-hover:text-white">
-        <CategoryIcon name={category.icon} />
+        <CategoryIcon icon={category.icon} />
       </div>
 
       <div className="min-w-0">
@@ -132,8 +103,7 @@ function MiniCategory({ category }) {
         </span>
 
         <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">
-          {category.count}{" "}
-          {category.count === 1 ? "talent" : "talents"}
+          {category.count} {category.count === 1 ? "talent" : "talents"}
         </span>
       </div>
     </Link>
