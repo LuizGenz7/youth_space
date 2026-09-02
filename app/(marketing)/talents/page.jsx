@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowDownAZ,
   ArrowRight,
@@ -22,56 +23,231 @@ import {
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import TalentCard from "@/components/talents/TalentCard";
-import { talents } from "@/data/talents";
 
-/* =========================================================
-   TALENTS PAGE
-========================================================= */
+import { talents } from "@/data/talents";
+import { categories } from "@/data/categories";
+
+const INITIAL_VISIBLE_COUNT = 8;
+
+const locations = ["All locations", "Lusaka", "Ndola", "Kitwe", "Livingstone"];
+
+const sortOptions = ["Recommended", "Newest", "A-Z", "Available now"];
+
+/*
+ * Category icons are UI concerns.
+ *
+ * categories.js only stores the icon name:
+ *
+ * icon: "scissors"
+ *
+ * This keeps the data layer clean and makes it
+ * easier to move categories to Firebase later.
+ */
+const categoryIcons = {
+  scissors: Scissors,
+  sparkles: Sparkles,
+  shirt: Shirt,
+  "cake-slice": CakeSlice,
+  camera: Camera,
+  code: Code2,
+  sliders: SlidersHorizontal,
+};
+
+/*
+ * Build categories from the data source.
+ *
+ * The category count is derived from talents instead
+ * of being manually maintained.
+ */
+const categoriesWithCounts = categories.map((category) => ({
+  ...category,
+  count: talents.filter(
+    (talent) =>
+      talent.category?.trim().toLowerCase() ===
+      category.name?.trim().toLowerCase(),
+  ).length,
+}));
 
 export default function TalentsPage() {
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
-  const [location, setLocation] = useState("All locations");
-  const [sort, setSort] = useState("Recommended");
-  const [visibleCount, setVisibleCount] = useState(8);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
+  /*
+   * URL = source of truth
+   *
+   * Examples:
+   *
+   * /talents
+   * /talents?category=Barbers
+   * /talents?category=barbers
+   * /talents?search=developer
+   * /talents?location=Lusaka
+   * /talents?sort=A-Z
+   */
+
+  const search = searchParams.get("search") || "";
+  const categoryParam = searchParams.get("category") || "";
+  const location = searchParams.get("location") || "All locations";
+  const sort = searchParams.get("sort") || "Recommended";
+
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
+
+  /*
+   * Resolve the category from the URL.
+   *
+   * Supports:
+   *
+   * ?category=Barbers
+   * ?category=barbers
+   *
+   * The actual category name always comes from
+   * categories.js.
+   */
+  const activeCategory = useMemo(() => {
+    if (!categoryParam) {
+      return null;
+    }
+
+    return (
+      categoriesWithCounts.find(
+        (category) =>
+          category.name?.trim().toLowerCase() ===
+          categoryParam.trim().toLowerCase(),
+      ) || null
+    );
+  }, [categoryParam]);
+
+  const activeCategoryName = activeCategory?.name || "";
+
+  /*
+   * Update URL query parameters.
+   *
+   * Default values are removed from the URL.
+   */
+  function updateParams(updates = {}) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      const shouldRemove =
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        value === "All" ||
+        value === "All locations" ||
+        value === "Recommended";
+
+      if (shouldRemove) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+
+    const query = params.toString();
+
+    router.push(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }
+
+  function changeSearch(value) {
+    updateParams({
+      search: value.trim() ? value : null,
+    });
+
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
+
+  function changeCategory(value) {
+    updateParams({
+      category: value,
+    });
+
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
+
+  function changeLocation(value) {
+    updateParams({
+      location: value,
+    });
+
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
+
+  function changeSort(value) {
+    updateParams({
+      sort: value,
+    });
+
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
+
+  function clearFilters() {
+    router.push(pathname, {
+      scroll: false,
+    });
+
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
+
+  /*
+   * Filter + sort talents.
+   */
   const filteredTalents = useMemo(() => {
-    let results = talents;
+    let results = [...talents];
 
-    /* Search */
-
+    /*
+     * Search
+     */
     if (search.trim()) {
       const query = search.toLowerCase().trim();
 
-      results = results.filter((talent) =>
-        [
+      results = results.filter((talent) => {
+        const searchableContent = [
           talent.name,
           talent.role,
           talent.category,
           talent.location,
           talent.description,
-          ...talent.skills,
+          talent.bio,
+          ...(talent.skills || []),
         ]
+          .filter(Boolean)
           .join(" ")
-          .toLowerCase()
-          .includes(query),
+          .toLowerCase();
+
+        return searchableContent.includes(query);
+      });
+    }
+
+    /*
+     * Category
+     *
+     * The category name is resolved from categories.js.
+     */
+    if (activeCategoryName) {
+      results = results.filter(
+        (talent) =>
+          talent.category?.trim().toLowerCase() ===
+          activeCategoryName.trim().toLowerCase(),
       );
     }
 
-    /* Category */
-
-    if (category !== "All") {
-      results = results.filter((talent) => talent.category === category);
-    }
-
-    /* Location */
-
+    /*
+     * Location
+     */
     if (location !== "All locations") {
-      results = results.filter((talent) => talent.location === location);
+      results = results.filter(
+        (talent) =>
+          talent.location?.trim().toLowerCase() ===
+          location.trim().toLowerCase(),
+      );
     }
 
-    /* Sorting */
-
+    /*
+     * Sort
+     */
     if (sort === "A-Z") {
       results.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -85,51 +261,27 @@ export default function TalentsPage() {
     }
 
     return results;
-  }, [search, category, location, sort]);
+  }, [search, activeCategoryName, location, sort]);
 
   const visibleTalents = filteredTalents.slice(0, visibleCount);
 
   const hasMore = visibleCount < filteredTalents.length;
 
-  function clearFilters() {
-    setSearch("");
-    setCategory("All");
-    setLocation("All locations");
-    setSort("Recommended");
-    setVisibleCount(8);
-  }
-
-  function changeCategory(value) {
-    setCategory(value);
-    setVisibleCount(8);
-  }
-
-  function changeLocation(value) {
-    setLocation(value);
-    setVisibleCount(8);
-  }
-
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <Header />
 
-      <TalentsHero search={search} setSearch={setSearch} />
+      <TalentsHero search={search} onSearch={changeSearch} />
 
       <section>
         <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
-          {/* =================================================
-              QUICK CATEGORIES
-          ================================================= */}
-
+          {/* Categories */}
           <QuickCategories
-            activeCategory={category}
+            activeCategory={activeCategoryName}
             onCategoryChange={changeCategory}
           />
 
-          {/* =================================================
-              FILTER BAR
-          ================================================= */}
-
+          {/* Filters */}
           <div className="mt-8 border-b border-slate-200 pb-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -138,45 +290,31 @@ export default function TalentsPage() {
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  Discover people offering skills and services.
+                  {activeCategoryName
+                    ? `Showing ${activeCategoryName} talents.`
+                    : "Discover people offering skills and services."}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {/* Location */}
-
                 <FilterButton
                   icon={MapPin}
-                  label={location}
-                  options={[
-                    "All locations",
-                    "Lusaka",
-                    "Ndola",
-                    "Kitwe",
-                    "Livingstone",
-                  ]}
+                  options={locations}
                   value={location}
                   onChange={changeLocation}
                 />
 
-                {/* Sort */}
-
                 <FilterButton
                   icon={ArrowDownAZ}
-                  label={sort}
-                  options={["Recommended", "Newest", "A-Z", "Available now"]}
+                  options={sortOptions}
                   value={sort}
-                  onChange={(value) => {
-                    setSort(value);
-                    setVisibleCount(8);
-                  }}
+                  onChange={changeSort}
                 />
               </div>
             </div>
 
             {/* Active filters */}
-
-            {(category !== "All" || location !== "All locations" || search) && (
+            {(activeCategoryName || location !== "All locations" || search) && (
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="mr-1 text-xs font-bold text-slate-400">
                   Filters:
@@ -185,13 +323,13 @@ export default function TalentsPage() {
                 {search && (
                   <FilterChip
                     label={`"${search}"`}
-                    onRemove={() => setSearch("")}
+                    onRemove={() => changeSearch("")}
                   />
                 )}
 
-                {category !== "All" && (
+                {activeCategoryName && (
                   <FilterChip
-                    label={category}
+                    label={activeCategoryName}
                     onRemove={() => changeCategory("All")}
                   />
                 )}
@@ -214,10 +352,7 @@ export default function TalentsPage() {
             )}
           </div>
 
-          {/* =================================================
-              RESULTS
-          ================================================= */}
-
+          {/* Results */}
           {visibleTalents.length > 0 ? (
             <>
               <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -240,12 +375,15 @@ export default function TalentsPage() {
               </div>
 
               {/* Load more */}
-
               {hasMore && (
                 <div className="mt-8 flex justify-center">
                   <button
                     type="button"
-                    onClick={() => setVisibleCount((current) => current + 8)}
+                    onClick={() =>
+                      setVisibleCount(
+                        (current) => current + INITIAL_VISIBLE_COUNT,
+                      )
+                    }
                     className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
                   >
                     Load more
@@ -254,7 +392,8 @@ export default function TalentsPage() {
                 </div>
               )}
 
-              {!hasMore && filteredTalents.length > 8 && (
+              {/* End */}
+              {!hasMore && filteredTalents.length > INITIAL_VISIBLE_COUNT && (
                 <p className="mt-8 text-center text-xs font-medium text-slate-400">
                   You've reached the end of the results.
                 </p>
@@ -275,7 +414,7 @@ export default function TalentsPage() {
    HERO
 ========================================================= */
 
-function TalentsHero({ search, setSearch }) {
+function TalentsHero({ search, onSearch }) {
   return (
     <section className="border-b border-slate-200 bg-slate-50">
       <div className="mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
@@ -294,9 +433,13 @@ function TalentsHero({ search, setSearch }) {
             services and local expertise.
           </p>
 
-          {/* Search */}
-
-          <div className="mt-7">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSearch(search);
+            }}
+            className="mt-7"
+          >
             <div className="flex items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-slate-400 focus-within:ring-4 focus-within:ring-slate-950/[0.04]">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400">
                 <Search size={19} />
@@ -305,13 +448,24 @@ function TalentsHero({ search, setSearch }) {
               <input
                 type="search"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => onSearch(event.target.value)}
                 placeholder="Search talents, skills or services..."
                 className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium outline-none placeholder:text-slate-400 sm:text-base"
               />
 
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => onSearch("")}
+                  className="mr-1 flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              )}
+
               <button
-                type="button"
+                type="submit"
                 className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800"
               >
                 <span className="hidden sm:inline">Search</span>
@@ -319,7 +473,7 @@ function TalentsHero({ search, setSearch }) {
                 <ArrowRight size={16} />
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </section>
@@ -327,7 +481,7 @@ function TalentsHero({ search, setSearch }) {
 }
 
 /* =========================================================
-   QUICK CATEGORIES
+   CATEGORIES
 ========================================================= */
 
 function QuickCategories({ activeCategory, onCategoryChange }) {
@@ -352,43 +506,76 @@ function QuickCategories({ activeCategory, onCategoryChange }) {
       </div>
 
       <div className="-mx-5 mt-5 flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-none sm:mx-0 sm:px-0">
-        {categories.map((item) => {
-          const Icon = item.icon;
-          const active = activeCategory === item.title;
+        {/* All */}
+        <CategoryButton
+          title="All"
+          count={talents.length}
+          icon={SlidersHorizontal}
+          active={!activeCategory}
+          onClick={() => onCategoryChange("All")}
+        />
+
+        {/* Categories from data */}
+        {categoriesWithCounts.map((item) => {
+          const Icon = categoryIcons[item.icon] || Sparkles;
+
+          const active =
+            activeCategory?.trim().toLowerCase() ===
+            item.name?.trim().toLowerCase();
 
           return (
-            <button
-              key={item.title}
-              type="button"
-              onClick={() => onCategoryChange(item.title)}
-              className={`group flex min-w-[145px] shrink-0 items-center gap-3 rounded-2xl border p-3.5 text-left transition active:scale-[0.98] ${
-                active
-                  ? "border-slate-950 bg-slate-950 text-white shadow-md"
-                  : "border-slate-200 bg-white text-slate-950 hover:border-slate-300 hover:shadow-sm"
-              }`}
-            >
-              <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                  active
-                    ? "bg-white/10"
-                    : "bg-slate-100 group-hover:bg-slate-950 group-hover:text-white"
-                }`}
-              >
-                <Icon size={17} />
-              </div>
-
-              <div>
-                <p className="text-xs font-black">{item.title}</p>
-
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                  {item.count} talents
-                </p>
-              </div>
-            </button>
+            <CategoryButton
+              key={item.id}
+              title={item.name}
+              count={item.count}
+              icon={Icon}
+              active={active}
+              onClick={() => onCategoryChange(item.name)}
+            />
           );
         })}
       </div>
     </div>
+  );
+}
+
+/* =========================================================
+   CATEGORY BUTTON
+========================================================= */
+
+function CategoryButton({ title, count, icon: Icon, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group flex min-w-[145px] shrink-0 items-center gap-3 rounded-2xl border p-3.5 text-left transition active:scale-[0.98] ${
+        active
+          ? "border-slate-950 bg-slate-950 text-white shadow-md"
+          : "border-slate-200 bg-white text-slate-950 hover:border-slate-300 hover:shadow-sm"
+      }`}
+    >
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+          active
+            ? "bg-white/10 text-white"
+            : "bg-slate-100 text-slate-600 group-hover:bg-slate-950 group-hover:text-white"
+        }`}
+      >
+        <Icon size={17} />
+      </div>
+
+      <div>
+        <p className="text-xs font-black">{title}</p>
+
+        <p
+          className={`mt-0.5 text-[10px] ${
+            active ? "text-slate-400" : "text-slate-400"
+          }`}
+        >
+          {count} talents
+        </p>
+      </div>
+    </button>
   );
 }
 
@@ -434,6 +621,7 @@ function FilterChip({ label, onRemove }) {
       className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
     >
       {label}
+
       <X size={12} />
     </button>
   );
@@ -467,45 +655,3 @@ function EmptyState({ onClear }) {
     </div>
   );
 }
-
-/* =========================================================
-   CATEGORIES
-========================================================= */
-
-const categories = [
-  {
-    title: "All",
-    count: "500+",
-    icon: SlidersHorizontal,
-  },
-  {
-    title: "Barbers",
-    count: "32",
-    icon: Scissors,
-  },
-  {
-    title: "Hair & Beauty",
-    count: "48",
-    icon: Sparkles,
-  },
-  {
-    title: "Dressmakers",
-    count: "27",
-    icon: Shirt,
-  },
-  {
-    title: "Cakes",
-    count: "21",
-    icon: CakeSlice,
-  },
-  {
-    title: "Photography",
-    count: "36",
-    icon: Camera,
-  },
-  {
-    title: "Technology",
-    count: "54",
-    icon: Code2,
-  },
-];

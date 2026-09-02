@@ -1,5 +1,3 @@
-// app/talents/[id]/page.js
-
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,7 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  ChevronRight,
   Clock3,
   Heart,
   MapPin,
@@ -32,10 +29,6 @@ export default async function TalentPage({ params }) {
   const { id } = await params;
 
   /*
-   * =======================================================
-   * FETCH PAGE DATA
-   * =======================================================
-   *
    * Currently:
    *   talents  -> local test data
    *   services -> local test data
@@ -43,14 +36,6 @@ export default async function TalentPage({ params }) {
    *
    * Later:
    *   Replace getTalentPageData() with Firebase queries.
-   *
-   * The page will still receive the exact same structure:
-   *
-   * {
-   *   talent,
-   *   services,
-   *   works
-   * }
    */
 
   const data = await getTalentPageData(id);
@@ -86,24 +71,28 @@ async function getTalentPageData(id) {
   /*
    * Find public profile.
    */
-  const talent = talents.find((item) => String(item.id) === String(id));
+  const talent = talents.find(
+    (item) => String(item.id) === String(id),
+  );
 
   if (!talent) {
     return null;
   }
 
   /*
-   * Fetch services belonging to this talent.
+   * Find services belonging to this talent.
    */
   const talentServices = services.filter(
-    (service) => String(service.talentId) === String(talent.id),
+    (service) =>
+      String(service.talentId) === String(talent.id),
   );
 
   /*
-   * Fetch works belonging to this talent.
+   * Find works belonging to this talent.
    */
   const talentWorks = works.filter(
-    (work) => String(work.talentId) === String(talent.id),
+    (work) =>
+      String(work.talentId) === String(talent.id),
   );
 
   return {
@@ -174,13 +163,18 @@ function TalentHero({ talent }) {
               </h1>
 
               {verified && (
-                <CheckCircle2 size={21} className="fill-slate-950 text-white" />
+                <CheckCircle2
+                  size={21}
+                  className="fill-slate-950 text-white"
+                />
               )}
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
               {role && (
-                <p className="text-base font-bold text-slate-600">{role}</p>
+                <p className="text-base font-bold text-slate-600">
+                  {role}
+                </p>
               )}
 
               {category && (
@@ -213,11 +207,15 @@ function TalentHero({ talent }) {
               >
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    available ? "bg-emerald-500" : "bg-slate-400"
+                    available
+                      ? "bg-emerald-500"
+                      : "bg-slate-400"
                   }`}
                 />
 
-                {available ? "Available" : "Currently unavailable"}
+                {available
+                  ? "Available"
+                  : "Currently unavailable"}
               </div>
 
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
@@ -255,7 +253,10 @@ function TalentContent({ talent, services, works }) {
 
             <TalentServices services={services} />
 
-            <TalentPortfolio talent={talent} works={works} />
+            <TalentPortfolio
+              talent={talent}
+              works={works}
+            />
 
             <TalentAvailability talent={talent} />
           </div>
@@ -285,7 +286,10 @@ function TalentAbout({ talent }) {
 
   return (
     <section>
-      <SectionHeading eyebrow="About" title="About this talent" />
+      <SectionHeading
+        eyebrow="About"
+        title="About this talent"
+      />
 
       <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base sm:leading-8">
         {description}
@@ -307,7 +311,10 @@ function TalentSkills({ talent }) {
 
   return (
     <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-16 sm:pt-14">
-      <SectionHeading eyebrow="Skills" title="What I specialise in" />
+      <SectionHeading
+        eyebrow="Skills"
+        title="What I specialise in"
+      />
 
       <div className="mt-6 flex flex-wrap gap-2">
         {skills.map((skill) => (
@@ -334,7 +341,10 @@ function TalentServices({ services }) {
 
   return (
     <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-16 sm:pt-14">
-      <SectionHeading eyebrow="Services" title="What I offer" />
+      <SectionHeading
+        eyebrow="Services"
+        title="What I offer"
+      />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {services.map((service) => (
@@ -348,7 +358,9 @@ function TalentServices({ services }) {
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-sm font-black">{service.name}</h3>
+                <h3 className="text-sm font-black">
+                  {service.name}
+                </h3>
 
                 {service.description && (
                   <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -356,11 +368,15 @@ function TalentServices({ services }) {
                   </p>
                 )}
 
-                {service.price !== undefined && service.price !== null && (
-                  <p className="mt-2 text-xs font-bold text-slate-950">
-                    From K{Number(service.price).toLocaleString()}
-                  </p>
-                )}
+                {service.price !== undefined &&
+                  service.price !== null && (
+                    <p className="mt-2 text-xs font-bold text-slate-950">
+                      From K
+                      {Number(
+                        service.price,
+                      ).toLocaleString()}
+                    </p>
+                  )}
               </div>
             </div>
           </div>
@@ -371,101 +387,131 @@ function TalentServices({ services }) {
 }
 
 /* =========================================================
-   PORTFOLIO / WORK
+   PORTFOLIO / WORK SHOWCASE
 ========================================================= */
 
 function TalentPortfolio({ talent, works }) {
+  const visibleWorks = works.slice(0, 6);
+  const remainingWorks =
+    Math.max(works.length - visibleWorks.length, 0);
+
   return (
     <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-16 sm:pt-14">
-      <div className="flex items-end justify-between gap-4">
-        <SectionHeading eyebrow="Work" title="Recent work" />
-
-        {works.length > 6 && (
-          <Link
-            href={`/talents/${talent.id}/portfolio`}
-            className="hidden items-center gap-1 text-sm font-bold text-slate-500 transition hover:text-slate-950 sm:flex"
-          >
-            View all
-            <ChevronRight size={15} />
-          </Link>
-        )}
-      </div>
+      <SectionHeading
+        eyebrow="Portfolio"
+        title="Recent work"
+      />
 
       {!works.length ? (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
-          <Sparkles size={24} className="mx-auto text-slate-300" />
+          <Sparkles
+            size={24}
+            className="mx-auto text-slate-300"
+          />
 
           <p className="mt-3 text-sm font-black text-slate-700">
             No work shared yet
           </p>
 
           <p className="mt-1 text-xs text-slate-400">
-            Portfolio work will appear here when it is added.
+            Portfolio work will appear here when it
+            is added.
           </p>
         </div>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {works.slice(0, 6).map((work) => (
-              <Link
+          {/* Work grid */}
+
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            {visibleWorks.map((work) => (
+              <WorkShowcaseCard
                 key={work.id}
-                href={`/talents/${talent.id}/portfolio`}
-                className="group relative aspect-square overflow-hidden rounded-2xl bg-slate-100"
-              >
-                {work.image && (
-                  <Image
-                    src={work.image}
-                    alt={
-                      work.title
-                        ? `${work.title} by ${talent.name}`
-                        : `${talent.name} portfolio work`
-                    }
-                    fill
-                    sizes="(max-width: 640px) 50vw, 33vw"
-                    className="object-cover transition duration-500 group-hover:scale-105"
-                  />
-                )}
-
-                {/* Hover information */}
-
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 to-transparent p-3 pt-12 opacity-0 transition group-hover:opacity-100">
-                  <div className="flex items-end justify-between gap-2">
-                    <div className="min-w-0">
-                      {work.title && (
-                        <p className="truncate text-xs font-black text-white">
-                          {work.title}
-                        </p>
-                      )}
-
-                      {work.category && (
-                        <p className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-wider text-white/70">
-                          {work.category}
-                        </p>
-                      )}
-                    </div>
-
-                    <span className="flex shrink-0 items-center gap-1 text-[9px] font-bold text-white">
-                      <Heart size={10} />
-                      {work.likes ?? 0}
-                    </span>
-                  </div>
-                </div>
-              </Link>
+                talent={talent}
+                work={work}
+              />
             ))}
           </div>
 
-          {works.length > 6 && (
-            <Link
-              href={`/talents/${talent.id}/portfolio`}
-              className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-slate-600 transition hover:text-slate-950 sm:hidden"
-            >
-              View all work
-              <ChevronRight size={15} />
-            </Link>
+          {/* Remaining work indicator */}
+
+          {remainingWorks > 0 && (
+            <div className="mt-5 flex items-center justify-center">
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-bold text-slate-500">
+                <Sparkles size={13} />
+                +{remainingWorks} more{" "}
+                {remainingWorks === 1
+                  ? "work"
+                  : "works"}{" "}
+                in portfolio
+              </div>
+            </div>
           )}
         </>
       )}
     </section>
+  );
+}
+
+/* =========================================================
+   WORK SHOWCASE CARD
+========================================================= */
+
+function WorkShowcaseCard({ talent, work }) {
+  return (
+    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm">
+      {/* Image */}
+
+      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+        {work.image ? (
+          <Image
+            src={work.image}
+            alt={
+              work.title
+                ? `${work.title} by ${talent.name}`
+                : `${talent.name} portfolio work`
+            }
+            fill
+            sizes="(max-width: 640px) 100vw, 50vw"
+            className="object-cover transition duration-500 hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-slate-300">
+            <Sparkles size={28} />
+          </div>
+        )}
+      </div>
+
+      {/* Data */}
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            {work.category && (
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                {work.category}
+              </p>
+            )}
+
+            {work.title && (
+              <h3 className="mt-1 text-base font-black tracking-tight">
+                {work.title}
+              </h3>
+            )}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1 text-xs font-bold text-slate-400">
+            <Heart size={13} />
+            {work.likes ?? 0}
+          </div>
+        </div>
+
+        {work.description && (
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            {work.description}
+          </p>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -478,7 +524,10 @@ function TalentAvailability({ talent }) {
 
   return (
     <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-16 sm:pt-14">
-      <SectionHeading eyebrow="Availability" title="When I'm available" />
+      <SectionHeading
+        eyebrow="Availability"
+        title="When I'm available"
+      />
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <div className="flex items-start gap-3">
@@ -488,7 +537,9 @@ function TalentAvailability({ talent }) {
 
           <div>
             <p className="text-sm font-black">
-              {isAvailable ? "Available for bookings" : "Currently unavailable"}
+              {isAvailable
+                ? "Available for bookings"
+                : "Currently unavailable"}
             </p>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -508,7 +559,8 @@ function TalentAvailability({ talent }) {
 ========================================================= */
 
 function ContactCard({ talent }) {
-  const whatsapp = talent.whatsapp || talent.phone;
+  const whatsapp =
+    talent.whatsapp || talent.phone;
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -521,14 +573,16 @@ function ContactCard({ talent }) {
       </h2>
 
       <p className="mt-2 text-sm leading-6 text-slate-500">
-        Contact {talent.name} directly to ask about their services, pricing or
-        availability.
+        Contact {talent.name} directly to ask about
+        their services, pricing or availability.
       </p>
 
       <div className="mt-6 space-y-3">
         {whatsapp && (
           <a
-            href={`https://wa.me/${cleanPhoneNumber(whatsapp)}`}
+            href={`https://wa.me/${cleanPhoneNumber(
+              whatsapp,
+            )}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white transition hover:bg-slate-800"

@@ -598,4 +598,1322 @@ export const talents = [
     phone: "+260962100025",
     whatsapp: "+260962100025",
   },
+  {
+    id: 26,
+    name: "Joseph Mumba",
+    role: "Mobile Developer",
+    category: "Technology",
+    location: "Lusaka",
+    initials: "JM",
+    image:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Mobile developer building practical applications for businesses, communities and individuals.",
+
+    skills: ["Flutter", "Dart", "Firebase", "Mobile Apps"],
+
+    likes: 73,
+    workCount: 19,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100026",
+    whatsapp: "+260962100026",
+  },
+
+  {
+    id: 27,
+    name: "Linda Mwansa",
+    role: "Social Media Manager",
+    category: "Marketing",
+    location: "Lusaka",
+    initials: "LM",
+    image:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Social media manager helping small businesses build consistent online presence and connect with their audiences.",
+
+    skills: ["Social Media", "Content Planning", "Marketing", "Brand Strategy"],
+
+    likes: 51,
+    workCount: 18,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100027",
+    whatsapp: "+260962100027",
+  },
+
+  {
+    id: 28,
+    name: "Patrick Chileshe",
+    role: "Brand Designer",
+    category: "Design",
+    location: "Ndola",
+    initials: "PC",
+    image:
+      "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Brand designer creating visual identities that help businesses communicate clearly and professionally.",
+
+    skills: ["Branding", "Logo Design", "Typography", "Visual Identity"],
+
+    likes: 47,
+    workCount: 21,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100028",
+    whatsapp: "+260962100028",
+  },
+
+  {
+    id: 29,
+    name: "Racheal Banda",
+    role: "Event Planner",
+    category: "Events",
+    location: "Lusaka",
+    initials: "RB",
+    image:
+      "https://images.unsplash.com/photo-1507504031003-b417219a0fde?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Event planner helping clients organise memorable weddings, birthdays, corporate events and celebrations.",
+
+    skills: ["Event Planning", "Decor", "Coordination", "Weddings"],
+
+    likes: 62,
+    workCount: 17,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100029",
+    whatsapp: "+260962100029",
+  },
+
+  {
+    id: 30,
+    name: "Chris Mulenga",
+    role: "Fitness Trainer",
+    category: "Fitness",
+    location: "Kitwe",
+    initials: "CM",
+    image:
+      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Fitness trainer helping people build healthier routines through practical workouts and personalised guidance.",
+
+    skills: ["Fitness", "Workout Plans", "Strength Training", "Coaching"],
+
+    likes: 88,
+    workCount: 35,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100030",
+    whatsapp: "+260962100030",
+  },
+
+  {
+    id: 31,
+    name: "Faith Chanda",
+    role: "Nail Technician",
+    category: "Beauty",
+    location: "Lusaka",
+    initials: "FC",
+    image:
+      "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Beauty professional specialising in clean and creative nail care, manicures and custom nail designs.",
+
+    skills: ["Manicure", "Nail Art", "Gel Nails", "Beauty"],
+
+    likes: 57,
+    workCount: 29,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100031",
+    whatsapp: "+260962100031",
+  },
+
+  {
+    id: 32,
+    name: "Isaac Phiri",
+    role: "Football Coach",
+    category: "Sports",
+    location: "Lusaka",
+    initials: "IP",
+    image:
+      "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Football coach helping young players improve their technical ability, fitness and understanding of the game.",
+
+    skills: ["Football", "Coaching", "Fitness", "Youth Training"],
+
+    likes: 91,
+    workCount: 42,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100032",
+    whatsapp: "+260962100032",
+  },
+
+  {
+    id: 33,
+    name: "Mercy Zulu",
+    role: "Tailor",
+    category: "Fashion",
+    location: "Ndola",
+    initials: "MZ",
+    image:
+      "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Fashion creator designing modern clothing and custom outfits for everyday wear and special occasions.",
+
+    skills: ["Tailoring", "Fashion Design", "Alterations", "Custom Clothing"],
+
+    likes: 49,
+    workCount: 22,
+
+    available: false,
+    verified: true,
+
+    phone: "+260962100033",
+    whatsapp: "+260962100033",
+  },
+
+  {
+    id: 34,
+    name: "Daniel Chanda",
+    role: "DJ & Music Curator",
+    category: "Music",
+    location: "Lusaka",
+    initials: "DC",
+    image:
+      "https://images.unsplash.com/photo-1571266028243-d220c9c3b0e5?auto=format&fit=crop&w=800&q=80",
+
+    bio: "DJ providing music entertainment for parties, celebrations, private events and community gatherings.",
+
+    skills: ["DJ", "Music", "Events", "Sound Mixing"],
+
+    likes: 84,
+    workCount: 38,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100034",
+    whatsapp: "+260962100034",
+  },
+
+  {
+    id: 35,
+    name: "Chisomo Mwila",
+    role: "Singer & Songwriter",
+    category: "Music",
+    location: "Kitwe",
+    initials: "CM",
+    image:
+      "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Independent singer and songwriter creating original music and performing at local events.",
+
+    skills: ["Singing", "Songwriting", "Performance", "Music"],
+
+    likes: 77,
+    workCount: 16,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100035",
+    whatsapp: "+260962100035",
+  },
+
+  {
+    id: 36,
+    name: "Kelvin Bwalya",
+    role: "Videographer",
+    category: "Photography & Video",
+    location: "Lusaka",
+    initials: "KB",
+    image:
+      "https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Videographer producing event films, promotional videos and social media content for individuals and businesses.",
+
+    skills: ["Videography", "Editing", "Events", "Content Creation"],
+
+    likes: 66,
+    workCount: 27,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100036",
+    whatsapp: "+260962100036",
+  },
+
+  {
+    id: 37,
+    name: "Esther Mwansa",
+    role: "Interior Decorator",
+    category: "Interior Design",
+    location: "Lusaka",
+    initials: "EM",
+    image:
+      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Interior decorator creating comfortable, stylish and practical spaces for homes, offices and events.",
+
+    skills: ["Interior Design", "Decor", "Space Planning", "Styling"],
+
+    likes: 53,
+    workCount: 14,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100037",
+    whatsapp: "+260962100037",
+  },
+
+  {
+    id: 38,
+    name: "Martin Lungu",
+    role: "Car Detailer",
+    category: "Automotive",
+    location: "Kitwe",
+    initials: "ML",
+    image:
+      "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Automotive detailer providing professional car cleaning, polishing and interior detailing services.",
+
+    skills: ["Car Detailing", "Polishing", "Car Cleaning", "Interior Care"],
+
+    likes: 44,
+    workCount: 25,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100038",
+    whatsapp: "+260962100038",
+  },
+
+  {
+    id: 39,
+    name: "Angela Phiri",
+    role: "Blogger & Writer",
+    category: "Writing",
+    location: "Lusaka",
+    initials: "AP",
+    image:
+      "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Writer creating articles, blog posts and digital content for brands, organisations and personal projects.",
+
+    skills: ["Writing", "Blogging", "Copywriting", "Research"],
+
+    likes: 39,
+    workCount: 23,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100039",
+    whatsapp: "+260962100039",
+  },
+
+  {
+    id: 40,
+    name: "Robert Tembo",
+    role: "Graphic Artist",
+    category: "Art",
+    location: "Ndola",
+    initials: "RT",
+    image:
+      "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Visual artist creating illustrations, digital artwork and creative pieces for individuals and brands.",
+
+    skills: ["Illustration", "Digital Art", "Drawing", "Creative Design"],
+
+    likes: 58,
+    workCount: 30,
+
+    available: false,
+    verified: true,
+
+    phone: "+260962100040",
+    whatsapp: "+260962100040",
+  },
+
+  {
+    id: 41,
+    name: "Natasha Mwila",
+    role: "Wedding Photographer",
+    category: "Photography",
+    location: "Lusaka",
+    initials: "NM",
+    image:
+      "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Wedding and lifestyle photographer capturing natural moments and meaningful celebrations.",
+
+    skills: ["Wedding Photography", "Portraits", "Editing", "Events"],
+
+    likes: 82,
+    workCount: 37,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100041",
+    whatsapp: "+260962100041",
+  },
+
+  {
+    id: 42,
+    name: "Brian Chibwe",
+    role: "Plumber & Installer",
+    category: "Home Services",
+    location: "Lusaka",
+    initials: "BC",
+    image:
+      "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Home services professional providing plumbing installations, repairs and maintenance for residential properties.",
+
+    skills: ["Plumbing", "Installation", "Repairs", "Maintenance"],
+
+    likes: 41,
+    workCount: 18,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100042",
+    whatsapp: "+260962100042",
+  },
+
+  {
+    id: 43,
+    name: "Prisca Banda",
+    role: "Pastry Chef",
+    category: "Food & Baking",
+    location: "Kitwe",
+    initials: "PB",
+    image:
+      "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Pastry chef creating fresh pastries, desserts and custom treats for celebrations and everyday enjoyment.",
+
+    skills: ["Pastries", "Desserts", "Baking", "Cake Decoration"],
+
+    likes: 63,
+    workCount: 31,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100043",
+    whatsapp: "+260962100043",
+  },
+
+  {
+    id: 44,
+    name: "Simon Mwewa",
+    role: "Tutor",
+    category: "Education",
+    location: "Lusaka",
+    initials: "SM",
+    image:
+      "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Academic tutor helping students understand difficult subjects through personalised lessons and practical explanations.",
+
+    skills: ["Tutoring", "Mathematics", "Computer Studies", "Study Skills"],
+
+    likes: 52,
+    workCount: 34,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100044",
+    whatsapp: "+260962100044",
+  },
+
+  {
+    id: 45,
+    name: "Chanda Lungu",
+    role: "Makeup & Beauty Artist",
+    category: "Hair & Beauty",
+    location: "Ndola",
+    initials: "CL",
+    image:
+      "https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Beauty artist providing makeup, styling and beauty preparation for events, photoshoots and special occasions.",
+
+    skills: ["Makeup", "Beauty", "Styling", "Bridal Makeup"],
+
+    likes: 74,
+    workCount: 33,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100045",
+    whatsapp: "+260962100045",
+  },
+
+  {
+    id: 46,
+    name: "Jonathan Zulu",
+    role: "Web Designer",
+    category: "Technology",
+    location: "Lusaka",
+    initials: "JZ",
+    image:
+      "https://images.unsplash.com/photo-1559028012-481c04fa702d?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Web designer creating modern, responsive websites focused on clear layouts and strong user experiences.",
+
+    skills: ["Web Design", "UI Design", "Figma", "Responsive Design"],
+
+    likes: 68,
+    workCount: 24,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100046",
+    whatsapp: "+260962100046",
+  },
+
+  {
+    id: 47,
+    name: "Mwaka Phiri",
+    role: "Digital Marketer",
+    category: "Marketing",
+    location: "Lusaka",
+    initials: "MP",
+    image:
+      "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Digital marketer helping businesses reach customers through social media, content and online campaigns.",
+
+    skills: ["Digital Marketing", "Social Media", "Advertising", "Content"],
+
+    likes: 55,
+    workCount: 20,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100047",
+    whatsapp: "+260962100047",
+  },
+
+  {
+    id: 48,
+    name: "Gift Mwale",
+    role: "Videographer & Editor",
+    category: "Creative",
+    location: "Ndola",
+    initials: "GM",
+    image:
+      "https://images.unsplash.com/photo-1492724441997-5dc865305da7?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Creative filmmaker producing engaging videos for events, businesses, creators and social media.",
+
+    skills: ["Videography", "Video Editing", "Filmmaking", "Content"],
+
+    likes: 71,
+    workCount: 28,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100048",
+    whatsapp: "+260962100048",
+  },
+
+  {
+    id: 49,
+    name: "Susan Chileshe",
+    role: "Event Decorator",
+    category: "Events",
+    location: "Kitwe",
+    initials: "SC",
+    image:
+      "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Event decorator creating stylish setups for weddings, birthdays, corporate events and celebrations.",
+
+    skills: ["Event Decor", "Weddings", "Party Setup", "Design"],
+
+    likes: 48,
+    workCount: 21,
+
+    available: false,
+    verified: true,
+
+    phone: "+260962100049",
+    whatsapp: "+260962100049",
+  },
+
+  {
+    id: 50,
+    name: "Lawrence Bwalya",
+    role: "Phone Repair Technician",
+    category: "Electronics",
+    location: "Lusaka",
+    initials: "LB",
+    image:
+      "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Electronics technician specialising in smartphone troubleshooting, repairs and device maintenance.",
+
+    skills: ["Phone Repair", "Electronics", "Troubleshooting", "Device Maintenance"],
+
+    likes: 46,
+    workCount: 36,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100050",
+    whatsapp: "+260962100050",
+  },
+
+  {
+    id: 51,
+    name: "Caroline Mwansa",
+    role: "Florist",
+    category: "Flowers & Decor",
+    location: "Lusaka",
+    initials: "CM",
+    image:
+      "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Florist creating beautiful arrangements and floral decorations for weddings, celebrations and special occasions.",
+
+    skills: ["Floristry", "Bouquets", "Wedding Decor", "Flower Design"],
+
+    likes: 61,
+    workCount: 26,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100051",
+    whatsapp: "+260962100051",
+  },
+
+  {
+    id: 52,
+    name: "Emmanuel Phiri",
+    role: "Carpenter",
+    category: "Woodwork",
+    location: "Ndola",
+    initials: "EP",
+    image:
+      "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Carpenter creating custom furniture, shelves and practical wooden pieces for homes and businesses.",
+
+    skills: ["Carpentry", "Furniture", "Woodwork", "Custom Builds"],
+
+    likes: 43,
+    workCount: 23,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100052",
+    whatsapp: "+260962100052",
+  },
+
+  {
+    id: 53,
+    name: "Diana Zimba",
+    role: "Content Creator",
+    category: "Content Creation",
+    location: "Lusaka",
+    initials: "DZ",
+    image:
+      "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Content creator producing lifestyle, business and social media content for brands and digital audiences.",
+
+    skills: ["Content Creation", "Social Media", "Photography", "Video"],
+
+    likes: 79,
+    workCount: 32,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100053",
+    whatsapp: "+260962100053",
+  },
+
+  {
+    id: 54,
+    name: "Andrew Mwape",
+    role: "Sound Engineer",
+    category: "Music",
+    location: "Kitwe",
+    initials: "AM",
+    image:
+      "https://images.unsplash.com/photo-1598387993281-cecf8b71a8f8?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Sound engineer providing audio setup, recording and mixing support for musicians and events.",
+
+    skills: ["Sound Engineering", "Mixing", "Recording", "Live Audio"],
+
+    likes: 56,
+    workCount: 18,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100054",
+    whatsapp: "+260962100054",
+  },
+
+  {
+    id: 55,
+    name: "Rachel Tembo",
+    role: "Dance Instructor",
+    category: "Dance",
+    location: "Lusaka",
+    initials: "RT",
+    image:
+      "https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Dance instructor teaching energetic and creative routines for beginners, performers and groups.",
+
+    skills: ["Dance", "Choreography", "Performance", "Training"],
+
+    likes: 72,
+    workCount: 27,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100055",
+    whatsapp: "+260962100055",
+  },
+
+  {
+    id: 56,
+    name: "Moses Lungu",
+    role: "Graphic Designer",
+    category: "Design",
+    location: "Kitwe",
+    initials: "ML",
+    image:
+      "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Graphic designer creating posters, social media graphics, logos and marketing materials.",
+
+    skills: ["Graphic Design", "Posters", "Logos", "Social Media Design"],
+
+    likes: 64,
+    workCount: 35,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100056",
+    whatsapp: "+260962100056",
+  },
+
+  {
+    id: 57,
+    name: "Florence Banda",
+    role: "Home Cleaner",
+    category: "Cleaning Services",
+    location: "Lusaka",
+    initials: "FB",
+    image:
+      "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Reliable cleaning professional providing detailed home and office cleaning services.",
+
+    skills: ["Home Cleaning", "Office Cleaning", "Deep Cleaning", "Organisation"],
+
+    likes: 37,
+    workCount: 16,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100057",
+    whatsapp: "+260962100057",
+  },
+
+  {
+    id: 58,
+    name: "Steven Chanda",
+    role: "Photographer",
+    category: "Photography",
+    location: "Ndola",
+    initials: "SC",
+    image:
+      "https://images.unsplash.com/photo-1502982720700-bfff97f2ecac?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Photographer capturing portraits, products, events and creative moments with a natural visual style.",
+
+    skills: ["Photography", "Portraits", "Product Photography", "Editing"],
+
+    likes: 69,
+    workCount: 41,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100058",
+    whatsapp: "+260962100058",
+  },
+
+  {
+    id: 59,
+    name: "Joyce Mulenga",
+    role: "Pastry Baker",
+    category: "Cakes & Baking",
+    location: "Lusaka",
+    initials: "JM",
+    image:
+      "https://images.unsplash.com/photo-1486427944299-d1955d23e34d?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Baker creating custom pastries, cakes and sweet treats for celebrations and special events.",
+
+    skills: ["Baking", "Pastries", "Cakes", "Desserts"],
+
+    likes: 58,
+    workCount: 24,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100059",
+    whatsapp: "+260962100059",
+  },
+
+  {
+    id: 60,
+    name: "Kelvin Phiri",
+    role: "Entrepreneur",
+    category: "Business",
+    location: "Lusaka",
+    initials: "KP",
+    image:
+      "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Young entrepreneur building practical businesses and helping other young people turn ideas into opportunities.",
+
+    skills: ["Entrepreneurship", "Business", "Strategy", "Leadership"],
+
+    likes: 86,
+    workCount: 12,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100060",
+    whatsapp: "+260962100060",
+  },
+
+  {
+    id: 61,
+    name: "Monica Chanda",
+    role: "Fashion Stylist",
+    category: "Fashion",
+    location: "Lusaka",
+    initials: "MC",
+    image:
+      "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Fashion stylist helping clients choose outfits, colours and looks that fit their personality and occasion.",
+
+    skills: ["Fashion Styling", "Personal Styling", "Outfits", "Fashion"],
+
+    likes: 67,
+    workCount: 19,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100061",
+    whatsapp: "+260962100061",
+  },
+
+  {
+    id: 62,
+    name: "Jacob Mumba",
+    role: "Painter",
+    category: "Home Services",
+    location: "Kitwe",
+    initials: "JM",
+    image:
+      "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Painter providing interior and exterior painting services with attention to clean finishing and detail.",
+
+    skills: ["Painting", "Interior Painting", "Exterior Painting", "Finishing"],
+
+    likes: 34,
+    workCount: 20,
+
+    available: false,
+    verified: true,
+
+    phone: "+260962100062",
+    whatsapp: "+260962100062",
+  },
+
+  {
+    id: 63,
+    name: "Chipo Bwalya",
+    role: "Illustrator",
+    category: "Art",
+    location: "Lusaka",
+    initials: "CB",
+    image:
+      "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Illustrator creating custom artwork, portraits and digital illustrations for personal and commercial projects.",
+
+    skills: ["Illustration", "Portrait Art", "Digital Art", "Drawing"],
+
+    likes: 53,
+    workCount: 28,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100063",
+    whatsapp: "+260962100063",
+  },
+
+  {
+    id: 64,
+    name: "Samuel Mwansa",
+    role: "Cybersecurity Student",
+    category: "Technology",
+    location: "Lusaka",
+    initials: "SM",
+    image:
+      "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Technology enthusiast focused on cybersecurity, networking and helping people understand digital safety.",
+
+    skills: ["Cybersecurity", "Networking", "Linux", "Digital Safety"],
+
+    likes: 61,
+    workCount: 11,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100064",
+    whatsapp: "+260962100064",
+  },
+
+  {
+    id: 65,
+    name: "Blessings Ngoma",
+    role: "Personal Trainer",
+    category: "Fitness",
+    location: "Ndola",
+    initials: "BN",
+    image:
+      "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Personal trainer helping clients improve strength, fitness and consistency through structured workouts.",
+
+    skills: ["Personal Training", "Strength", "Fitness", "Workout Plans"],
+
+    likes: 75,
+    workCount: 29,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100065",
+    whatsapp: "+260962100065",
+  },
+  {
+    id: 66,
+    name: "Christopher Mwale",
+    role: "Fade Specialist",
+    category: "Barbers",
+    location: "Lusaka",
+    initials: "CM",
+    image:
+      "https://images.unsplash.com/photo-1622288432450-277d0fef5ed6?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Barber specialising in clean fades, modern cuts and detailed grooming for clients who want a sharp finished look.",
+
+    skills: ["Fades", "Haircuts", "Grooming", "Styling"],
+
+    likes: 58,
+    workCount: 24,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100066",
+    whatsapp: "+260962100066",
+  },
+
+  {
+    id: 67,
+    name: "Elias Banda",
+    role: "Classic Barber",
+    category: "Barbers",
+    location: "Ndola",
+    initials: "EB",
+    image:
+      "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Professional barber offering classic cuts, fades and beard grooming with a focus on precision and customer satisfaction.",
+
+    skills: ["Classic Cuts", "Fades", "Beard Grooming", "Styling"],
+
+    likes: 45,
+    workCount: 19,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100067",
+    whatsapp: "+260962100067",
+  },
+
+  {
+    id: 68,
+    name: "Nathan Chanda",
+    role: "Barber & Beard Specialist",
+    category: "Barbers",
+    location: "Kitwe",
+    initials: "NC",
+    image:
+      "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Barber specialising in men's haircuts, beard shaping and modern grooming styles tailored to each client.",
+
+    skills: ["Haircuts", "Beard Styling", "Fades", "Grooming"],
+
+    likes: 63,
+    workCount: 28,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100068",
+    whatsapp: "+260962100068",
+  },
+
+  {
+    id: 69,
+    name: "Kelvin Chibwe",
+    role: "Modern Barbering",
+    category: "Barbers",
+    location: "Lusaka",
+    initials: "KC",
+    image:
+      "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Modern barber creating fresh fades, textured cuts and clean everyday hairstyles for young clients.",
+
+    skills: ["Modern Cuts", "Fades", "Textured Hair", "Styling"],
+
+    likes: 71,
+    workCount: 33,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100069",
+    whatsapp: "+260962100069",
+  },
+
+  {
+    id: 70,
+    name: "Martin Phiri",
+    role: "Men's Grooming",
+    category: "Barbers",
+    location: "Ndola",
+    initials: "MP",
+    image:
+      "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Men's grooming specialist providing professional haircuts, fades and beard care for everyday and special occasions.",
+
+    skills: ["Men's Grooming", "Haircuts", "Fades", "Beard Care"],
+
+    likes: 39,
+    workCount: 17,
+
+    available: false,
+    verified: false,
+
+    phone: "+260962100070",
+    whatsapp: "+260962100070",
+  },
+
+  {
+    id: 71,
+    name: "Andrew Zulu",
+    role: "Fade & Styling Expert",
+    category: "Barbers",
+    location: "Lusaka",
+    initials: "AZ",
+    image:
+      "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Creative barber delivering detailed fades, stylish cuts and personalised grooming services.",
+
+    skills: ["Fades", "Hair Styling", "Haircuts", "Grooming"],
+
+    likes: 76,
+    workCount: 36,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100071",
+    whatsapp: "+260962100071",
+  },
+
+  {
+    id: 72,
+    name: "Joseph Banda",
+    role: "Barber & Stylist",
+    category: "Barbers",
+    location: "Kitwe",
+    initials: "JB",
+    image:
+      "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Experienced barber providing clean cuts, fades and modern hairstyles while focusing on each client's preferences.",
+
+    skills: ["Haircuts", "Fades", "Styling", "Men's Grooming"],
+
+    likes: 52,
+    workCount: 22,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100072",
+    whatsapp: "+260962100072",
+  },
+
+  {
+    id: 73,
+    name: "Patrick Mwansa",
+    role: "Professional Barber",
+    category: "Barbers",
+    location: "Lusaka",
+    initials: "PM",
+    image:
+      "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Professional barber offering consistent and detailed haircuts, fades and beard grooming services.",
+
+    skills: ["Haircuts", "Fades", "Beard Grooming", "Styling"],
+
+    likes: 48,
+    workCount: 20,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100073",
+    whatsapp: "+260962100073",
+  },
+
+  {
+    id: 74,
+    name: "Steven Mulenga",
+    role: "Urban Barber",
+    category: "Barbers",
+    location: "Ndola",
+    initials: "SM",
+    image:
+      "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Urban barber creating modern hairstyles, sharp fades and clean beard designs for young professionals and creatives.",
+
+    skills: ["Fades", "Modern Haircuts", "Beard Design", "Styling"],
+
+    likes: 65,
+    workCount: 31,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100074",
+    whatsapp: "+260962100074",
+  },
+
+  {
+    id: 75,
+    name: "Isaac Chileshe",
+    role: "Haircut Specialist",
+    category: "Barbers",
+    location: "Kitwe",
+    initials: "IC",
+    image:
+      "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Haircut specialist focused on neat fades, classic styles and professional grooming for men and young people.",
+
+    skills: ["Haircuts", "Fades", "Classic Styles", "Grooming"],
+
+    likes: 43,
+    workCount: 18,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100075",
+    whatsapp: "+260962100075",
+  },
+
+  {
+    id: 76,
+    name: "Brian Mumba",
+    role: "Barbering & Grooming",
+    category: "Barbers",
+    location: "Lusaka",
+    initials: "BM",
+    image:
+      "https://images.unsplash.com/photo-1622288432450-277d0fef5ed6?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Barber providing clean modern cuts, fades and complete grooming services with attention to detail.",
+
+    skills: ["Fades", "Haircuts", "Grooming", "Beard Care"],
+
+    likes: 59,
+    workCount: 26,
+
+    available: false,
+    verified: true,
+
+    phone: "+260962100076",
+    whatsapp: "+260962100076",
+  },
+
+  {
+    id: 77,
+    name: "Emmanuel Mwila",
+    role: "Luxury Barbering",
+    category: "Barbers",
+    location: "Ndola",
+    initials: "EM",
+    image:
+      "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Barber offering premium grooming experiences including precision fades, haircuts and beard styling.",
+
+    skills: ["Premium Grooming", "Fades", "Haircuts", "Beard Styling"],
+
+    likes: 82,
+    workCount: 39,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100077",
+    whatsapp: "+260962100077",
+  },
+
+  {
+    id: 78,
+    name: "Daniel Mwale",
+    role: "Creative Barber",
+    category: "Barbers",
+    location: "Lusaka",
+    initials: "DM",
+    image:
+      "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Creative barber specialising in detailed fades, creative hair designs and personalised men's hairstyles.",
+
+    skills: ["Creative Cuts", "Fades", "Hair Design", "Styling"],
+
+    likes: 74,
+    workCount: 34,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100078",
+    whatsapp: "+260962100078",
+  },
+
+  {
+    id: 79,
+    name: "Oscar Bwalya",
+    role: "Classic & Modern Cuts",
+    category: "Barbers",
+    location: "Kitwe",
+    initials: "OB",
+    image:
+      "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Barber combining classic barbering techniques with modern styles to deliver clean and confident looks.",
+
+    skills: ["Classic Cuts", "Modern Cuts", "Fades", "Grooming"],
+
+    likes: 46,
+    workCount: 21,
+
+    available: true,
+    verified: false,
+
+    phone: "+260962100079",
+    whatsapp: "+260962100079",
+  },
+
+  {
+    id: 80,
+    name: "William Tembo",
+    role: "Fade & Beard Specialist",
+    category: "Barbers",
+    location: "Lusaka",
+    initials: "WT",
+    image:
+      "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80",
+
+    bio: "Experienced barber specialising in sharp fades, beard shaping and complete men's grooming services.",
+
+    skills: ["Fades", "Beard Styling", "Haircuts", "Men's Grooming"],
+
+    likes: 89,
+    workCount: 43,
+
+    available: true,
+    verified: true,
+
+    phone: "+260962100080",
+    whatsapp: "+260962100080",
+  },
 ];
