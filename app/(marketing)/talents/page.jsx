@@ -1,6 +1,5 @@
+import TalentsContent from "@/components/talents/TalentsContent";
 import { Suspense } from "react";
-
-import TalentsContent from "./TalentsContent";
 
 export default function TalentsPage() {
   return (
