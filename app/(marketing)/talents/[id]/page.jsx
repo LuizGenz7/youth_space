@@ -1,4 +1,3 @@
-
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -60,22 +59,18 @@ export default async function TalentPage({ params }) {
 ========================================================= */
 
 async function getTalentPageData(id) {
-  const talent = talents.find(
-    (item) => String(item.id) === String(id),
-  );
+  const talent = talents.find((item) => String(item.id) === String(id));
 
   if (!talent) {
     return null;
   }
 
   const talentServices = services.filter(
-    (service) =>
-      String(service.talentId) === String(talent.id),
+    (service) => String(service.talentId) === String(talent.id),
   );
 
   const talentWorks = works.filter(
-    (work) =>
-      String(work.talentId) === String(talent.id),
+    (work) => String(work.talentId) === String(talent.id),
   );
 
   return {
@@ -105,7 +100,9 @@ function TalentHero({ talent }) {
 
   return (
     <section className="relative overflow-hidden bg-slate-950">
-      {/* Background */}
+      {/* ===================================================
+          BACKGROUND IMAGE
+      =================================================== */}
 
       <div className="absolute inset-0">
         {image ? (
@@ -118,10 +115,7 @@ function TalentHero({ talent }) {
             className="object-cover"
           />
         ) : (
-          <TalentHeroFallback
-            initials={initials}
-            category={category || role}
-          />
+          <TalentHeroFallback initials={initials} category={category || role} />
         )}
 
         <div className="absolute inset-0 bg-slate-950/65" />
@@ -131,13 +125,15 @@ function TalentHero({ talent }) {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/30" />
       </div>
 
-      {/* Decorative circles */}
+      {/* Decorative network circles */}
 
       <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full border-[60px] border-white/[0.035]" />
 
       <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full border-[55px] border-white/[0.025]" />
 
-      {/* Content */}
+      {/* ===================================================
+          CONTENT
+      =================================================== */}
 
       <div className="relative z-10 mx-auto max-w-7xl px-5 pb-10 pt-24 sm:px-6 sm:pb-14 sm:pt-28 lg:px-8 lg:pb-20">
         {/* Back */}
@@ -180,18 +176,21 @@ function TalentHero({ talent }) {
               </h1>
 
               {verified && (
-                <CheckCircle2
-                  size={21}
-                  className="fill-white text-slate-950"
-                />
+                <span
+                  title="Verified talent"
+                  className="inline-flex items-center justify-center"
+                >
+                  <CheckCircle2
+                    size={21}
+                    className="fill-white text-slate-950"
+                  />
+                </span>
               )}
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               {role && (
-                <p className="text-base font-bold text-white/80">
-                  {role}
-                </p>
+                <p className="text-base font-bold text-white/80">{role}</p>
               )}
 
               {category && role && (
@@ -217,27 +216,10 @@ function TalentHero({ talent }) {
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
               <StatusBadge available={available} />
 
-              <StatBadge
-                icon={Heart}
-                value={likes ?? 0}
-                label="likes"
-              />
+              <StatBadge icon={Heart} value={likes ?? 0} label="likes" />
 
-              <StatBadge
-                icon={Sparkles}
-                value={workCount ?? 0}
-                label="works"
-              />
+              <StatBadge icon={Sparkles} value={workCount ?? 0} label="works" />
             </div>
-          </div>
-
-          {/* Like button */}
-
-          <div className="sm:ml-auto">
-            <LikeTalentButton
-              talentId={talent.id}
-              initialLikes={likes ?? 0}
-            />
           </div>
         </div>
       </div>
@@ -246,111 +228,10 @@ function TalentHero({ talent }) {
 }
 
 /* =========================================================
-   LIKE TALENT BUTTON
-========================================================= */
-
-function LikeTalentButton({
-  talentId,
-  initialLikes = 0,
-}) {
-  /*
-   * This component is intentionally client-side.
-   *
-   * MVP:
-   *   - local optimistic state
-   *
-   * Later:
-   *   - Firebase like/unlike
-   *   - authenticated user
-   *   - prevent duplicate likes
-   */
-
-  return (
-    <LikeTalentClient
-      talentId={talentId}
-      initialLikes={initialLikes}
-    />
-  );
-}
-
-/* =========================================================
-   LIKE TALENT CLIENT
-========================================================= */
-
-"use client";
-
-import { useState } from "react";
-
-function LikeTalentClient({
-  initialLikes = 0,
-}) {
-  const [liked, setLiked] = useState(false);
-  const [likes, setLikes] = useState(initialLikes);
-
-  function handleLike() {
-    setLiked((current) => {
-      const next = !current;
-
-      setLikes((count) =>
-        next
-          ? count + 1
-          : Math.max(count - 1, 0),
-      );
-
-      return next;
-    });
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleLike}
-      aria-label={
-        liked
-          ? "Unlike this talent"
-          : "Like this talent"
-      }
-      aria-pressed={liked}
-      className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-black shadow-lg transition active:scale-[0.97] ${
-        liked
-          ? "bg-white text-slate-950"
-          : "border border-white/15 bg-white/10 text-white backdrop-blur-md hover:bg-white/15"
-      }`}
-    >
-      <Heart
-        size={17}
-        className={
-          liked
-            ? "fill-slate-950"
-            : ""
-        }
-      />
-
-      <span>
-        {liked ? "Liked" : "Like"}
-      </span>
-
-      <span
-        className={
-          liked
-            ? "text-slate-400"
-            : "text-white/45"
-        }
-      >
-        {likes}
-      </span>
-    </button>
-  );
-}
-
-/* =========================================================
    HERO FALLBACK
 ========================================================= */
 
-function TalentHeroFallback({
-  initials,
-  category,
-}) {
+function TalentHeroFallback({ initials, category }) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-slate-700 via-slate-900 to-slate-950">
       <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full border-[50px] border-white/[0.04]" />
@@ -367,12 +248,7 @@ function TalentHeroFallback({
 
       <div className="relative flex h-full items-center justify-center">
         <div className="flex h-28 w-28 items-center justify-center rounded-[2rem] border border-white/10 bg-white/5 text-2xl font-black text-white/40 backdrop-blur">
-          {initials || (
-            <UserRound
-              size={42}
-              strokeWidth={1.3}
-            />
-          )}
+          {initials || <UserRound size={42} strokeWidth={1.3} />}
         </div>
       </div>
     </div>
@@ -383,11 +259,7 @@ function TalentHeroFallback({
    CONTENT
 ========================================================= */
 
-function TalentContent({
-  talent,
-  services,
-  works,
-}) {
+function TalentContent({ talent, services, works }) {
   return (
     <section>
       <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20">
@@ -401,10 +273,7 @@ function TalentContent({
 
             <TalentServices services={services} />
 
-            <TalentPortfolio
-              talent={talent}
-              works={works}
-            />
+            <TalentPortfolio talent={talent} works={works} />
 
             <TalentAvailability talent={talent} />
           </div>
@@ -434,10 +303,7 @@ function TalentAbout({ talent }) {
 
   return (
     <section>
-      <SectionHeading
-        eyebrow="About"
-        title="About this talent"
-      />
+      <SectionHeading eyebrow="About" title="About this talent" />
 
       <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base sm:leading-8">
         {description}
@@ -459,10 +325,7 @@ function TalentSkills({ talent }) {
 
   return (
     <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-16 sm:pt-14">
-      <SectionHeading
-        eyebrow="Skills"
-        title="What I specialise in"
-      />
+      <SectionHeading eyebrow="Skills" title="What I specialise in" />
 
       <div className="mt-6 flex flex-wrap gap-2">
         {skills.map((skill) => (
@@ -489,10 +352,7 @@ function TalentServices({ services }) {
 
   return (
     <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-16 sm:pt-14">
-      <SectionHeading
-        eyebrow="Services"
-        title="What I offer"
-      />
+      <SectionHeading eyebrow="Services" title="What I offer" />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {services.map((service) => (
@@ -506,9 +366,7 @@ function TalentServices({ services }) {
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-sm font-black">
-                  {service.name}
-                </h3>
+                <h3 className="text-sm font-black">{service.name}</h3>
 
                 {service.description && (
                   <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -516,15 +374,11 @@ function TalentServices({ services }) {
                   </p>
                 )}
 
-                {service.price !== undefined &&
-                  service.price !== null && (
-                    <p className="mt-2 text-xs font-bold text-slate-950">
-                      From K
-                      {Number(
-                        service.price,
-                      ).toLocaleString()}
-                    </p>
-                  )}
+                {service.price !== undefined && service.price !== null && (
+                  <p className="mt-2 text-xs font-bold text-slate-950">
+                    From K{Number(service.price).toLocaleString()}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -538,54 +392,37 @@ function TalentServices({ services }) {
    PORTFOLIO
 ========================================================= */
 
-function TalentPortfolio({
-  talent,
-  works,
-}) {
+function TalentPortfolio({ talent, works }) {
   const visibleWorks = works.slice(0, 10);
 
   return (
     <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-16 sm:pt-14">
       <div className="flex items-end justify-between gap-4">
-        <SectionHeading
-          eyebrow="Portfolio"
-          title="My work"
-        />
+        <SectionHeading eyebrow="Portfolio" title="My work" />
 
         {works.length > 0 && (
           <span className="shrink-0 text-xs font-bold text-slate-400">
-            {works.length}{" "}
-            {works.length === 1
-              ? "work"
-              : "works"}
+            {works.length} {works.length === 1 ? "work" : "works"}
           </span>
         )}
       </div>
 
       {!works.length ? (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
-          <Sparkles
-            size={24}
-            className="mx-auto text-slate-300"
-          />
+          <Sparkles size={24} className="mx-auto text-slate-300" />
 
           <p className="mt-3 text-sm font-black text-slate-700">
             No work shared yet
           </p>
 
           <p className="mt-1 text-xs text-slate-400">
-            Portfolio work will appear here when it
-            is added.
+            Portfolio work will appear here when it is added.
           </p>
         </div>
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {visibleWorks.map((work) => (
-            <WorkShowcaseCard
-              key={work.id}
-              talent={talent}
-              work={work}
-            />
+            <WorkShowcaseCard key={work.id} talent={talent} work={work} />
           ))}
         </div>
       )}
@@ -597,10 +434,7 @@ function TalentPortfolio({
    WORK CARD
 ========================================================= */
 
-function WorkShowcaseCard({
-  talent,
-  work,
-}) {
+function WorkShowcaseCard({ talent, work }) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg">
       <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
@@ -662,10 +496,7 @@ function TalentAvailability({ talent }) {
 
   return (
     <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-16 sm:pt-14">
-      <SectionHeading
-        eyebrow="Availability"
-        title="Work availability"
-      />
+      <SectionHeading eyebrow="Availability" title="Work availability" />
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <div className="flex items-start gap-3">
@@ -675,9 +506,7 @@ function TalentAvailability({ talent }) {
 
           <div>
             <p className="text-sm font-black">
-              {isAvailable
-                ? "Available for work"
-                : "Currently unavailable"}
+              {isAvailable ? "Available for work" : "Currently unavailable"}
             </p>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -714,25 +543,14 @@ function ContactCard({ talent }) {
       </h2>
 
       <p className="mt-2 text-sm leading-6 text-slate-500">
-        Contact {talent.name} directly to ask about
-        their services, pricing or availability.
+        Contact {talent.name} directly to ask about their services, pricing or
+        availability.
       </p>
 
       <div className="mt-6 space-y-3">
-        {/* Like */}
-
-        <LikeTalentClient
-          initialLikes={talent.likes ?? 0}
-          fullWidth
-        />
-
-        {/* WhatsApp */}
-
         {talent.whatsapp && (
           <a
-            href={`https://wa.me/${cleanPhoneNumber(
-              talent.whatsapp,
-            )}`}
+            href={`https://wa.me/${cleanPhoneNumber(talent.whatsapp)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98]"
@@ -741,8 +559,6 @@ function ContactCard({ talent }) {
             WhatsApp
           </a>
         )}
-
-        {/* Call */}
 
         {phone && (
           <a
@@ -753,8 +569,6 @@ function ContactCard({ talent }) {
             Call
           </a>
         )}
-
-        {/* Share */}
 
         <button
           type="button"
@@ -794,15 +608,11 @@ function StatusBadge({ available }) {
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          available
-            ? "bg-emerald-400"
-            : "bg-white/30"
+          available ? "bg-emerald-400" : "bg-white/30"
         }`}
       />
 
-      {available
-        ? "Available"
-        : "Currently unavailable"}
+      {available ? "Available" : "Currently unavailable"}
     </div>
   );
 }
@@ -811,11 +621,7 @@ function StatusBadge({ available }) {
    STAT BADGE
 ========================================================= */
 
-function StatBadge({
-  icon: Icon,
-  value,
-  label,
-}) {
+function StatBadge({ icon: Icon, value, label }) {
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white/60 backdrop-blur">
       <Icon size={12} />
@@ -828,10 +634,7 @@ function StatBadge({
    SECTION HEADING
 ========================================================= */
 
-function SectionHeading({
-  eyebrow,
-  title,
-}) {
+function SectionHeading({ eyebrow, title }) {
   return (
     <div>
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
