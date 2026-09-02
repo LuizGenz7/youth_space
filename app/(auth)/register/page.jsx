@@ -1,3 +1,4 @@
+
 // app/register/page.js
 
 "use client";
@@ -14,6 +15,9 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
+
+const REGISTER_IMAGE =
+  "https://www.bbcchildreninneed.co.uk/wp-content/uploads/2025/09/wemove-main-image.png";
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -39,24 +43,22 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1800px]">
-
+      <div className="mx-auto flex min-h-screen w-full max-w-[1920px]">
         {/* =====================================================
             REGISTER PANEL
         ===================================================== */}
 
-        <section className="flex min-h-screen w-full flex-col lg:w-[52%] xl:w-[48%]">
-
+        <section className="flex min-h-screen w-full flex-col lg:w-[54%] xl:w-[50%]">
           {/* ===================================================
               HEADER
           =================================================== */}
 
-          <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14">
+          <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
             <Link
               href="/"
               className="group flex items-center gap-2.5"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white transition group-hover:scale-105">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white transition duration-200 group-hover:scale-105">
                 Y
               </div>
 
@@ -76,7 +78,7 @@ export default function RegisterPage() {
 
             <Link
               href="/login"
-              className="rounded-lg px-2 py-1.5 text-xs font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+              className="rounded-lg px-2 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
             >
               Sign in
             </Link>
@@ -86,9 +88,8 @@ export default function RegisterPage() {
               FORM AREA
           =================================================== */}
 
-          <div className="flex flex-1 items-center justify-center px-5 py-8 sm:px-8 lg:px-10 xl:px-14">
+          <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
             <div className="w-full max-w-[440px]">
-
               {/* Heading */}
 
               <div>
@@ -105,8 +106,8 @@ export default function RegisterPage() {
                 </h1>
 
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
-                  Create your profile, showcase what you can do and connect
-                  with people across Zambia.
+                  Create your profile, showcase what you can do and
+                  connect with people across Zambia.
                 </p>
               </div>
 
@@ -118,8 +119,7 @@ export default function RegisterPage() {
                 onSubmit={handleSubmit}
                 className="mt-8 space-y-5"
               >
-
-                {/* Name */}
+                {/* Full name */}
 
                 <div>
                   <label
@@ -250,7 +250,7 @@ export default function RegisterPage() {
                       visible={showConfirmPassword}
                       onClick={() =>
                         setShowConfirmPassword(
-                          (value) => !value
+                          (value) => !value,
                         )
                       }
                     />
@@ -352,7 +352,7 @@ export default function RegisterPage() {
 
           {/* Footer */}
 
-          <footer className="px-5 pb-5 sm:px-8 lg:px-10 xl:px-14">
+          <footer className="px-5 pb-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
             <p className="text-[10px] font-medium text-slate-400">
               © {new Date().getFullYear()} Youth Space by TechGU
             </p>
@@ -364,111 +364,168 @@ export default function RegisterPage() {
         ===================================================== */}
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
-
-          {/* Fallback background */}
+          {/* =================================================
+              FALLBACK
+          ================================================= */}
 
           <div className="absolute inset-0 bg-slate-950" />
 
-          {/* Image */}
+          {/* Decorative fallback circles */}
+
+          {imageError && (
+            <>
+              <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.06]" />
+
+              <div className="absolute left-1/2 top-1/2 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.06]" />
+
+              <div className="absolute left-1/2 top-1/2 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+                <Sparkles
+                  size={40}
+                  strokeWidth={1.4}
+                  className="text-white/50"
+                />
+              </div>
+            </>
+          )}
+
+          {/* =================================================
+              IMAGE
+          ================================================= */}
 
           {!imageError && (
             <img
-              src="/images/register-youth.jpg"
+              src={REGISTER_IMAGE}
               alt=""
               onError={() => setImageError(true)}
               className="absolute inset-0 h-full w-full object-cover"
             />
           )}
 
-          {/* Dark overlay */}
+          {/* =================================================
+              IMAGE TREATMENT
+          ================================================= */}
+
+          {/* Overall darkening */}
 
           <div className="absolute inset-0 bg-slate-950/45" />
 
-          {/* Bottom gradient */}
+          {/* Left content gradient */}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/20" />
+          <div className="absolute inset-y-0 left-0 w-3/4 bg-gradient-to-r from-slate-950/80 via-slate-950/40 to-transparent" />
 
-          {/* Subtle grid */}
+          {/* Bottom fade */}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/25 to-slate-950/10" />
+
+          {/* Top fade */}
+
+          <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-slate-950/50 to-transparent" />
+
+          {/* =================================================
+              GRID
+          ================================================= */}
 
           <div
-            className="absolute inset-0 opacity-[0.08]"
+            className="absolute inset-0 opacity-[0.055]"
             style={{
               backgroundImage:
                 "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
               backgroundSize: "64px 64px",
               maskImage:
-                "linear-gradient(to bottom, transparent, black 35%, black 75%, transparent)",
+                "linear-gradient(to bottom, transparent, black 25%, black 80%, transparent)",
               WebkitMaskImage:
-                "linear-gradient(to bottom, transparent, black 35%, black 75%, transparent)",
+                "linear-gradient(to bottom, transparent, black 25%, black 80%, transparent)",
             }}
           />
 
           {/* =================================================
-              VISUAL CONTENT
+              DECORATIVE LIGHT
           ================================================= */}
 
-          <div className="relative z-10 flex min-h-screen items-center px-10 py-16 xl:px-14 2xl:px-20">
+          <div className="absolute -right-40 top-1/4 h-96 w-96 rounded-full bg-white/10 blur-[130px]" />
 
-            <div className="w-full max-w-2xl">
+          <div className="absolute -left-32 bottom-1/4 h-80 w-80 rounded-full bg-white/5 blur-[110px]" />
 
-              {/* Eyebrow */}
+          {/* =================================================
+              CONTENT
+          ================================================= */}
 
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-lg backdrop-blur-md">
+          <div className="relative z-10 flex min-h-screen flex-col justify-between p-8 xl:p-12 2xl:p-16">
+            {/* Top */}
+
+            <div className="flex items-center justify-between">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-lg backdrop-blur-xl">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
                   <Sparkles size={10} />
                 </span>
 
                 <span className="text-[10px] font-bold text-white/80">
-                  Build your presence
+                  Join Zambia's youth talent community
                 </span>
               </div>
 
-              {/* Main heading */}
+              <span className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-white/40 xl:block">
+                Youth Space
+              </span>
+            </div>
 
-              <h2 className="mt-7 max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.05em] text-white xl:text-5xl 2xl:text-6xl">
-                Your skill
-                <br />
-                deserves to be
-                <span className="block text-white/45">
-                  discovered.
-                </span>
-              </h2>
+            {/* Main */}
 
-              {/* Description */}
-
-              <p className="mt-6 max-w-lg text-sm leading-7 text-white/65 xl:text-base xl:leading-8">
-                Create a profile that tells people what you do,
-                showcase your best work and make it easier for
-                customers and businesses to find you.
+            <div className="max-w-2xl pb-8 pt-20">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/45">
+                Your next opportunity starts here
               </p>
 
-              {/* Features */}
+              <h2 className="mt-5 text-4xl font-black leading-[0.98] tracking-[-0.055em] text-white xl:text-5xl 2xl:text-6xl">
+                Put your talent
+                <br />
+                in the spotlight.
+              </h2>
 
-              <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              <p className="mt-6 max-w-lg text-sm leading-7 text-white/65 xl:text-base xl:leading-8">
+                Build a profile, share the work you're proud of and
+                make it easier for people to discover what you can
+                do.
+              </p>
+
+              {/* Feature cards */}
+
+              <div className="mt-9 grid max-w-xl gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                 <VisualFeature>
-                  Create your profile
+                  Build your profile
                 </VisualFeature>
 
                 <VisualFeature>
-                  Showcase your work
+                  Share your work
                 </VisualFeature>
 
                 <VisualFeature>
-                  Connect with opportunities
+                  Get discovered
                 </VisualFeature>
               </div>
+            </div>
 
-              {/* Small bottom message */}
+            {/* Bottom */}
 
-              <div className="mt-10 border-t border-white/10 pt-6">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
-                  Youth Space
-                </p>
+            <div className="border-t border-white/10 pt-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
+                    Youth Space by TechGU
+                  </p>
 
-                <p className="mt-2 text-xs text-white/45">
-                  Discover talent. Share your skills. Create
-                  opportunities.
-                </p>
+                  <p className="mt-2 text-xs text-white/45">
+                    Discover talent. Share your skills. Create
+                    opportunities.
+                  </p>
+                </div>
+
+                <div className="hidden h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 xl:flex">
+                  <Sparkles
+                    size={14}
+                    className="text-white/40"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -512,7 +569,7 @@ function VisualFeature({ children }) {
         <Check size={11} />
       </span>
 
-      {children}
+      <span>{children}</span>
     </div>
   );
 }

@@ -14,6 +14,9 @@ import {
   Sparkles,
 } from "lucide-react";
 
+const LOGIN_IMAGE =
+  "https://bongohive.co.zm/app/uploads/2024/12/462231872_1518820968810746_4996820145898586779_n.jpg";
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -24,7 +27,7 @@ export default function LoginPage() {
     event.preventDefault();
 
     // UI only for now.
-    // Firebase authentication will be connected later.
+    // Firebase Authentication will be connected later.
 
     setLoading(true);
 
@@ -190,7 +193,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Remember */}
+                {/* Remember me */}
 
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
@@ -251,6 +254,7 @@ export default function LoginPage() {
                 className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md"
               >
                 <GoogleIcon />
+
                 Continue with Google
               </button>
 
@@ -302,53 +306,100 @@ export default function LoginPage() {
         ===================================================== */}
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
-          {/* Fallback background */}
+          {/* =================================================
+              BACKGROUND FALLBACK
+          ================================================= */}
 
           <div className="absolute inset-0 bg-slate-950" />
 
-          {/* Image */}
+          {/* =================================================
+              BACKGROUND IMAGE
+          ================================================= */}
 
           {!imageError && (
             <img
-              src="/images/login-youth.jpg"
+              src={LOGIN_IMAGE}
               alt=""
               onError={() => setImageError(true)}
               className="absolute inset-0 h-full w-full object-cover"
             />
           )}
 
-          {/* Dark overlay */}
+          {/* =================================================
+              IMAGE TREATMENT
+          ================================================= */}
+
+          {/* Main dark overlay */}
 
           <div className="absolute inset-0 bg-slate-950/45" />
 
-          {/* Bottom fade */}
+          {/* Left-side gradient */}
+
+          <div className="absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-slate-950/75 via-slate-950/35 to-transparent" />
+
+          {/* Bottom gradient */}
 
           <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-transparent to-slate-950/95" />
 
-          {/* Grid */}
+          {/* Subtle top gradient */}
+
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-slate-950/50 to-transparent" />
+
+          {/* =================================================
+              GRID
+          ================================================= */}
 
           <div
-            className="absolute inset-0 opacity-[0.07]"
+            className="absolute inset-0 opacity-[0.06]"
             style={{
               backgroundImage:
                 "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
               backgroundSize: "64px 64px",
               maskImage:
-                "linear-gradient(to bottom, black, transparent 75%)",
+                "linear-gradient(to bottom, black, transparent 80%)",
               WebkitMaskImage:
-                "linear-gradient(to bottom, black, transparent 75%)",
+                "linear-gradient(to bottom, black, transparent 80%)",
             }}
           />
 
           {/* =================================================
-              TOP CONTENT
+              DECORATIVE LIGHT
+          ================================================= */}
+
+          <div className="absolute -right-32 top-1/4 h-80 w-80 rounded-full bg-white/10 blur-[120px]" />
+
+          <div className="absolute -left-32 bottom-1/4 h-72 w-72 rounded-full bg-white/5 blur-[100px]" />
+
+          {/* =================================================
+              FALLBACK CONTENT
+              Visible if image fails
+          ================================================= */}
+
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute h-[500px] w-[500px] rounded-full border border-white/5" />
+
+              <div className="absolute h-[350px] w-[350px] rounded-full border border-white/5" />
+
+              <div className="relative flex h-28 w-28 items-center justify-center rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+                <Sparkles
+                  size={42}
+                  strokeWidth={1.4}
+                  className="text-white/50"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* =================================================
+              CONTENT
           ================================================= */}
 
           <div className="relative z-10 flex h-full flex-col p-8 xl:p-12 2xl:p-16">
-            {/* Brand / status */}
+            {/* Top */}
 
             <div className="flex items-center justify-between">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur-xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-lg backdrop-blur-xl">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
                   <Sparkles size={10} />
                 </span>
@@ -401,7 +452,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Bottom quote / identity */}
+            {/* Bottom */}
 
             <div className="mt-auto pt-16">
               <div className="max-w-xl border-l border-white/20 pl-5">
