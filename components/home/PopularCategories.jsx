@@ -12,6 +12,7 @@ import Link from "next/link";
 
 import { categories } from "@/data/categories";
 import { talents } from "@/data/talents";
+import CategoryIcon from "../categories/CategoryIcon";
 
 /* =========================================================
    HELPERS
@@ -74,18 +75,6 @@ export default function PopularCategories() {
   );
 }
 
-/* =========================================================
-   MINI CATEGORY
-========================================================= */
-export function CategoryIcon({ icon }) {
-  const Icon = icon || BriefcaseBusiness;
-
-  return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-      <Icon size={18} />
-    </div>
-  );
-}
 
 function MiniCategory({ category }) {
   return (

@@ -12,16 +12,8 @@ import {
   Search,
   Sparkles,
   UserRound,
-  Users,
   BriefcaseBusiness,
 } from "lucide-react";
-
-import FilterPill from "./FilterPill";
-import { talents } from "@/data/talents";
-
-/* =========================================================
-   HERO
-========================================================= */
 
 export default function Hero() {
   const popularSearches = [
@@ -31,16 +23,6 @@ export default function Hero() {
     "Hair Dressers",
     "Photographers",
   ];
-
-  /*
-   * Homepage preview.
-   *
-   * Later:
-   * Firebase → published talents → sort by likes → top 4.
-   */
-  const topTalents = [...talents]
-    .sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))
-    .slice(0, 4);
 
   return (
     <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
@@ -59,7 +41,7 @@ export default function Hero() {
         />
 
         {/* Main dark overlay */}
-        <div className="absolute inset-0 bg-slate-950/75" />
+        <div className="absolute inset-0 bg-slate-950/20" />
 
         {/* Directional gradient */}
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/55" />
@@ -153,7 +135,7 @@ export default function Hero() {
               {popularSearches.map((item) => (
                 <Link
                   key={item}
-                  href={`/discover?q=${encodeURIComponent(item)}`}
+                  href={`/talents?category=${encodeURIComponent(item)}`}
                   className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/65 backdrop-blur-sm transition hover:border-white/30 hover:bg-white/15 hover:text-white"
                 >
                   {item}

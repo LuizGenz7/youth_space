@@ -1,6 +1,4 @@
-/* =========================================================
-   WORK CARD
-========================================================= */
+'use client';
 
 import { ArrowRight, CheckCircle2, Heart, MapPin, UserRound } from "lucide-react";
 import Image from "next/image";

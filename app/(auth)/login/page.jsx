@@ -47,10 +47,7 @@ export default function LoginPage() {
           {/* Header */}
 
           <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
-            <Link
-              href="/"
-              className="group flex items-center gap-2.5"
-            >
+            <Link href="/" className="group flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white transition duration-200 group-hover:scale-105">
                 Y
               </div>
@@ -61,10 +58,7 @@ export default function LoginPage() {
                 </p>
 
                 <p className="mt-1 text-[9px] text-slate-400">
-                  by{" "}
-                  <span className="font-bold text-slate-600">
-                    TechGU
-                  </span>
+                  by <span className="font-bold text-slate-600">TechGU</span>
                 </p>
               </div>
             </Link>
@@ -97,17 +91,14 @@ export default function LoginPage() {
                 </h1>
 
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
-                  Continue discovering talent, sharing your work and
-                  connecting with people across Zambia.
+                  Continue discovering talent, sharing your work and connecting
+                  with people across Zambia.
                 </p>
               </div>
 
               {/* Form */}
 
-              <form
-                onSubmit={handleSubmit}
-                className="mt-8 space-y-5"
-              >
+              <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                 {/* Email */}
 
                 <div>
@@ -174,21 +165,13 @@ export default function LoginPage() {
 
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowPassword((value) => !value)
-                      }
+                      onClick={() => setShowPassword((value) => !value)}
                       aria-label={
-                        showPassword
-                          ? "Hide password"
-                          : "Show password"
+                        showPassword ? "Hide password" : "Show password"
                       }
                       className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
                     >
-                      {showPassword ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
@@ -199,9 +182,7 @@ export default function LoginPage() {
                   <input
                     type="checkbox"
                     checked={rememberMe}
-                    onChange={(event) =>
-                      setRememberMe(event.target.checked)
-                    }
+                    onChange={(event) => setRememberMe(event.target.checked)}
                     className="h-4 w-4 rounded border-slate-300 accent-slate-950"
                   />
 
@@ -225,7 +206,6 @@ export default function LoginPage() {
                   ) : (
                     <>
                       Sign in
-
                       <ArrowRight
                         size={16}
                         className="transition-transform group-hover:translate-x-1"
@@ -254,7 +234,6 @@ export default function LoginPage() {
                 className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md"
               >
                 <GoogleIcon />
-
                 Continue with Google
               </button>
 
@@ -355,8 +334,7 @@ export default function LoginPage() {
               backgroundImage:
                 "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
               backgroundSize: "64px 64px",
-              maskImage:
-                "linear-gradient(to bottom, black, transparent 80%)",
+              maskImage: "linear-gradient(to bottom, black, transparent 80%)",
               WebkitMaskImage:
                 "linear-gradient(to bottom, black, transparent 80%)",
             }}
@@ -430,25 +408,18 @@ export default function LoginPage() {
               </h2>
 
               <p className="mt-6 max-w-lg text-sm leading-7 text-white/65 xl:text-base">
-                Youth Space connects young Zambians with people,
-                businesses and opportunities that value what they
-                can do.
+                Youth Space connects young Zambians with people, businesses and
+                opportunities that value what they can do.
               </p>
 
               {/* Features */}
 
               <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
-                <VisualFeature>
-                  Discover young talent
-                </VisualFeature>
+                <VisualFeature>Discover young talent</VisualFeature>
 
-                <VisualFeature>
-                  Showcase your skills
-                </VisualFeature>
+                <VisualFeature>Showcase your skills</VisualFeature>
 
-                <VisualFeature>
-                  Connect locally
-                </VisualFeature>
+                <VisualFeature>Connect locally</VisualFeature>
               </div>
             </div>
 
@@ -457,8 +428,8 @@ export default function LoginPage() {
             <div className="mt-auto pt-16">
               <div className="max-w-xl border-l border-white/20 pl-5">
                 <p className="text-sm font-medium leading-6 text-white/55">
-                  "Your skills can open doors. Youth Space helps
-                  people find them."
+                  "Your skills can open doors. Youth Space helps people find
+                  them."
                 </p>
 
                 <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
@@ -495,11 +466,7 @@ function VisualFeature({ children }) {
 
 function GoogleIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M21.35 12.23c0-.72-.06-1.41-.18-2.08H12v3.94h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.25Z"

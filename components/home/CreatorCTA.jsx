@@ -4,7 +4,7 @@ import Link from "next/link";
 export default function CreatorCTA() {
   return (
     <section className="px-5 pb-24 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-4xl bg-slate-100 px-6 py-20 sm:px-10 lg:py-28">
+      <div className="mx-auto max-w-7xl overflow-hidden  bg-slate-100 px-6 py-20 sm:px-10 lg:py-28">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
             <Users size={21} />
