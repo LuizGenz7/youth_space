@@ -6,16 +6,62 @@ import {
   X,
 } from "lucide-react";
 
-export default function TalentsHero({
-  search,
-  onSearch,
-}) {
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+
+import { useTalentsStore } from "@/stores/talentsStore";
+
+export default function TalentsHero() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const talentsLoading = useTalentsStore(
+    (state) => state.talentsLoading,
+  );
+
+  const search = searchParams.get("search") || "";
+
+  function changeSearch(value) {
+    if (talentsLoading) return;
+
+    const params = new URLSearchParams(
+      searchParams.toString(),
+    );
+
+    if (value.trim()) {
+      params.set("search", value);
+    } else {
+      params.delete("search");
+    }
+
+    const query = params.toString();
+
+    router.push(
+      query
+        ? `?${query}`
+        : window.location.pathname,
+      {
+        scroll: false,
+      },
+    );
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    if (talentsLoading) return;
+
+    changeSearch(search);
+  }
+
   return (
     <section
       className="relative overflow-hidden border-b border-slate-200 bg-slate-50"
       style={{
         backgroundImage:
-          "url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=2000&q=85')",
+          "url('/images/youth-space-hero.webp')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
@@ -44,13 +90,16 @@ export default function TalentsHero({
           </p>
 
           <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              onSearch(search);
-            }}
+            onSubmit={handleSubmit}
             className="mt-7"
           >
-            <div className="flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl transition focus-within:border-white/40 focus-within:ring-4 focus-within:ring-white/10">
+            <div
+              className={`flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl transition ${
+                talentsLoading
+                  ? "opacity-70"
+                  : "focus-within:border-white/40 focus-within:ring-4 focus-within:ring-white/10"
+              }`}
+            >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400">
                 <Search size={19} />
               </div>
@@ -58,17 +107,22 @@ export default function TalentsHero({
               <input
                 type="search"
                 value={search}
+                disabled={talentsLoading}
                 onChange={(event) =>
-                  onSearch(event.target.value)
+                  changeSearch(event.target.value)
                 }
-                placeholder="Search talents, skills or services..."
-                className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 sm:text-base"
+                placeholder={
+                  talentsLoading
+                    ? "Loading talents..."
+                    : "Search talents, skills or services..."
+                }
+                className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:text-base"
               />
 
-              {search && (
+              {search && !talentsLoading && (
                 <button
                   type="button"
-                  onClick={() => onSearch("")}
+                  onClick={() => changeSearch("")}
                   className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Clear search"
                 >
@@ -78,10 +132,13 @@ export default function TalentsHero({
 
               <button
                 type="submit"
-                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                disabled={talentsLoading}
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="hidden sm:inline">
-                  Search
+                  {talentsLoading
+                    ? "Loading..."
+                    : "Search"}
                 </span>
 
                 <ArrowRight size={16} />

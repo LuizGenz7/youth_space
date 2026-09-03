@@ -9,22 +9,29 @@ import FilterButton from "@/components/talents/FilterButton";
 import FilterChip from "@/components/talents/FilterChip";
 
 export default function TalentFilters({
-  totalResults,
-  activeCategory,
-  search,
-  location,
-  sort,
-  locations,
-  sortOptions,
+  totalResults = 0,
+  activeCategory = "",
+  search = "",
+  location = "All locations",
+  sort = "Recommended",
+  locations = [],
+  sortOptions = [],
   onLocationChange,
   onSortChange,
   onSearchChange,
   onCategoryChange,
   onClear,
 }) {
+  const hasFilters =
+    Boolean(activeCategory) ||
+    location !== "All locations" ||
+    Boolean(search);
+
   return (
     <div className="mt-8 border-b border-slate-200 pb-6">
+      {/* Results + filters */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        {/* Results information */}
         <div>
           <p className="text-sm font-bold text-slate-950">
             {totalResults}{" "}
@@ -37,10 +44,13 @@ export default function TalentFilters({
           <p className="mt-1 text-xs text-slate-500">
             {activeCategory
               ? `Showing ${activeCategory} talents.`
-              : "Browse talented people by category."}
+              : search
+                ? `Showing results for "${search}".`
+                : "Browse talented people by category."}
           </p>
         </div>
 
+        {/* Dropdown filters */}
         <div className="flex flex-wrap gap-2">
           <FilterButton
             icon={MapPin}
@@ -58,14 +68,14 @@ export default function TalentFilters({
         </div>
       </div>
 
-      {(activeCategory ||
-        location !== "All locations" ||
-        search) && (
+      {/* Active filters */}
+      {hasFilters && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="mr-1 text-xs font-bold text-slate-400">
             Filters:
           </span>
 
+          {/* Search */}
           {search && (
             <FilterChip
               label={`"${search}"`}
@@ -75,6 +85,7 @@ export default function TalentFilters({
             />
           )}
 
+          {/* Category */}
           {activeCategory && (
             <FilterChip
               label={activeCategory}
@@ -84,6 +95,7 @@ export default function TalentFilters({
             />
           )}
 
+          {/* Location */}
           {location !== "All locations" && (
             <FilterChip
               label={location}
@@ -95,6 +107,7 @@ export default function TalentFilters({
             />
           )}
 
+          {/* Clear */}
           <button
             type="button"
             onClick={onClear}

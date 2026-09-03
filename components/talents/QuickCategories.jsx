@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { useRef } from "react";
 
 import CategoryIcon from "@/components/categories/CategoryIcon";
-
-import { talents } from "@/data/talents";
-import { categories } from "@/data/categories";
 
 function normalize(value) {
   return String(value || "")
@@ -14,61 +15,125 @@ function normalize(value) {
     .toLowerCase();
 }
 
-const categoriesWithCounts = categories
-  .map((category) => ({
-    ...category,
-    count: talents.filter(
-      (talent) => normalize(talent.category) === normalize(category.name),
-    ).length,
-  }))
-  .filter((category) => category.count > 0);
+export default function QuickCategories({
+  categories = [],
+  activeCategory,
+  onCategoryChange,
+}) {
+  const categoriesWithCounts = categories.filter(
+    (category) =>
+      Number(category.totalTalents || 0) > 0,
+  );
 
-export default function QuickCategories({ activeCategory, onCategoryChange }) {
+  const totalTalents = categoriesWithCounts.reduce(
+    (total, category) =>
+      total + Number(category.totalTalents || 0),
+    0,
+  );
+
+  const scrollRef = useRef(null);
+
+  function scrollCategories(direction) {
+    if (!scrollRef.current) return;
+
+    scrollRef.current.scrollBy({
+      left: direction === "left" ? -320 : 320,
+      behavior: "smooth",
+    });
+  }
+
   return (
     <div>
+      {/* Header */}
       <div className="flex items-end justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
             Browse categories
           </p>
 
-          <h2 className="mt-1 text-xl font-black">What are you looking for?</h2>
+          <h2 className="mt-1 text-xl font-black">
+            What are you looking for?
+          </h2>
         </div>
 
         <Link
           href="/categories"
-          className="hidden items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-950 sm:flex"
+          className="hidden items-center gap-1 text-xs font-bold text-slate-500 transition hover:text-slate-950 sm:flex"
         >
           All categories
           <ChevronRight size={14} />
         </Link>
       </div>
 
-      <div className="-mx-5 mt-5 flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-none sm:mx-0 sm:px-0">
-        <CategoryButton
-          title="All"
-          count={talents.length}
-          icon="sliders"
-          active={!activeCategory}
-          onClick={() => onCategoryChange("All")}
-        />
+      {/* Categories */}
+      <div className="relative mt-5">
+        {/* Left arrow */}
+        <button
+          type="button"
+          onClick={() =>
+            scrollCategories("left")
+          }
+          aria-label="Scroll categories left"
+          className="absolute left-2 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:bg-slate-50 active:scale-95 lg:flex"
+        >
+          <ChevronLeft size={18} />
+        </button>
 
-        {categoriesWithCounts.map((item) => (
+        {/* Category list */}
+        <div
+          ref={scrollRef}
+          className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-none sm:mx-0 sm:px-0 lg:px-12"
+        >
           <CategoryButton
-            key={item.id}
-            title={item.name}
-            count={item.count}
-            icon={item.icon}
-            active={normalize(activeCategory) === normalize(item.name)}
-            onClick={() => onCategoryChange(item.name)}
+            title="All"
+            count={totalTalents}
+            icon="sliders"
+            active={!activeCategory}
+            onClick={() =>
+              onCategoryChange("All")
+            }
           />
-        ))}
+
+          {categoriesWithCounts.map((item) => (
+            <CategoryButton
+              key={item.id}
+              title={item.name}
+              count={item.totalTalents}
+              icon={item.icon}
+              active={
+                normalize(activeCategory) ===
+                normalize(item.name)
+              }
+              onClick={() =>
+                onCategoryChange(item.name)
+              }
+            />
+          ))}
+        </div>
+
+        {/* Right arrow */}
+        <button
+          type="button"
+          onClick={() =>
+            scrollCategories("right")
+          }
+          aria-label="Scroll categories right"
+          className="absolute right-2 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:bg-slate-50 active:scale-95 lg:flex"
+        >
+          <ChevronRight size={18} />
+        </button>
       </div>
     </div>
   );
 }
 
-function CategoryButton({ title, count, icon, active, onClick }) {
+function CategoryButton({
+  title,
+  count,
+  icon,
+  active,
+  onClick,
+}) {
   return (
     <button
       type="button"
@@ -86,14 +151,28 @@ function CategoryButton({ title, count, icon, active, onClick }) {
             : "bg-slate-100 text-slate-600 group-hover:bg-slate-950 group-hover:text-white"
         }`}
       >
-        <CategoryIcon icon={icon} size={17} />
+        <CategoryIcon
+          icon={icon}
+          size={17}
+        />
       </div>
 
       <div className="min-w-0">
-        <p className="truncate text-xs font-black">{title}</p>
+        <p className="truncate text-xs font-black">
+          {title}
+        </p>
 
-        <p className="mt-0.5 text-[10px] text-slate-400">
-          {count} {count === 1 ? "talent" : "talents"}
+        <p
+          className={`mt-0.5 text-[10px] ${
+            active
+              ? "text-white/50"
+              : "text-slate-400"
+          }`}
+        >
+          {count}{" "}
+          {count === 1
+            ? "talent"
+            : "talents"}
         </p>
       </div>
     </button>
