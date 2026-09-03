@@ -18,6 +18,14 @@ export default function CategorySection({
 }) {
   const categoryName = category?.name || "Talents";
 
+  const handleLoadMore = () => {
+    if (loading || !hasMore || typeof onLoadMore !== "function") {
+      return;
+    }
+
+    onLoadMore();
+  };
+
   return (
     <section aria-labelledby={`category-${category?.id}`}>
       {/* Category header */}
@@ -85,10 +93,15 @@ export default function CategorySection({
         <div className="mt-7 flex justify-center">
           <button
             type="button"
-            onClick={onLoadMore}
+            onClick={handleLoadMore}
             disabled={loading}
             aria-busy={loading}
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={
+              loading
+                ? `Loading more ${categoryName.toLowerCase()}`
+                : `Load more ${categoryName.toLowerCase()}`
+            }
+            className="inline-flex h-11 min-w-[150px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (
               <>
@@ -103,8 +116,7 @@ export default function CategorySection({
             ) : (
               <>
                 <span>
-                  Load more{" "}
-                  {categoryName.toLowerCase()}
+                  Load more {categoryName.toLowerCase()}
                 </span>
 
                 <ChevronDown
@@ -118,7 +130,7 @@ export default function CategorySection({
       )}
 
       {/* End of category */}
-      {!hasMore && total > 6 && (
+      {!hasMore && talents.length > 0 && (
         <p className="mt-6 text-center text-xs font-medium text-slate-400">
           You've reached the end of{" "}
           {categoryName.toLowerCase()}.

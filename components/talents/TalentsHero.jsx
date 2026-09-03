@@ -7,53 +7,56 @@ import {
 } from "lucide-react";
 
 import {
+  usePathname,
   useRouter,
   useSearchParams,
 } from "next/navigation";
 
-import { useTalentsStore } from "@/stores/talentsStore";
-
-export default function TalentsHero() {
+export default function TalentsHero({
+  talentsLoading = false,
+}) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const talentsLoading = useTalentsStore(
-    (state) => state.talentsLoading,
-  );
+  const search =
+    searchParams.get("search") || "";
 
-  const search = searchParams.get("search") || "";
-
-  function changeSearch(value) {
-    if (talentsLoading) return;
-
+  function updateSearch(value) {
     const params = new URLSearchParams(
       searchParams.toString(),
     );
 
-    if (value.trim()) {
-      params.set("search", value);
+    const trimmedValue = value.trim();
+
+    if (trimmedValue) {
+      params.set("search", trimmedValue);
     } else {
       params.delete("search");
     }
 
     const query = params.toString();
 
-    router.push(
+    router.replace(
       query
-        ? `?${query}`
-        : window.location.pathname,
+        ? `${pathname}?${query}`
+        : pathname,
       {
         scroll: false,
       },
     );
   }
 
+  function handleChange(event) {
+    updateSearch(event.target.value);
+  }
+
+  function clearSearch() {
+    updateSearch("");
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
-
-    if (talentsLoading) return;
-
-    changeSearch(search);
   }
 
   return (
@@ -66,14 +69,20 @@ export default function TalentsHero() {
         backgroundPosition: "center",
       }}
     >
-      <div className="absolute inset-0 bg-slate-950/20" />
+      <div
+        className="absolute inset-0 bg-slate-950/20"
+        aria-hidden="true"
+      />
 
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/55 to-slate-950/30" />
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/60 to-slate-950/30"
+        aria-hidden="true"
+      />
 
       <div className="relative mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
         <div className="max-w-3xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
-            Talents
+            Discover Talent
           </p>
 
           <h1 className="mt-4 text-4xl font-black tracking-tighter text-white sm:text-5xl lg:text-6xl">
@@ -84,14 +93,15 @@ export default function TalentsHero() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75 sm:text-base sm:leading-7">
-            Browse talented young people offering
-            creative skills, professional services
+            Discover talented young people offering
+            creative skills, professional services,
             and local expertise.
           </p>
 
           <form
             onSubmit={handleSubmit}
             className="mt-7"
+            role="search"
           >
             <div
               className={`flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl transition ${
@@ -100,7 +110,10 @@ export default function TalentsHero() {
                   : "focus-within:border-white/40 focus-within:ring-4 focus-within:ring-white/10"
               }`}
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400"
+                aria-hidden="true"
+              >
                 <Search size={19} />
               </div>
 
@@ -108,21 +121,28 @@ export default function TalentsHero() {
                 type="search"
                 value={search}
                 disabled={talentsLoading}
-                onChange={(event) =>
-                  changeSearch(event.target.value)
-                }
+                onChange={handleChange}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "Escape" &&
+                    search
+                  ) {
+                    clearSearch();
+                  }
+                }}
                 placeholder={
                   talentsLoading
                     ? "Loading talents..."
                     : "Search talents, skills or services..."
                 }
+                aria-label="Search talents, skills or services"
                 className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:text-base"
               />
 
               {search && !talentsLoading && (
                 <button
                   type="button"
-                  onClick={() => changeSearch("")}
+                  onClick={clearSearch}
                   className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Clear search"
                 >
@@ -132,7 +152,10 @@ export default function TalentsHero() {
 
               <button
                 type="submit"
-                disabled={talentsLoading}
+                disabled={
+                  talentsLoading ||
+                  !search.trim()
+                }
                 className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="hidden sm:inline">
@@ -141,10 +164,18 @@ export default function TalentsHero() {
                     : "Search"}
                 </span>
 
-                <ArrowRight size={16} />
+                <ArrowRight
+                  size={16}
+                  aria-hidden="true"
+                />
               </button>
             </div>
           </form>
+
+          <p className="mt-3 text-xs text-white/50">
+            Search by name, skill, service, category,
+            or location.
+          </p>
         </div>
       </div>
     </section>

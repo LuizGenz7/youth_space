@@ -1917,3 +1917,192 @@ export const talents = [
     whatsapp: "+260962100080",
   },
 ];
+
+import { categories } from "@/data/categories";
+
+/*
+|--------------------------------------------------------------------------
+| Configuration
+|--------------------------------------------------------------------------
+*/
+
+const INITIAL_CATEGORIES_LIMIT = 6;
+const TALENTS_PER_LOAD = 8;
+
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+*/
+
+function normalize(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function getCategoryById(categoryId) {
+  return categories.find(
+    (category) => category.id === categoryId
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| 1. Get Categories
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Categories are already available in memory.
+ *
+ * There are only around 30 categories, so all of them
+ * are loaded at once.
+ *
+ * The UI decides how many to display.
+ */
+export async function getCategories() {
+  return categories;
+}
+
+/*
+|--------------------------------------------------------------------------
+| 2. Get Initial Talents Data
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Gets the first 6 categories and fetches
+ * 8 talents for each category.
+ *
+ * 6 categories × 8 talents = 48 initial talents.
+ *
+ * IMPORTANT:
+ * Categories come from memory.
+ * Talents are fetched from the data source.
+ */
+export async function getInitialTalentsData() {
+  const allCategories = await getCategories();
+
+  const initialCategories = allCategories.slice(
+    0,
+    INITIAL_CATEGORIES_LIMIT
+  );
+
+  const talentResults = await Promise.all(
+    initialCategories.map((category) =>
+      getTalentsByCategory({
+        categoryId: category.id,
+        limit: TALENTS_PER_LOAD,
+        cursor: 0,
+      })
+    )
+  );
+
+  const initialTalents = talentResults.flatMap(
+    (result) => result.talents
+  );
+
+  return {
+    categories: allCategories,
+    talents: initialTalents,
+  };
+}
+
+/*
+|--------------------------------------------------------------------------
+| Internal Talent Fetch
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Fetch talents belonging to a category.
+ *
+ * CURRENT DATA SOURCE:
+ * talents-data.js
+ *
+ * FIRESTORE LATER:
+ * Replace the filtering/slicing below with a
+ * Firestore query using categoryId + limit + cursor.
+ */
+async function getTalentsByCategory({
+  categoryId,
+  limit = TALENTS_PER_LOAD,
+  cursor = 0,
+} = {}) {
+
+
+
+  const category = getCategoryById(categoryId);
+  console.log(`RECECUCUVVVVV  ${categoryId} --------------- ${category}`);
+  if (!category) {
+    return {
+      talents: [],
+      nextCursor: null,
+      hasMore: false,
+    };
+  }
+
+  const categoryTalents = talents.filter(
+    (talent) =>
+      normalize(talent.category) ===
+      normalize(category.name)
+  );
+
+  const start = Math.max(
+    Number(cursor) || 0,
+    0
+  );
+
+  const results = categoryTalents.slice(
+    start,
+    start + limit
+  );
+
+  const nextCursor =
+    start + results.length <
+      categoryTalents.length
+      ? start + results.length
+      : null;
+
+  return {
+    talents: results,
+
+    nextCursor,
+
+    hasMore: nextCursor !== null,
+  };
+}
+
+/*
+|--------------------------------------------------------------------------
+| 3. Load More Talents
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Fetches the next 8 talents for a category.
+ *
+ * The client sends the category ID and cursor.
+ */
+export async function getMoreTalents({
+  categoryId,
+  cursor,
+} = {}) {
+
+  
+  const result = await getTalentsByCategory({
+    categoryId,
+    limit: TALENTS_PER_LOAD,
+    cursor,
+  });
+
+  return {
+    ...result,
+
+    totalTalents:
+      Number(
+        getCategoryById(categoryId)?.totalTalents || 0
+      ),
+  };
+}

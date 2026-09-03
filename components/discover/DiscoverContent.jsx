@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, Sparkles, Users } from "lucide-react";
+import { BriefcaseBusiness, MapPin, Sparkles, Users } from "lucide-react";
 
 import { talents } from "@/data/talents";
 import { categories } from "@/data/categories";
@@ -83,7 +83,7 @@ export default function DiscoverContent() {
           </div>
 
           <div className="inline-flex h-10 w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700">
-            <span>📍</span>
+            <MapPin size={16} />
             Zambia
           </div>
         </div>

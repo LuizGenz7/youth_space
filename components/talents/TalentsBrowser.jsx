@@ -9,7 +9,9 @@ import EmptyState from "@/components/talents/EmptyState";
 
 import useTalentBrowser from "@/hooks/talents/useTalentBrowser";
 import { useTalentsStore } from "@/stores/talentsStore";
+
 import { LoaderCircle } from "lucide-react";
+import { loadMoreTalentsAction } from "@/actions/talents";
 
 export default function TalentsContent({ talents = [], categories = [] }) {
   const browser = useTalentBrowser({
@@ -20,14 +22,14 @@ export default function TalentsContent({ talents = [], categories = [] }) {
   const setTalentsLoading = useTalentsStore((state) => state.setTalentsLoading);
 
   useEffect(() => {
-    // Talent data has finished loading.
     setTalentsLoading(false);
 
-    // Reset loading state if the content unmounts.
     return () => {
       setTalentsLoading(true);
     };
   }, [setTalentsLoading]);
+
+  const isSearching = Boolean(browser.search?.trim());
 
   return (
     <section>
@@ -55,19 +57,27 @@ export default function TalentsContent({ talents = [], categories = [] }) {
 
         {browser.visibleCategories.length > 0 ? (
           <div className="mt-10 space-y-14">
-            {browser.visibleCategories.map((category) => (
-              <CategorySection
-                key={category.id}
-                category={category}
-                talents={browser.getCategoryTalents(category)}
-                total={browser.getCategoryTotal(category)}
-                hasMore={browser.hasMoreTalents(category)}
-                loading={browser.isCategoryLoading(category.name)}
-                onLoadMore={() => browser.loadMoreTalents(category.name)}
-              />
-            ))}
+            {browser.visibleCategories.map((category) => {
+              const categoryTalents = category.talents;
 
-            {browser.hasMoreCategories && (
+              if (categoryTalents.length === 0) {
+                return null;
+              }
+
+              return (
+                <CategorySection
+                  key={category.id}
+                  category={category}
+                  talents={browser.getCategoryTalents(category)}
+                  total={browser.getCategoryTotal(category)}
+                  hasMore={browser.hasMoreTalents(category)}
+                  loading={browser.isCategoryLoading(category.id)}
+                  onLoadMore={() => browser.loadMoreTalents(category)}
+                />
+              );
+            })}
+
+            {!isSearching && browser.hasMoreCategories && (
               <div className="flex justify-center pt-2">
                 <button
                   type="button"
@@ -83,6 +93,7 @@ export default function TalentsContent({ talents = [], categories = [] }) {
                         className="animate-spin"
                         aria-hidden="true"
                       />
+
                       <span>Loading...</span>
                     </>
                   ) : (

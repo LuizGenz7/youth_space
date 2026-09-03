@@ -4,41 +4,37 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
 import TalentsHero from "@/components/talents/TalentsHero";
+import TalentsHeroLoading from "@/components/talents/TalentsHeroLoading";
 import TalentsBrowser from "@/components/talents/TalentsBrowser";
 import TalentsLoading from "@/components/talents/TalentsLoading";
 
-import { talents } from "@/data/talents";
-import { categories } from "@/data/categories";
-
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function TalentsData() {
-  await delay(2000);
-
-  return (
-    <TalentsBrowser
-      talents={talents}
-      categories={categories}
-    />
-  );
-}
+import { getInitialTalentsData } from "@/data/talents";
 
 export default function TalentsPage() {
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <Header />
 
-      {/* Renders immediately */}
-      <TalentsHero />
+      <Suspense fallback={<TalentsHeroLoading />}>
+        <TalentsHero />
+      </Suspense>
 
-      {/* Streams after data is ready */}
       <Suspense fallback={<TalentsLoading />}>
-        <TalentsData />
+        <TalentsBrowserData />
       </Suspense>
 
       <Footer />
     </main>
+  );
+}
+
+async function TalentsBrowserData() {
+  const { talents, categories } = await getInitialTalentsData();
+
+  return (
+    <TalentsBrowser
+      talents={talents}
+      categories={categories}
+    />
   );
 }

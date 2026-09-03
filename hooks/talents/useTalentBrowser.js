@@ -7,11 +7,10 @@ import {
     useSearchParams,
 } from "next/navigation";
 
+import { loadMoreTalentsAction } from "@/actions/talents";
+
 const INITIAL_CATEGORY_COUNT = 6;
 const CATEGORIES_PER_LOAD = 6;
-
-const INITIAL_TALENTS_PER_CATEGORY = 6;
-const TALENTS_PER_CATEGORY_LOAD = 6;
 
 export const locations = [
     "All locations",
@@ -42,13 +41,8 @@ export default function useTalentBrowser({
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    /*
-    |--------------------------------------------------------------------------
-    | URL state
-    |--------------------------------------------------------------------------
-    */
-
-    const search = searchParams.get("search") || "";
+    const search =
+        searchParams.get("search") || "";
 
     const categoryParam =
         searchParams.get("category") || "";
@@ -61,31 +55,21 @@ export default function useTalentBrowser({
         searchParams.get("sort") ||
         "Recommended";
 
-    /*
-    |--------------------------------------------------------------------------
-    | UI state
-    |--------------------------------------------------------------------------
-    */
+    const [
+        loadedTalents,
+        setLoadedTalents,
+    ] = useState(talents);
 
     const [
         visibleCategoryCount,
         setVisibleCategoryCount,
     ] = useState(INITIAL_CATEGORY_COUNT);
 
-    const [categoryLimits, setCategoryLimits] =
-        useState({});
-
     const [categoryLoading, setCategoryLoading] =
         useState({});
 
     const [categoriesLoading, setCategoriesLoading] =
         useState(false);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Categories
-    |--------------------------------------------------------------------------
-    */
 
     const availableCategories = useMemo(() => {
         return categories.filter(
@@ -113,12 +97,6 @@ export default function useTalentBrowser({
 
     const activeCategoryName =
         activeCategory?.name || "";
-
-    /*
-    |--------------------------------------------------------------------------
-    | URL helpers
-    |--------------------------------------------------------------------------
-    */
 
     function updateParams(updates = {}) {
         const params = new URLSearchParams(
@@ -156,17 +134,10 @@ export default function useTalentBrowser({
     }
 
     function resetPagination() {
-        setCategoryLimits({});
         setVisibleCategoryCount(
             INITIAL_CATEGORY_COUNT,
         );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Filters
-    |--------------------------------------------------------------------------
-    */
 
     function changeSearch(value) {
         updateParams({
@@ -210,31 +181,21 @@ export default function useTalentBrowser({
         resetPagination();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Filter + sort talents
-    |--------------------------------------------------------------------------
-    */
-
     const filteredTalents = useMemo(() => {
-        let results = [...talents];
-
-        /*
-        | Search
-        */
+        let results = [...loadedTalents];
 
         if (search.trim()) {
             const query = normalize(search);
 
             results = results.filter((talent) => {
                 const searchableContent = [
-                    talent.name,
                     talent.role,
                     talent.category,
                     talent.location,
                     talent.description,
-                    talent.bio,
-                    ...(talent.skills || []),
+                    ...(Array.isArray(talent.skills)
+                        ? talent.skills
+                        : []),
                 ]
                     .filter(Boolean)
                     .join(" ");
@@ -245,10 +206,6 @@ export default function useTalentBrowser({
             });
         }
 
-        /*
-        | Category
-        */
-
         if (activeCategoryName) {
             results = results.filter(
                 (talent) =>
@@ -257,10 +214,6 @@ export default function useTalentBrowser({
             );
         }
 
-        /*
-        | Location
-        */
-
         if (location !== "All locations") {
             results = results.filter(
                 (talent) =>
@@ -268,10 +221,6 @@ export default function useTalentBrowser({
                     normalize(location),
             );
         }
-
-        /*
-        | Sort
-        */
 
         switch (sort) {
             case "A-Z":
@@ -316,18 +265,12 @@ export default function useTalentBrowser({
 
         return results;
     }, [
-        talents,
+        loadedTalents,
         search,
         activeCategoryName,
         location,
         sort,
     ]);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Category sections
-    |--------------------------------------------------------------------------
-    */
 
     const categorySections = useMemo(() => {
         return availableCategories
@@ -355,19 +298,6 @@ export default function useTalentBrowser({
         filteredTalents,
     ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Category totals
-    |--------------------------------------------------------------------------
-    |
-    | Without filters:
-    |   Use the authoritative category total.
-    |
-    | With search/category/location:
-    |   Use the number of matching talents.
-    |
-    */
-
     const hasActiveFilters =
         Boolean(search.trim()) ||
         Boolean(activeCategoryName) ||
@@ -378,14 +308,10 @@ export default function useTalentBrowser({
             return category.talents.length;
         }
 
-        return Number(category.totalTalents || 0);
+        return Number(
+            category.totalTalents || 0,
+        );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Visible categories
-    |--------------------------------------------------------------------------
-    */
 
     const visibleCategories =
         activeCategoryName
@@ -402,77 +328,87 @@ export default function useTalentBrowser({
     const hasMoreCategories =
         !activeCategoryName &&
         visibleCategoryCount <
-        categorySections.length;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Talent pagination
-    |--------------------------------------------------------------------------
-    */
-
-    function getCategoryLimit(categoryName) {
-        return (
-            categoryLimits[categoryName] ||
-            INITIAL_TALENTS_PER_CATEGORY
-        );
-    }
+            availableCategories.length;
 
     function getCategoryTalents(category) {
-        const limit = getCategoryLimit(
-            category.name,
-        );
-
-        return category.talents.slice(
-            0,
-            limit,
-        );
+        return category.talents;
     }
 
     function hasMoreTalents(category) {
+        if (hasActiveFilters) {
+            return false;
+        }
+
         return (
-            getCategoryLimit(category.name) <
-            category.talents.length
+            category.talents.length <
+            Number(category.totalTalents || 0)
         );
     }
 
-    function isCategoryLoading(categoryName) {
+    function isCategoryLoading(categoryId) {
         return Boolean(
-            categoryLoading[categoryName],
+            categoryLoading[categoryId],
         );
     }
 
-    function loadMoreTalents(categoryName) {
-        if (isCategoryLoading(categoryName)) {
+    async function loadMoreTalents(category) {
+        if (!category?.id) {
+            return;
+        }
+
+        if (isCategoryLoading(category.id)) {
+            return;
+        }
+
+        if (!hasMoreTalents(category)) {
             return;
         }
 
         setCategoryLoading((current) => ({
             ...current,
-            [categoryName]: true,
+            [category.id]: true,
         }));
 
-        // Temporary loading simulation.
-        // Replace with the real data request later.
-        setTimeout(() => {
-            setCategoryLimits((current) => ({
-                ...current,
-                [categoryName]:
-                    getCategoryLimit(categoryName) +
-                    TALENTS_PER_CATEGORY_LOAD,
-            }));
+        try {
+            const result =
+                await loadMoreTalentsAction(
+                    category,
+                );
 
+            if (!result?.success) {
+                console.error(
+                    result?.error ||
+                        "Failed to load more talents.",
+                );
+
+                return;
+            }
+
+            if (
+                !Array.isArray(
+                    result.talents,
+                ) ||
+                result.talents.length === 0
+            ) {
+                return;
+            }
+
+            setLoadedTalents((current) => [
+                ...current,
+                ...result.talents,
+            ]);
+        } catch (error) {
+            console.error(
+                "loadMoreTalents:",
+                error,
+            );
+        } finally {
             setCategoryLoading((current) => ({
                 ...current,
-                [categoryName]: false,
+                [category.id]: false,
             }));
-        }, 700);
+        }
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Category pagination
-    |--------------------------------------------------------------------------
-    */
 
     function loadMoreCategories() {
         if (
@@ -484,44 +420,22 @@ export default function useTalentBrowser({
 
         setCategoriesLoading(true);
 
-        // Temporary loading simulation.
-        // Replace with the real data request later.
-        setTimeout(() => {
-            setVisibleCategoryCount(
-                (current) =>
-                    current + CATEGORIES_PER_LOAD,
-            );
+        setVisibleCategoryCount(
+            (current) =>
+                current + CATEGORIES_PER_LOAD,
+        );
 
-            setCategoriesLoading(false);
-        }, 700);
+        setCategoriesLoading(false);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Return
-    |--------------------------------------------------------------------------
-    */
-
     return {
-        /*
-        | URL state
-        */
-
         search,
         category: activeCategoryName,
         location,
         sort,
 
-        /*
-        | Options
-        */
-
         locations,
         sortOptions,
-
-        /*
-        | Data
-        */
 
         availableCategories,
         filteredTalents,
@@ -531,35 +445,17 @@ export default function useTalentBrowser({
         totalResults:
             filteredTalents.length,
 
-        /*
-        | Category totals
-        */
-
         getCategoryTotal,
 
-        /*
-        | Category pagination
-        */
-
         hasMoreCategories,
-
         loadingCategories:
             categoriesLoading,
-
         loadMoreCategories,
-
-        /*
-        | Talent pagination
-        */
 
         getCategoryTalents,
         hasMoreTalents,
         isCategoryLoading,
         loadMoreTalents,
-
-        /*
-        | Filters
-        */
 
         changeSearch,
         changeCategory,
