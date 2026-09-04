@@ -2,19 +2,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Search, Sparkles } from "lucide-react";
 
-import { getTopCategoriesAction } from "@/actions/categories";
+
 
 export default async function Hero() {
-  const result = await getTopCategoriesAction({ limit: 4 });
+  const categories = await getCategories();
 
-  const popularCategories = result.success ? result.categories : [];
+  // Home highlights only the top 4 categories.
+  const popularCategories = categories.slice(0, 4);
 
   return (
     <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
-      {/* Background */}
+      {/* =====================================================
+          BACKGROUND IMAGE
+      ===================================================== */}
+
       <div className="absolute inset-0">
         <Image
-          src="/images/hero/home-hero.webp"
+          src="/images/home/home-hero.webp"
           alt=""
           fill
           priority
@@ -22,24 +26,31 @@ export default async function Hero() {
           className="object-cover"
         />
 
-        <div className="absolute inset-0 bg-slate-950/2" />
+        <div className="absolute inset-0 bg-slate-950/20" />
 
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/55" />
 
         <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
       </div>
 
-      {/* Decorative elements */}
+      {/* =====================================================
+          BACKGROUND DETAILS
+      ===================================================== */}
+
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-40 top-20 h-96 w-96 rounded-full bg-white/5 blur-3xl" />
 
         <div className="absolute right-[-160px] top-40 h-[500px] w-[500px] rounded-full bg-white/5 blur-3xl" />
       </div>
 
-      {/* Content */}
+      {/* =====================================================
+          CONTENT
+      ===================================================== */}
+
       <div className="relative z-10 mx-auto max-w-7xl px-5 pb-20 pt-24 sm:px-6 sm:pb-24 lg:px-8 lg:pb-28 lg:pt-28">
         <div className="mx-auto max-w-5xl text-center">
-          {/* Badge */}
+          {/* Eyebrow */}
+
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-lg backdrop-blur-md">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-950">
               <Sparkles size={12} />
@@ -51,18 +62,23 @@ export default async function Hero() {
           </div>
 
           {/* Heading */}
+
           <h1 className="mx-auto mt-8 max-w-4xl text-5xl font-black leading-[0.94] tracking-[-0.065em] text-white sm:text-6xl lg:text-[78px]">
             Discover people who
             <span className="block text-white/50">can make it happen.</span>
           </h1>
 
           {/* Description */}
+
           <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-white/70 sm:text-lg sm:leading-8">
             Find talented young Zambians, explore their work, discover local
             services and connect with the right person for what you need.
           </p>
 
-          {/* Search */}
+          {/* =================================================
+              SEARCH
+          ================================================= */}
+
           <div className="mx-auto mt-10 max-w-3xl">
             <form
               action="/talents"
@@ -94,7 +110,10 @@ export default async function Hero() {
               </button>
             </form>
 
-            {/* Popular categories */}
+            {/* =================================================
+                POPULAR CATEGORIES
+            ================================================= */}
+
             {popularCategories.length > 0 && (
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                 <span className="mr-1 text-xs font-medium text-white/40">
@@ -104,7 +123,9 @@ export default async function Hero() {
                 {popularCategories.map((category) => (
                   <Link
                     key={category.id}
-                    href={`/talents?category=${encodeURIComponent(category.name)}`}
+                    href={`/talents?category=${encodeURIComponent(
+                      category.name,
+                    )}`}
                     className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/65 backdrop-blur-sm transition hover:border-white/30 hover:bg-white/15 hover:text-white"
                   >
                     {category.name}
@@ -112,16 +133,12 @@ export default async function Hero() {
                 ))}
               </div>
             )}
-
-            {/* Graceful failure state */}
-            {!result.success && (
-              <p className="mt-4 text-xs font-medium text-white/40">
-                Explore talent by searching above.
-              </p>
-            )}
           </div>
 
-          {/* Primary actions */}
+          {/* =================================================
+              ACTIONS
+          ================================================= */}
+
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               href="/discover"
@@ -143,7 +160,10 @@ export default async function Hero() {
           </div>
         </div>
 
-        {/* Value propositions */}
+        {/* =====================================================
+            VALUE PROPOSITION
+        ===================================================== */}
+
         <div className="mx-auto mt-20 max-w-5xl border-t border-white/10 pt-8">
           <div className="grid gap-8 sm:grid-cols-3">
             <HeroValue
@@ -166,6 +186,10 @@ export default async function Hero() {
     </section>
   );
 }
+
+/* =========================================================
+   HERO VALUE
+========================================================= */
 
 function HeroValue({ title, description }) {
   return (

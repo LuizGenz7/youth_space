@@ -12,10 +12,51 @@ export default async function TopCategoriesSection({ className = "" }) {
     limit: TOP_CATEGORIES_COUNT,
   });
 
-  if (!result.success || !result.categories.length) {
-    return null;
+  // Failed request
+  if (!result.success) {
+    return (
+      <section className={className}>
+        <SectionHeading
+          eyebrow="Explore"
+          title="Top categories"
+          description="We couldn't load the categories right now."
+        />
+
+        <div className="mt-7 rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center">
+          <p className="text-sm font-bold text-slate-700">
+            Categories are temporarily unavailable.
+          </p>
+
+          <p className="mt-1 text-xs text-slate-400">Please try again later.</p>
+        </div>
+      </section>
+    );
   }
 
+  // Successful request, but no categories
+  if (!result.categories?.length) {
+    return (
+      <section className={className}>
+        <SectionHeading
+          eyebrow="Explore"
+          title="Top categories"
+          description="Browse the skills and services available in the community."
+        />
+
+        <div className="mt-7 rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-10 text-center">
+          <p className="text-sm font-bold text-slate-700">
+            No categories available yet.
+          </p>
+
+          <p className="mt-1 text-xs text-slate-400">
+            Categories will appear here as they become available.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  // Successful request with data
   return (
     <section className={className}>
       <SectionHeading
@@ -34,7 +75,9 @@ export default async function TopCategoriesSection({ className = "" }) {
             className="group rounded-2xl border border-slate-200 bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg"
           >
             <div className="flex items-start justify-between gap-3">
-              <CategoryIcon icon={category.icon} />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition group-hover:bg-slate-950 group-hover:text-white">
+                <CategoryIcon icon={category.icon} size={19} />
+              </div>
 
               <span className="text-[10px] font-black text-slate-300">
                 {String(index + 1).padStart(2, "0")}

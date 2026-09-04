@@ -5,7 +5,7 @@ export default function DiscoverHero() {
   return (
     <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
       <Image
-        src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=2200&q=85"
+        src="/images/hero/discover-hero.webp"
         alt="Young people connecting and building together"
         fill
         priority
@@ -13,7 +13,7 @@ export default function DiscoverHero() {
         className="object-cover"
       />
 
-      <div className="absolute inset-0 bg-slate-950/20" />
+      <div className="absolute inset-0 bg-slate-950/2" />
 
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-950/50" />
 

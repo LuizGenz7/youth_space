@@ -1924,6 +1924,12 @@ const INITIAL_CATEGORIES_LIMIT = 6;
 const TALENTS_PER_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
 
+/*
+ * --------------------------------------------------
+ * HELPERS
+ * --------------------------------------------------
+ */
+
 function normalize(value) {
   return String(value || "")
     .trim()
@@ -1932,41 +1938,67 @@ function normalize(value) {
 
 function getCategoryById(categoryId) {
   return categories.find(
-    (category) => category.id === categoryId
+    (category) =>
+      category.id === categoryId,
   );
 }
 
+/*
+ * --------------------------------------------------
+ * CATEGORIES
+ * --------------------------------------------------
+ */
+
 /**
  * Get all categories.
+ *
+ * Server-only.
  */
 export async function getCategories() {
   return categories;
 }
 
+/*
+ * --------------------------------------------------
+ * INITIAL TALENTS DATA
+ * --------------------------------------------------
+ */
+
 /**
- * Get initial categories and their talents.
+ * Get the initial categories and their first
+ * batch of talents.
+ *
+ * This is intended for the initial server render
+ * of the Talents page.
  */
 export async function getInitialTalentsData() {
-  const allCategories = await getCategories();
+  const allCategories =
+    await getCategories();
 
-  const initialCategories = allCategories.slice(
-    0,
-    INITIAL_CATEGORIES_LIMIT
-  );
+  const initialCategories =
+    allCategories.slice(
+      0,
+      INITIAL_CATEGORIES_LIMIT,
+    );
 
-  const talentResults = await Promise.all(
-    initialCategories.map((category) =>
-      getTalentsByCategory({
-        categoryId: category.id,
-        limit: TALENTS_PER_LOAD,
-        cursor: 0,
-      })
-    )
-  );
+  const talentResults =
+    await Promise.all(
+      initialCategories.map(
+        (category) =>
+          getCategoryTalents({
+            categoryId:
+              category.id,
+            limit:
+              TALENTS_PER_LOAD,
+          }),
+      ),
+    );
 
-  const initialTalents = talentResults.flatMap(
-    (result) => result.talents
-  );
+  const initialTalents =
+    talentResults.flatMap(
+      (result) =>
+        result.talents,
+    );
 
   return {
     categories: allCategories,
@@ -1974,39 +2006,158 @@ export async function getInitialTalentsData() {
   };
 }
 
-/**
- * Get talents belonging to a specific category.
+/*
+ * --------------------------------------------------
+ * CATEGORY TALENTS
+ * --------------------------------------------------
  */
-async function getTalentsByCategory({
+
+/**
+ * Get the first batch of talents for a category.
+ *
+ * This is the server-side function used by
+ * loadCategoryTalentsAction().
+ *
+ * @param {{
+ *   categoryId: string,
+ *   limit?: number
+ * }} input
+ */
+export async function getCategoryTalents({
   categoryId,
   limit = TALENTS_PER_LOAD,
-  cursor = 0,
 } = {}) {
-  const category = getCategoryById(categoryId);
+  const category =
+    getCategoryById(categoryId);
+
+  /*
+   * Never trust the client-provided limit.
+   */
+  const safeLimit = Math.min(
+    Math.max(
+      Number(limit) || TALENTS_PER_LOAD,
+      1,
+    ),
+    TALENTS_PER_LOAD,
+  );
 
   if (!category) {
     return {
       talents: [],
       nextCursor: null,
       hasMore: false,
+      totalTalents: 0,
     };
   }
 
-  const categoryTalents = talents.filter(
-    (talent) =>
-      normalize(talent.category) ===
-      normalize(category.name)
+  const categoryTalents =
+    talents.filter(
+      (talent) =>
+        normalize(
+          talent.category,
+        ) ===
+        normalize(
+          category.name,
+        ),
+    );
+
+  const results =
+    categoryTalents.slice(
+      0,
+      safeLimit,
+    );
+
+  const nextCursor =
+    results.length <
+      categoryTalents.length
+      ? results.length
+      : null;
+
+  return {
+    talents: results,
+    nextCursor,
+    hasMore:
+      nextCursor !== null,
+    totalTalents:
+      categoryTalents.length,
+  };
+}
+
+/*
+ * --------------------------------------------------
+ * GENERIC CATEGORY PAGINATION
+ * --------------------------------------------------
+ */
+
+/**
+ * Get talents belonging to a specific category.
+ *
+ * cursor represents the number of records already
+ * consumed.
+ *
+ * This function currently uses the local data array.
+ * When Firestore pagination is introduced, this
+ * function can internally use startAfter().
+ *
+ * @param {{
+ *   categoryId: string,
+ *   limit?: number,
+ *   cursor?: number
+ * }} input
+ */
+async function getTalentsByCategory({
+  categoryId,
+  limit = TALENTS_PER_LOAD,
+  cursor = 0,
+} = {}) {
+  const category =
+    getCategoryById(categoryId);
+
+  if (!category) {
+    return {
+      talents: [],
+      nextCursor: null,
+      hasMore: false,
+      totalTalents: 0,
+    };
+  }
+
+  const categoryTalents =
+    talents.filter(
+      (talent) =>
+        normalize(
+          talent.category,
+        ) ===
+        normalize(
+          category.name,
+        ),
+    );
+
+  /*
+   * Keep pagination values server-controlled.
+   */
+  const safeLimit = Math.min(
+    Math.max(
+      Number(limit) ||
+      TALENTS_PER_LOAD,
+      1,
+    ),
+    TALENTS_PER_LOAD,
   );
 
-  const start = Math.max(
-    Number(cursor) || 0,
-    0
+  const start = Math.min(
+    Math.max(
+      Number(cursor) || 0,
+      0,
+    ),
+    categoryTalents.length,
   );
 
-  const results = categoryTalents.slice(
-    start,
-    start + limit
-  );
+  const results =
+    categoryTalents.slice(
+      start,
+      start + safeLimit,
+    );
 
   const nextCursor =
     start + results.length <
@@ -2017,41 +2168,80 @@ async function getTalentsByCategory({
   return {
     talents: results,
     nextCursor,
-    hasMore: nextCursor !== null,
+    hasMore:
+      nextCursor !== null,
+    totalTalents:
+      categoryTalents.length,
   };
 }
 
+/*
+ * --------------------------------------------------
+ * LOAD MORE TALENTS
+ * --------------------------------------------------
+ */
+
 /**
- * Load more talents for a category.
+ * Load the next batch of talents for a category.
+ *
+ * Server-only.
+ *
+ * @param {{
+ *   categoryId: string,
+ *   cursor?: number
+ * }} input
  */
 export async function getMoreTalents({
   categoryId,
-  cursor,
+  cursor = 0,
 } = {}) {
-  const result = await getTalentsByCategory({
-    categoryId,
-    limit: TALENTS_PER_LOAD,
-    cursor,
-  });
+  const result =
+    await getTalentsByCategory({
+      categoryId,
+      limit: TALENTS_PER_LOAD,
+      cursor,
+    });
 
   return {
-    ...result,
+    talents:
+      result.talents,
+
+    nextCursor:
+      result.nextCursor,
+
+    hasMore:
+      result.hasMore,
 
     totalTalents:
-      Number(
-        getCategoryById(categoryId)?.totalTalents || 0
-      ),
+      result.totalTalents,
   };
 }
+
+/*
+ * --------------------------------------------------
+ * DISCOVER
+ * --------------------------------------------------
+ */
 
 /**
  * Get top talents for the Discover page.
  *
  * Ranking is based on likes + work count.
+ *
+ * Server-only.
  */
 export async function getTopTalents(
-  limit = DISCOVER_TALENTS_LIMIT
+  limit = DISCOVER_TALENTS_LIMIT,
 ) {
+  const safeLimit = Math.min(
+    Math.max(
+      Number(limit) ||
+      DISCOVER_TALENTS_LIMIT,
+      1,
+    ),
+    DISCOVER_TALENTS_LIMIT,
+  );
+
   return [...talents]
     .sort((a, b) => {
       const scoreA =
@@ -2064,25 +2254,43 @@ export async function getTopTalents(
 
       return scoreB - scoreA;
     })
-    .slice(0, limit);
+    .slice(0, safeLimit);
 }
 
 /**
  * Get newest talents for the Discover page.
+ *
+ * Server-only.
  */
 export async function getNewTalents(
-  limit = DISCOVER_TALENTS_LIMIT
+  limit = DISCOVER_TALENTS_LIMIT,
 ) {
+  const safeLimit = Math.min(
+    Math.max(
+      Number(limit) ||
+      DISCOVER_TALENTS_LIMIT,
+      1,
+    ),
+    DISCOVER_TALENTS_LIMIT,
+  );
+
   return [...talents]
     .sort((a, b) => {
-      if (!a.createdAt || !b.createdAt) {
+      if (
+        !a.createdAt ||
+        !b.createdAt
+      ) {
         return 0;
       }
 
       return (
-        new Date(b.createdAt).getTime() -
-        new Date(a.createdAt).getTime()
+        new Date(
+          b.createdAt,
+        ).getTime() -
+        new Date(
+          a.createdAt,
+        ).getTime()
       );
     })
-    .slice(0, limit);
+    .slice(0, safeLimit);
 }

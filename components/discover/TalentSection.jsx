@@ -1,7 +1,10 @@
 import TalentCard from "@/components/talents/TalentCard";
 import SectionHeading from "./SectionHeading";
 
-import { getTopTalentsAction, getNewTalentsAction } from "@/actions/talents";
+import {
+  getTopTalentsAction,
+  getNewTalentsAction,
+} from "@/actions/talents";
 
 const TALENTS_COUNT = 10;
 
@@ -15,17 +18,60 @@ export default async function TalentSection({
 }) {
   const result =
     type === "new"
-      ? await getNewTalentsAction({
+      ?  await getNewTalentsAction({
           limit: TALENTS_COUNT,
         })
       : await getTopTalentsAction({
           limit: TALENTS_COUNT,
         });
 
-  if (!result.success || !result.talents.length) {
-    return null;
+  // Failed request
+  if (!result.success) {
+    return (
+      <section className={className}>
+        <SectionHeading
+          eyebrow={eyebrow}
+          title={title}
+          description="We couldn't load the talents right now."
+        />
+
+        <div className="mt-7 rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center">
+          <p className="text-sm font-bold text-slate-700">
+            Talents are temporarily unavailable.
+          </p>
+
+          <p className="mt-1 text-xs text-slate-400">
+            Please try again later.
+          </p>
+        </div>
+      </section>
+    );
   }
 
+  // Successful request, but no talents
+  if (!result.talents?.length) {
+    return (
+      <section className={className}>
+        <SectionHeading
+          eyebrow={eyebrow}
+          title={title}
+          description={description}
+        />
+
+        <div className="mt-7 rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-10 text-center">
+          <p className="text-sm font-bold text-slate-700">
+            No talents available yet.
+          </p>
+
+          <p className="mt-1 text-xs text-slate-400">
+            Check back later to discover new talents.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  // Successful request with data
   return (
     <section className={className}>
       <SectionHeading

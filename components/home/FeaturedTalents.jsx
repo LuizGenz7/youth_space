@@ -1,56 +1,20 @@
 import TalentCard from "../talents/TalentCard";
 import SectionHeading from "./SectionHeading";
-import { talents } from "@/data/talents";
 
-export default function FeaturedTalents() {
-  /*
-   * =======================================================
-   * FEATURED TALENTS
-   * =======================================================
-   *
-   * These are the talents selected by Youth Space to appear
-   * on the homepage.
-   *
-   * Later, these IDs can come from Firebase.
-   *
-   * We intentionally do not put the talent information here.
-   * The actual records come from:
-   *
-   * @/data/talents
-   */
+import { getTopTalentsAction } from "@/actions/talents";
 
-  const featuredTalentIds = [
-    16,
-    18,
-    14,
-    9,
-  ];
+const TALENT_LIMIT = 4;
 
-  /*
-   * =======================================================
-   * FETCH FEATURED TALENTS
-   * =======================================================
-   *
-   * The order above controls the order on the homepage.
-   */
+export default async function FeaturedTalents() {
+  const result = await getTopTalentsAction({
+    limit: TALENT_LIMIT,
+  });
 
-  const featuredTalents = featuredTalentIds
-    .map((talentId) =>
-      talents.find(
-        (talent) =>
-          String(talent.id) === String(talentId),
-      ),
-    )
-    .filter(Boolean)
-    .slice(0, 4);
+  const featuredTalents = result.success ? result.talents : [];
 
   return (
     <section className="bg-slate-50">
       <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6 lg:px-8">
-        {/* =================================================
-            SECTION HEADING
-        ================================================= */}
-
         <SectionHeading
           eyebrow="Featured talent"
           title="People worth discovering."
@@ -59,17 +23,10 @@ export default function FeaturedTalents() {
           link="View all talents"
         />
 
-        {/* =================================================
-            FEATURED TALENTS
-        ================================================= */}
-
         {featuredTalents.length > 0 ? (
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {featuredTalents.map((talent) => (
-              <TalentCard
-                key={talent.id}
-                {...talent}
-              />
+              <TalentCard key={talent.id} {...talent} />
             ))}
           </div>
         ) : (
@@ -79,10 +36,6 @@ export default function FeaturedTalents() {
     </section>
   );
 }
-
-/* =========================================================
-   EMPTY STATE
-========================================================= */
 
 function EmptyTalents() {
   return (

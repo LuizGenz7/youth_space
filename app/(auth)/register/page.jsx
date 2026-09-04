@@ -15,6 +15,7 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
+import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
 
 const REGISTER_IMAGE =
   "https://www.bbcchildreninneed.co.uk/wp-content/uploads/2025/09/wemove-main-image.png";
@@ -58,9 +59,7 @@ export default function RegisterPage() {
               href="/"
               className="group flex items-center gap-2.5"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white transition duration-200 group-hover:scale-105">
-                Y
-              </div>
+              <YouthSpaceIcon />
 
               <div className="leading-none">
                 <p className="text-[15px] font-black tracking-tight text-slate-950">

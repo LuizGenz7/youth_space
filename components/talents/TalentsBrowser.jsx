@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import QuickCategories from "@/components/talents/QuickCategories";
 import TalentFilters from "@/components/talents/TalentFilters";
@@ -11,9 +11,18 @@ import useTalentBrowser from "@/hooks/talents/useTalentBrowser";
 import { useTalentsStore } from "@/stores/talentsStore";
 
 import { LoaderCircle } from "lucide-react";
-import { loadMoreTalentsAction } from "@/actions/talents";
+import { loadCategoryTalentsAction } from "@/actions/talents";
 
-export default function TalentsContent({ talents = [], categories = [] }) {
+const TALENTS_PER_CATEGORY = 8;
+
+export default function TalentsContent({
+  talents: initialTalents = [],
+  categories = [],
+}) {
+  const [talents, setTalents] = useState(initialTalents);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [categoryLoading, setCategoryLoading] = useState({});
+
   const browser = useTalentBrowser({
     talents,
     categories,
@@ -28,6 +37,82 @@ export default function TalentsContent({ talents = [], categories = [] }) {
       setTalentsLoading(true);
     };
   }, [setTalentsLoading]);
+
+  async function loadCategoryTalents(category) {
+    if (!category?.id) return;
+
+    if (categoryLoading[category.id]) return;
+
+    const alreadyLoaded = talents.some(
+      (talent) => String(talent.categoryId || "") === String(category.id),
+    );
+
+    if (alreadyLoaded) return;
+
+    setCategoryLoading((current) => ({
+      ...current,
+      [category.id]: true,
+    }));
+
+    try {
+      const result = await loadCategoryTalentsAction({
+        categoryId: category.id,
+        limit: TALENTS_PER_CATEGORY,
+      });
+
+      if (!result?.success) {
+        console.error(result?.error || "Failed to load category talents.");
+        return;
+      }
+
+      if (!Array.isArray(result.talents) || result.talents.length === 0) {
+        return;
+      }
+
+      setTalents((current) => {
+        const existingIds = new Set(current.map((talent) => talent.id));
+
+        const newTalents = result.talents.filter(
+          (talent) => !existingIds.has(talent.id),
+        );
+
+        return [...current, ...newTalents];
+      });
+    } catch (error) {
+      console.error("loadCategoryTalents:", error);
+    } finally {
+      setCategoryLoading((current) => ({
+        ...current,
+        [category.id]: false,
+      }));
+    }
+  }
+
+  async function handleLoadMoreCategories() {
+    if (loadingCategories || !browser.hasMoreCategories) {
+      return;
+    }
+
+    setLoadingCategories(true);
+
+    try {
+      const currentCount = browser.visibleCategories.length;
+      const nextCategories = browser.availableCategories.slice(
+        currentCount,
+        currentCount + 6,
+      );
+
+      await Promise.all(
+        nextCategories.map((category) => loadCategoryTalents(category)),
+      );
+
+      browser.loadMoreCategories();
+    } catch (error) {
+      console.error("handleLoadMoreCategories:", error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  }
 
   const isSearching = Boolean(browser.search?.trim());
 
@@ -58,11 +143,7 @@ export default function TalentsContent({ talents = [], categories = [] }) {
         {browser.visibleCategories.length > 0 ? (
           <div className="mt-10 space-y-14">
             {browser.visibleCategories.map((category) => {
-              const categoryTalents = category.talents;
-
-              if (categoryTalents.length === 0) {
-                return null;
-              }
+              const loading = Boolean(categoryLoading[category.id]);
 
               return (
                 <CategorySection
@@ -71,8 +152,8 @@ export default function TalentsContent({ talents = [], categories = [] }) {
                   talents={browser.getCategoryTalents(category)}
                   total={browser.getCategoryTotal(category)}
                   hasMore={browser.hasMoreTalents(category)}
-                  loading={browser.isCategoryLoading(category.id)}
-                  onLoadMore={() => browser.loadMoreTalents(category)}
+                  loading={loading}
+                  onLoadMore={() => loadCategoryTalents(category)}
                 />
               );
             })}
@@ -81,12 +162,12 @@ export default function TalentsContent({ talents = [], categories = [] }) {
               <div className="flex justify-center pt-2">
                 <button
                   type="button"
-                  onClick={browser.loadMoreCategories}
-                  disabled={browser.loadingCategories}
-                  aria-busy={browser.loadingCategories}
+                  onClick={handleLoadMoreCategories}
+                  disabled={loadingCategories}
+                  aria-busy={loadingCategories}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {browser.loadingCategories ? (
+                  {loadingCategories ? (
                     <>
                       <LoaderCircle
                         size={16}

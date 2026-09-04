@@ -32,7 +32,7 @@ export async function getTopCategoriesAction(
             error: "Invalid request.",
         };
     }
-
+    console.log(`MARKED ${validation.data.limit}`)
     const categories = await getTopCategories(
         validation.data.limit
     );

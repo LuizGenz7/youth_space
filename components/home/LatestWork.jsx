@@ -1,74 +1,17 @@
-"use client";
-
-import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Heart,
-  MapPin,
-  UserRound,
-} from "lucide-react";
-
+import { BriefcaseIcon } from "lucide-react";
 import SectionHeading from "./SectionHeading";
-import { talents } from "@/data/talents";
-import { works } from "@/data/works";
 import WorkCard from "./WorkCard";
 
-/* =========================================================
-   LATEST WORK
-========================================================= */
+import { getTrendingWorksAction } from "@/actions/works";
 
-export default function LatestWork() {
-  /*
-   * Youth Space explicitly chooses which works appear here.
-   *
-   * IMPORTANT:
-   * We do not automatically select the newest works.
-   *
-   * Later this list can come from Firebase.
-   */
+const WORK_LIMIT = 4;
 
-  const selectedWorkIds = [
-    "work-18-1",
-    "work-16-1",
-    "work-14-2",
-    "work-9-1",
-    "work-12-1",
-  ];
+export default async function LatestWork() {
+  const result = await getTrendingWorksAction({
+    limit: WORK_LIMIT,
+  });
 
-  /*
-   * Resolve selected work records.
-   *
-   * The order of selectedWorkIds is preserved.
-   */
-
-  const featuredWorks = selectedWorkIds
-    .map((workId) =>
-      works.find(
-        (work) => String(work.id) === String(workId),
-      ),
-    )
-    .filter(Boolean)
-    .map((work) => {
-      /*
-       * Every work belongs to a talent.
-       */
-
-      const talent = talents.find(
-        (talent) =>
-          String(talent.id) === String(work.talentId),
-      );
-
-      if (!talent) return null;
-
-      return {
-        work,
-        talent,
-      };
-    })
-    .filter(Boolean);
+  const featuredWorks = result.success ? result.works : [];
 
   return (
     <section className="bg-white">
@@ -83,12 +26,8 @@ export default function LatestWork() {
 
         {featuredWorks.length > 0 ? (
           <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredWorks.map(({ work, talent }) => (
-              <WorkCard
-                key={work.id}
-                work={work}
-                talent={talent}
-              />
+            {featuredWorks.map((work) => (
+              <WorkCard key={work.id} work={work} talent={work.talent} />
             ))}
           </div>
         ) : (
@@ -98,10 +37,6 @@ export default function LatestWork() {
     </section>
   );
 }
-
-/* =========================================================
-   EMPTY STATE
-========================================================= */
 
 function EmptyWork() {
   return (
@@ -123,11 +58,7 @@ function EmptyWork() {
   );
 }
 
-/* =========================================================
-   EMPTY ICON
-========================================================= */
-
-function BriefcaseIcon() {
+function BriefcaseIfcon() {
   return (
     <svg
       width="20"
@@ -139,13 +70,7 @@ function BriefcaseIcon() {
       className="text-slate-300"
       aria-hidden="true"
     >
-      <rect
-        x="3"
-        y="7"
-        width="18"
-        height="13"
-        rx="2"
-      />
+      <rect x="3" y="7" width="18" height="13" rx="2" />
 
       <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
 

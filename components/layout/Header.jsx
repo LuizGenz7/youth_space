@@ -11,6 +11,8 @@ import {
   X,
 } from "lucide-react";
 
+import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
+
 export default function Header() {
   const pathname = usePathname();
 
@@ -18,12 +20,6 @@ export default function Header() {
    * =========================================================
    * TEST AUTH STATE
    * =========================================================
-   *
-   * For testing:
-   * true  → show logged-in profile
-   * false → show Sign in / Join Youth Space
-   *
-   * Later, replace this with Firebase Auth state.
    */
 
   const isLoggedIn = true;
@@ -53,29 +49,24 @@ export default function Header() {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // Transparent near the top.
       setTransparent(currentScrollY < 300);
 
-      // Always show near the top.
       if (currentScrollY <= 20) {
         setVisible(true);
         lastScrollY = currentScrollY;
         return;
       }
 
-      // Keep visible while mobile menu is open.
       if (menuOpen) {
         setVisible(true);
         lastScrollY = currentScrollY;
         return;
       }
 
-      // Scrolling down → hide.
       if (currentScrollY > lastScrollY) {
         setVisible(false);
       }
 
-      // Scrolling up → show.
       if (currentScrollY < lastScrollY) {
         setVisible(true);
       }
@@ -107,10 +98,7 @@ export default function Header() {
       return pathname === "/";
     }
 
-    return (
-      pathname === href ||
-      pathname.startsWith(`${href}/`)
-    );
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   const isTransparent = transparent && !menuOpen;
@@ -126,9 +114,7 @@ export default function Header() {
   return (
     <header
       className={`fixed left-0 top-0 z-50 w-full transition-transform duration-300 ease-out ${
-        visible
-          ? "translate-y-0"
-          : "-translate-y-full"
+        visible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
       {/* =====================================================
@@ -152,14 +138,16 @@ export default function Header() {
             onClick={closeMenu}
             className="group flex items-center gap-2.5"
           >
-            <div
-              className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black transition-all duration-300 group-hover:scale-105 sm:h-10 sm:w-10 ${
-                isTransparent
-                  ? "bg-white text-slate-950 shadow-sm"
-                  : "bg-slate-950 text-white"
-              }`}
-            >
-              Y
+            <div className="transition-transform duration-300 group-hover:scale-105">
+              <YouthSpaceIcon
+                size={40}
+                priority
+                className={
+                  isTransparent
+                    ? "bg-transparent"
+                    : "bg-slate-950"
+                }
+              />
             </div>
 
             <div className="leading-none">
@@ -259,9 +247,7 @@ export default function Header() {
                 transparent={isTransparent}
               />
             ) : (
-              <GuestActions
-                transparent={isTransparent}
-              />
+              <GuestActions transparent={isTransparent} />
             )}
           </div>
 
@@ -277,9 +263,7 @@ export default function Header() {
                 : "Open navigation"
             }
             aria-expanded={menuOpen}
-            onClick={() =>
-              setMenuOpen((open) => !open)
-            }
+            onClick={() => setMenuOpen((open) => !open)}
             className={`flex h-10 w-10 items-center justify-center rounded-xl border transition active:scale-95 md:hidden ${
               menuOpen
                 ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
@@ -288,11 +272,7 @@ export default function Header() {
                   : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
             }`}
           >
-            {menuOpen ? (
-              <X size={20} />
-            ) : (
-              <Menu size={20} />
-            )}
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
@@ -311,8 +291,6 @@ export default function Header() {
             aria-label="Mobile navigation"
             className="mx-auto max-w-7xl px-4 py-4 sm:px-6"
           >
-            {/* Navigation */}
-
             <div className="space-y-1">
               <MobileNavLink
                 href="/"
@@ -346,10 +324,6 @@ export default function Header() {
                 Categories
               </MobileNavLink>
             </div>
-
-            {/* =================================================
-                MOBILE ACCOUNT
-            ================================================= */}
 
             <div className="mt-4 border-t border-slate-100 pt-4">
               {isLoggedIn ? (

@@ -13,6 +13,7 @@ import {
   Mail,
   Sparkles,
 } from "lucide-react";
+import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
 
 const LOGIN_IMAGE =
   "https://bongohive.co.zm/app/uploads/2024/12/462231872_1518820968810746_4996820145898586779_n.jpg";
@@ -48,9 +49,7 @@ export default function LoginPage() {
 
           <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
             <Link href="/" className="group flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white transition duration-200 group-hover:scale-105">
-                Y
-              </div>
+               <YouthSpaceIcon />
 
               <div className="leading-none">
                 <p className="text-[15px] font-black tracking-tight text-slate-950">

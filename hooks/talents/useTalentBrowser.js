@@ -7,10 +7,14 @@ import {
     useSearchParams,
 } from "next/navigation";
 
-import { loadMoreTalentsAction } from "@/actions/talents";
+import {
+    loadCategoryTalentsAction,
+    loadMoreTalentsAction,
+} from "@/actions/talents";
 
 const INITIAL_CATEGORY_COUNT = 6;
 const CATEGORIES_PER_LOAD = 6;
+const TALENTS_PER_CATEGORY = 8;
 
 export const locations = [
     "All locations",
@@ -41,6 +45,12 @@ export default function useTalentBrowser({
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
+    /*
+     * --------------------------------------------------
+     * URL STATE
+     * --------------------------------------------------
+     */
+
     const search =
         searchParams.get("search") || "";
 
@@ -55,21 +65,42 @@ export default function useTalentBrowser({
         searchParams.get("sort") ||
         "Recommended";
 
-    const [
-        loadedTalents,
-        setLoadedTalents,
-    ] = useState(talents);
+    /*
+     * --------------------------------------------------
+     * CLIENT UI STATE
+     * --------------------------------------------------
+     *
+     * These are only concerned with what the UI currently
+     * has loaded or is displaying.
+     */
+
+    const [loadedTalents, setLoadedTalents] =
+        useState(talents);
 
     const [
         visibleCategoryCount,
         setVisibleCategoryCount,
     ] = useState(INITIAL_CATEGORY_COUNT);
 
-    const [categoryLoading, setCategoryLoading] =
-        useState({});
+    const [
+        categoryLoading,
+        setCategoryLoading,
+    ] = useState({});
 
-    const [categoriesLoading, setCategoriesLoading] =
-        useState(false);
+    const [
+        categoriesLoading,
+        setCategoriesLoading,
+    ] = useState(false);
+
+    /*
+     * --------------------------------------------------
+     * AVAILABLE CATEGORIES
+     * --------------------------------------------------
+     *
+     * Categories themselves are supplied by the server.
+     * The client only determines which ones are available
+     * to display.
+     */
 
     const availableCategories = useMemo(() => {
         return categories.filter(
@@ -77,6 +108,12 @@ export default function useTalentBrowser({
                 Number(category.totalTalents || 0) > 0,
         );
     }, [categories]);
+
+    /*
+     * --------------------------------------------------
+     * ACTIVE CATEGORY
+     * --------------------------------------------------
+     */
 
     const activeCategory = useMemo(() => {
         if (!categoryParam) {
@@ -97,6 +134,12 @@ export default function useTalentBrowser({
 
     const activeCategoryName =
         activeCategory?.name || "";
+
+    /*
+     * --------------------------------------------------
+     * URL FILTER HELPERS
+     * --------------------------------------------------
+     */
 
     function updateParams(updates = {}) {
         const params = new URLSearchParams(
@@ -123,7 +166,12 @@ export default function useTalentBrowser({
 
         const query = params.toString();
 
-        router.push(
+        /*
+         * replace() is intentional for keystroke search.
+         * It prevents every search keystroke from creating
+         * another browser history entry.
+         */
+        router.replace(
             query
                 ? `${pathname}?${query}`
                 : pathname,
@@ -138,6 +186,14 @@ export default function useTalentBrowser({
             INITIAL_CATEGORY_COUNT,
         );
     }
+
+    /*
+     * --------------------------------------------------
+     * FILTER ACTIONS
+     * --------------------------------------------------
+     *
+     * These only modify client/UI state and URL state.
+     */
 
     function changeSearch(value) {
         updateParams({
@@ -174,16 +230,30 @@ export default function useTalentBrowser({
     }
 
     function clearFilters() {
-        router.push(pathname, {
+        router.replace(pathname, {
             scroll: false,
         });
 
         resetPagination();
     }
 
+    /*
+     * --------------------------------------------------
+     * CLIENT-SIDE FILTERING
+     * --------------------------------------------------
+     *
+     * This works only with data already returned by the
+     * server.
+     *
+     * No database access happens here.
+     */
+
     const filteredTalents = useMemo(() => {
         let results = [...loadedTalents];
 
+        /*
+         * Search
+         */
         if (search.trim()) {
             const query = normalize(search);
 
@@ -206,6 +276,9 @@ export default function useTalentBrowser({
             });
         }
 
+        /*
+         * Category
+         */
         if (activeCategoryName) {
             results = results.filter(
                 (talent) =>
@@ -214,6 +287,9 @@ export default function useTalentBrowser({
             );
         }
 
+        /*
+         * Location
+         */
         if (location !== "All locations") {
             results = results.filter(
                 (talent) =>
@@ -222,10 +298,15 @@ export default function useTalentBrowser({
             );
         }
 
+        /*
+         * Sorting
+         */
         switch (sort) {
             case "A-Z":
                 results.sort((a, b) =>
-                    String(a.name || "").localeCompare(
+                    String(
+                        a.name || "",
+                    ).localeCompare(
                         String(b.name || ""),
                     ),
                 );
@@ -233,13 +314,15 @@ export default function useTalentBrowser({
 
             case "Newest":
                 results.sort((a, b) => {
-                    const dateA = new Date(
-                        a.createdAt || 0,
-                    ).getTime();
+                    const dateA =
+                        new Date(
+                            a.createdAt || 0,
+                        ).getTime();
 
-                    const dateB = new Date(
-                        b.createdAt || 0,
-                    ).getTime();
+                    const dateB =
+                        new Date(
+                            b.createdAt || 0,
+                        ).getTime();
 
                     return dateB - dateA;
                 });
@@ -248,8 +331,12 @@ export default function useTalentBrowser({
             case "Available now":
                 results.sort(
                     (a, b) =>
-                        Number(Boolean(b.available)) -
-                        Number(Boolean(a.available)),
+                        Number(
+                            Boolean(b.available),
+                        ) -
+                        Number(
+                            Boolean(a.available),
+                        ),
                 );
                 break;
 
@@ -257,8 +344,12 @@ export default function useTalentBrowser({
             default:
                 results.sort(
                     (a, b) =>
-                        Number(b.likesCount || 0) -
-                        Number(a.likesCount || 0),
+                        Number(
+                            b.likesCount || 0,
+                        ) -
+                        Number(
+                            a.likesCount || 0,
+                        ),
                 );
                 break;
         }
@@ -272,36 +363,58 @@ export default function useTalentBrowser({
         sort,
     ]);
 
+    /*
+     * --------------------------------------------------
+     * CATEGORY SECTIONS
+     * --------------------------------------------------
+     *
+     * Every available category gets a section.
+     *
+     * A category can exist here even when its talents have
+     * not been fetched yet.
+     */
+
     const categorySections = useMemo(() => {
-        return availableCategories
-            .map((category) => {
+        return availableCategories.map(
+            (category) => {
                 const categoryTalents =
                     filteredTalents.filter(
                         (talent) =>
                             normalize(
                                 talent.category,
                             ) ===
-                            normalize(category.name),
+                            normalize(
+                                category.name,
+                            ),
                     );
 
                 return {
                     ...category,
                     talents: categoryTalents,
                 };
-            })
-            .filter(
-                (category) =>
-                    category.talents.length > 0,
-            );
+            },
+        );
     }, [
         availableCategories,
         filteredTalents,
     ]);
 
+    /*
+     * --------------------------------------------------
+     * FILTER STATE
+     * --------------------------------------------------
+     */
+
     const hasActiveFilters =
         Boolean(search.trim()) ||
         Boolean(activeCategoryName) ||
         location !== "All locations";
+
+    /*
+     * --------------------------------------------------
+     * CATEGORY TOTAL
+     * --------------------------------------------------
+     */
 
     function getCategoryTotal(category) {
         if (hasActiveFilters) {
@@ -313,22 +426,44 @@ export default function useTalentBrowser({
         );
     }
 
+    /*
+     * --------------------------------------------------
+     * VISIBLE CATEGORIES
+     * --------------------------------------------------
+     */
+
     const visibleCategories =
         activeCategoryName
             ? categorySections.filter(
                 (category) =>
-                    normalize(category.name) ===
-                    normalize(activeCategoryName),
+                    normalize(
+                        category.name,
+                    ) ===
+                    normalize(
+                        activeCategoryName,
+                    ),
             )
             : categorySections.slice(
                 0,
                 visibleCategoryCount,
             );
 
+    /*
+     * --------------------------------------------------
+     * CATEGORY PAGINATION
+     * --------------------------------------------------
+     */
+
     const hasMoreCategories =
         !activeCategoryName &&
         visibleCategoryCount <
-            availableCategories.length;
+        availableCategories.length;
+
+    /*
+     * --------------------------------------------------
+     * CATEGORY TALENT HELPERS
+     * --------------------------------------------------
+     */
 
     function getCategoryTalents(category) {
         return category.talents;
@@ -351,7 +486,111 @@ export default function useTalentBrowser({
         );
     }
 
-    async function loadMoreTalents(category) {
+    /*
+     * --------------------------------------------------
+     * SERVER ACTION:
+     * LOAD INITIAL CATEGORY TALENTS
+     * --------------------------------------------------
+     *
+     * The actual Firestore query happens on the server.
+     *
+     * The client sends only the category ID.
+     */
+
+    async function loadCategoryTalents(
+        category,
+    ) {
+        if (!category?.id) {
+            return;
+        }
+
+        if (isCategoryLoading(category.id)) {
+            return;
+        }
+
+        /*
+         * Don't fetch the category again if it already
+         * has talents loaded.
+         */
+        if (category.talents?.length > 0) {
+            return;
+        }
+
+        setCategoryLoading((current) => ({
+            ...current,
+            [category.id]: true,
+        }));
+
+        try {
+            const result =
+                await loadCategoryTalentsAction({
+                    categoryId: category.id,
+                    limit: TALENTS_PER_CATEGORY,
+                });
+
+            if (!result?.success) {
+                console.error(
+                    result?.error ||
+                    "Failed to load category talents.",
+                );
+
+                return;
+            }
+
+            if (
+                !Array.isArray(
+                    result.talents,
+                ) ||
+                result.talents.length === 0
+            ) {
+                return;
+            }
+
+            setLoadedTalents((current) => {
+                const existingIds =
+                    new Set(
+                        current.map(
+                            (talent) =>
+                                talent.id,
+                        ),
+                    );
+
+                const newTalents =
+                    result.talents.filter(
+                        (talent) =>
+                            !existingIds.has(
+                                talent.id,
+                            ),
+                    );
+
+                return [
+                    ...current,
+                    ...newTalents,
+                ];
+            });
+        } catch (error) {
+            console.error(
+                "loadCategoryTalents:",
+                error,
+            );
+        } finally {
+            setCategoryLoading((current) => ({
+                ...current,
+                [category.id]: false,
+            }));
+        }
+    }
+
+    /*
+     * --------------------------------------------------
+     * SERVER ACTION:
+     * LOAD MORE TALENTS
+     * --------------------------------------------------
+     */
+
+    async function loadMoreTalents(
+        category,
+    ) {
         if (!category?.id) {
             return;
         }
@@ -371,14 +610,14 @@ export default function useTalentBrowser({
 
         try {
             const result =
-                await loadMoreTalentsAction(
-                    category,
-                );
+                await loadMoreTalentsAction({
+                    categoryId: category,
+                });
 
             if (!result?.success) {
                 console.error(
                     result?.error ||
-                        "Failed to load more talents.",
+                    "Failed to load more talents.",
                 );
 
                 return;
@@ -393,10 +632,28 @@ export default function useTalentBrowser({
                 return;
             }
 
-            setLoadedTalents((current) => [
-                ...current,
-                ...result.talents,
-            ]);
+            setLoadedTalents((current) => {
+                const existingIds =
+                    new Set(
+                        current.map(
+                            (talent) =>
+                                talent.id,
+                        ),
+                    );
+
+                const newTalents =
+                    result.talents.filter(
+                        (talent) =>
+                            !existingIds.has(
+                                talent.id,
+                            ),
+                    );
+
+                return [
+                    ...current,
+                    ...newTalents,
+                ];
+            });
         } catch (error) {
             console.error(
                 "loadMoreTalents:",
@@ -410,7 +667,17 @@ export default function useTalentBrowser({
         }
     }
 
-    function loadMoreCategories() {
+    /*
+     * --------------------------------------------------
+     * SERVER ACTION:
+     * REVEAL MORE CATEGORIES + LOAD THEIR TALENTS
+     * --------------------------------------------------
+     *
+     * When another 6 categories are revealed, we ask the
+     * server for the first 8 talents for each category.
+     */
+
+    async function loadMoreCategories() {
         if (
             categoriesLoading ||
             !hasMoreCategories
@@ -420,43 +687,116 @@ export default function useTalentBrowser({
 
         setCategoriesLoading(true);
 
-        setVisibleCategoryCount(
-            (current) =>
-                current + CATEGORIES_PER_LOAD,
+        const currentCount =
+            visibleCategoryCount;
+
+        const nextCount = Math.min(
+            currentCount +
+            CATEGORIES_PER_LOAD,
+            availableCategories.length,
         );
 
-        setCategoriesLoading(false);
+        const newCategories =
+            availableCategories.slice(
+                currentCount,
+                nextCount,
+            );
+
+        try {
+            /*
+             * Load the newly revealed categories in
+             * parallel.
+             *
+             * Each request is still executed by the
+             * server action.
+             */
+            await Promise.all(
+                newCategories.map(
+                    (category) =>
+                        loadCategoryTalents(
+                            category,
+                        ),
+                ),
+            );
+
+            /*
+             * Reveal the categories after their initial
+             * data has been requested.
+             */
+            setVisibleCategoryCount(
+                nextCount,
+            );
+        } catch (error) {
+            console.error(
+                "loadMoreCategories:",
+                error,
+            );
+        } finally {
+            setCategoriesLoading(false);
+        }
     }
 
+    /*
+     * --------------------------------------------------
+     * PUBLIC API
+     * --------------------------------------------------
+     */
+
     return {
+        /*
+         * URL state
+         */
         search,
         category: activeCategoryName,
         location,
         sort,
 
+        /*
+         * Filter options
+         */
         locations,
         sortOptions,
 
+        /*
+         * Data already available to the client
+         */
         availableCategories,
         filteredTalents,
         categorySections,
         visibleCategories,
 
+        /*
+         * Results
+         */
         totalResults:
             filteredTalents.length,
 
         getCategoryTotal,
 
+        /*
+         * Category pagination
+         */
         hasMoreCategories,
         loadingCategories:
             categoriesLoading,
         loadMoreCategories,
 
+        /*
+         * Talent pagination
+         */
         getCategoryTalents,
         hasMoreTalents,
         isCategoryLoading,
+
+        /*
+         * Server-backed loading
+         */
+        loadCategoryTalents,
         loadMoreTalents,
 
+        /*
+         * Client-side filters
+         */
         changeSearch,
         changeCategory,
         changeLocation,

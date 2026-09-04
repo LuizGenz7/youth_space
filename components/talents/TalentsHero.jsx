@@ -1,31 +1,19 @@
 "use client";
 
-import {
-  ArrowRight,
-  Search,
-  X,
-} from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Search } from "lucide-react";
 
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-export default function TalentsHero({
-  talentsLoading = false,
-}) {
+export default function TalentsHero({ talentsLoading = false }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const search =
-    searchParams.get("search") || "";
+  const search = searchParams.get("search") || "";
 
   function updateSearch(value) {
-    const params = new URLSearchParams(
-      searchParams.toString(),
-    );
+    const params = new URLSearchParams(searchParams.toString());
 
     const trimmedValue = value.trim();
 
@@ -37,22 +25,13 @@ export default function TalentsHero({
 
     const query = params.toString();
 
-    router.replace(
-      query
-        ? `${pathname}?${query}`
-        : pathname,
-      {
-        scroll: false,
-      },
-    );
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   }
 
   function handleChange(event) {
     updateSearch(event.target.value);
-  }
-
-  function clearSearch() {
-    updateSearch("");
   }
 
   function handleSubmit(event) {
@@ -60,25 +39,31 @@ export default function TalentsHero({
   }
 
   return (
-    <section
-      className="relative overflow-hidden border-b border-slate-200 bg-slate-50"
-      style={{
-        backgroundImage:
-          "url('/images/youth-space-hero.webp')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
+    <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
+      {/* Hero image */}
+      <Image
+        src="/images/hero/talents-hero.webp"
+        alt="Young people sharing their skills and creative work"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
+      />
+
+      {/* Overlays */}
+      <div className="absolute inset-0 bg-slate-950/2" aria-hidden="true" />
+
       <div
-        className="absolute inset-0 bg-slate-950/20"
+        className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-950/50"
         aria-hidden="true"
       />
 
       <div
-        className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/60 to-slate-950/30"
+        className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-950/70 to-transparent"
         aria-hidden="true"
       />
 
+      {/* Content */}
       <div className="relative mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
         <div className="max-w-3xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
@@ -87,22 +72,16 @@ export default function TalentsHero({
 
           <h1 className="mt-4 text-4xl font-black tracking-tighter text-white sm:text-5xl lg:text-6xl">
             Find the right
-            <span className="block text-white/60">
-              person for the job.
-            </span>
+            <span className="block text-white/60">person for the job.</span>
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75 sm:text-base sm:leading-7">
-            Discover talented young people offering
-            creative skills, professional services,
-            and local expertise.
+            Discover talented young people offering creative skills,
+            professional services, and local expertise.
           </p>
 
-          <form
-            onSubmit={handleSubmit}
-            className="mt-7"
-            role="search"
-          >
+          {/* Search */}
+          <form onSubmit={handleSubmit} className="mt-7" role="search">
             <div
               className={`flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl transition ${
                 talentsLoading
@@ -122,14 +101,6 @@ export default function TalentsHero({
                 value={search}
                 disabled={talentsLoading}
                 onChange={handleChange}
-                onKeyDown={(event) => {
-                  if (
-                    event.key === "Escape" &&
-                    search
-                  ) {
-                    clearSearch();
-                  }
-                }}
                 placeholder={
                   talentsLoading
                     ? "Loading talents..."
@@ -139,42 +110,22 @@ export default function TalentsHero({
                 className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:text-base"
               />
 
-              {search && !talentsLoading && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                  aria-label="Clear search"
-                >
-                  <X size={16} />
-                </button>
-              )}
-
               <button
                 type="submit"
-                disabled={
-                  talentsLoading ||
-                  !search.trim()
-                }
+                disabled={talentsLoading || !search.trim()}
                 className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="hidden sm:inline">
-                  {talentsLoading
-                    ? "Loading..."
-                    : "Search"}
+                  {talentsLoading ? "Loading..." : "Search"}
                 </span>
 
-                <ArrowRight
-                  size={16}
-                  aria-hidden="true"
-                />
+                <ArrowRight size={16} aria-hidden="true" />
               </button>
             </div>
           </form>
 
           <p className="mt-3 text-xs text-white/50">
-            Search by name, skill, service, category,
-            or location.
+            Search by name, skill, service, category, or location.
           </p>
         </div>
       </div>

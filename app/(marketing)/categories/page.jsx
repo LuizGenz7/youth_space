@@ -1,29 +1,31 @@
+import { Suspense } from "react";
+
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import CategoriesHero from "@/components/categories/CategoriesHero";
 import CategoriesClient from "@/components/categories/CategoriesClient";
+import CategoriesSkeleton from "@/components/categories/CategoriesSkeleton";
 
-import { categories } from "@/data/categories";
-import { talents } from "@/data/talents";
+import { getCategories } from "@/data/categories";
+import CategoriesHeroSkeleton from "@/components/categories/CategoriesHeroSkeleton";
+
+async function CategoriesContent() {
+  const categories = await getCategories();
+  return <CategoriesClient categories={categories} />;
+}
 
 export default function CategoriesPage() {
-  const categoriesWithCounts = categories.map((category) => {
-    const count = talents.filter(
-      (talent) =>
-        talent.category?.trim().toLowerCase() ===
-        category.name.trim().toLowerCase(),
-    ).length;
-
-    return {
-      ...category,
-      count,
-    };
-  });
-
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <Header />
 
-      <CategoriesClient categories={categoriesWithCounts} />
+      <Suspense fallback={<CategoriesHeroSkeleton />}>
+        <CategoriesHero />
+      </Suspense>
+
+      <Suspense fallback={<CategoriesSkeleton />}>
+        <CategoriesContent />
+      </Suspense>
 
       <Footer />
     </main>

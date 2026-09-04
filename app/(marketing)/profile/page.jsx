@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { categories } from "@/data/categories";
+import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
 
 /* ==========================================================================
    MOCK DATA
@@ -485,9 +486,7 @@ export default function ProfilePage() {
 
             {/* Small brand mark */}
             <div className="absolute left-5 top-5 sm:left-7 sm:top-6">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-[10px] font-black tracking-tight text-white/80 backdrop-blur-md">
-                YS
-              </div>
+              <YouthSpaceIcon />
             </div>
 
             {/* Profile type */}
