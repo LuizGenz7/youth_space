@@ -1,13 +1,18 @@
 import { TrendingUp } from "lucide-react";
 
 import WorkCard from "@/components/home/WorkCard";
-import { talents } from "@/data/talents";
+import { getTrendingWorksAction } from "@/actions/works";
 
-export default function TrendingWorksSection({
-  works,
+const TRENDING_WORKS_COUNT = 10;
+
+export default async function TrendingWorksSection({
   className = "",
 }) {
-  if (!works.length) {
+  const result = await getTrendingWorksAction({
+    limit: TRENDING_WORKS_COUNT,
+  });
+
+  if (!result.success || !result.works.length) {
     return null;
   }
 
@@ -34,23 +39,13 @@ export default function TrendingWorksSection({
       </p>
 
       <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {works.map((work) => {
-          const talent = talents.find(
-            (item) => String(item.id) === String(work.talentId),
-          );
-
-          if (!talent) {
-            return null;
-          }
-
-          return (
-            <WorkCard
-              key={work.id}
-              work={work}
-              talent={talent}
-            />
-          );
-        })}
+        {result.works.map((work) => (
+          <WorkCard
+            key={work.id}
+            work={work}
+            talent={work.talent}
+          />
+        ))}
       </div>
     </section>
   );

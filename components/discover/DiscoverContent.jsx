@@ -1,66 +1,19 @@
-import { BriefcaseBusiness, MapPin, Sparkles, Users } from "lucide-react";
+import { Suspense } from "react";
+import { MapPin } from "lucide-react";
 
-import { talents } from "@/data/talents";
-import { categories } from "@/data/categories";
-import { works } from "@/data/works";
-
-import StatCard from "./StatCard";
+import StatsSection from "./StatsSection";
 import TopCategoriesSection from "./TopCategoriesSection";
 import TalentSection from "./TalentSection";
 import TrendingWorksSection from "./TrendingWorksSection";
 import DiscoverBanner from "./DiscoverBanner";
 import DiscoverPoster from "./DiscoverPoster";
 
-const TOP_CATEGORIES_COUNT = 10;
-const TOP_TALENTS_COUNT = 10;
-const NEW_TALENTS_COUNT = 6;
-const TRENDING_WORKS_COUNT = 10;
+import StatsLoading from "./StatsLoading";
+import TopCategoriesLoading from "./TopCategoriesLoading";
+import TalentSectionLoading from "./TalentSectionLoading";
+import TrendingWorksLoading from "./TrendingWorksLoading";
 
 export default function DiscoverContent() {
-  const categoriesWithCounts = categories.map((category) => ({
-    ...category,
-
-    count: talents.filter(
-      (talent) =>
-        talent.category?.trim().toLowerCase() ===
-        category.name?.trim().toLowerCase(),
-    ).length,
-  }));
-
-  const topCategories = [...categoriesWithCounts]
-    .sort((a, b) => b.count - a.count)
-    .slice(0, TOP_CATEGORIES_COUNT);
-
-  const topTalents = [...talents]
-    .sort((a, b) => {
-      const scoreA = Number(a.likes || 0) + Number(a.workCount || 0);
-      const scoreB = Number(b.likes || 0) + Number(b.workCount || 0);
-
-      return scoreB - scoreA;
-    })
-    .slice(0, TOP_TALENTS_COUNT);
-
-  const newTalents = [...talents]
-    .sort((a, b) => {
-      if (!a.createdAt || !b.createdAt) {
-        return 0;
-      }
-
-      return (
-        new Date(b.createdAt).getTime() -
-        new Date(a.createdAt).getTime()
-      );
-    })
-    .slice(0, NEW_TALENTS_COUNT);
-
-  const trendingWorks = [...works]
-    .sort((a, b) => Number(b.likes || 0) - Number(a.likes || 0))
-    .slice(0, TRENDING_WORKS_COUNT);
-
-  const totalTalents = talents.length;
-  const totalCategories = categories.length;
-  const totalWorks = works.length;
-
   return (
     <section>
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
@@ -90,38 +43,17 @@ export default function DiscoverContent() {
 
         {/* Stats */}
 
-        <div className="mt-7 flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
-          <div className="min-w-[160px] flex-1 sm:min-w-0">
-            <StatCard
-              icon={Users}
-              value={totalTalents}
-              label="Talents"
-            />
-          </div>
-
-          <div className="min-w-[160px] flex-1 sm:min-w-0">
-            <StatCard
-              icon={BriefcaseBusiness}
-              value={totalCategories}
-              label="Categories"
-            />
-          </div>
-
-          <div className="min-w-[160px] flex-1 sm:min-w-0">
-            <StatCard
-              icon={Sparkles}
-              value={totalWorks}
-              label="Works"
-            />
-          </div>
-        </div>
+        <Suspense fallback={<StatsLoading className="mt-7" />}>
+          <StatsSection className="mt-7" />
+        </Suspense>
 
         {/* Top categories */}
 
-        <TopCategoriesSection
-          categories={topCategories}
-          className="mt-12 sm:mt-16"
-        />
+        <Suspense
+          fallback={<TopCategoriesLoading className="mt-12 sm:mt-16" />}
+        >
+          <TopCategoriesSection className="mt-12 sm:mt-16" />
+        </Suspense>
 
         {/* Banner */}
 
@@ -138,14 +70,18 @@ export default function DiscoverContent() {
 
         {/* Top talents */}
 
-        <TalentSection
-          eyebrow="Community favourites"
-          title="Top 10 talents"
-          description="Meet some of the talents getting the most attention."
-          talents={topTalents}
-          href="/talents"
-          className="mt-12 sm:mt-16"
-        />
+        <Suspense
+          fallback={<TalentSectionLoading className="mt-12 sm:mt-16" />}
+        >
+          <TalentSection
+            type="top"
+            eyebrow="Community favourites"
+            title="Top 10 talents"
+            description="Meet some of the talents getting the most attention."
+            href="/talents"
+            className="mt-12 sm:mt-16"
+          />
+        </Suspense>
 
         {/* New talents poster */}
 
@@ -162,21 +98,26 @@ export default function DiscoverContent() {
 
         {/* New talents */}
 
-        <TalentSection
-          eyebrow="Just joined"
-          title="New talents"
-          description="Discover some of the newest people in the community."
-          talents={newTalents}
-          href="/talents"
-          className="mt-12 sm:mt-16"
-        />
+        <Suspense
+          fallback={<TalentSectionLoading className="mt-12 sm:mt-16" />}
+        >
+          <TalentSection
+            type="new"
+            eyebrow="Just joined"
+            title="New talents"
+            description="Discover some of the newest people in the community."
+            href="/talents"
+            className="mt-12 sm:mt-16"
+          />
+        </Suspense>
 
         {/* Trending works */}
 
-        <TrendingWorksSection
-          works={trendingWorks}
-          className="mt-12 sm:mt-20"
-        />
+        <Suspense
+          fallback={<TrendingWorksLoading className="mt-12 sm:mt-20" />}
+        >
+          <TrendingWorksSection className="mt-12 sm:mt-20" />
+        </Suspense>
 
         {/* Bottom CTA */}
 

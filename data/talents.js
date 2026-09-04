@@ -1920,20 +1920,9 @@ export const talents = [
 
 import { categories } from "@/data/categories";
 
-/*
-|--------------------------------------------------------------------------
-| Configuration
-|--------------------------------------------------------------------------
-*/
-
 const INITIAL_CATEGORIES_LIMIT = 6;
 const TALENTS_PER_LOAD = 8;
-
-/*
-|--------------------------------------------------------------------------
-| Helpers
-|--------------------------------------------------------------------------
-*/
+const DISCOVER_TALENTS_LIMIT = 10;
 
 function normalize(value) {
   return String(value || "")
@@ -1947,39 +1936,15 @@ function getCategoryById(categoryId) {
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| 1. Get Categories
-|--------------------------------------------------------------------------
-*/
-
 /**
- * Categories are already available in memory.
- *
- * There are only around 30 categories, so all of them
- * are loaded at once.
- *
- * The UI decides how many to display.
+ * Get all categories.
  */
 export async function getCategories() {
   return categories;
 }
 
-/*
-|--------------------------------------------------------------------------
-| 2. Get Initial Talents Data
-|--------------------------------------------------------------------------
-*/
-
 /**
- * Gets the first 6 categories and fetches
- * 8 talents for each category.
- *
- * 6 categories × 8 talents = 48 initial talents.
- *
- * IMPORTANT:
- * Categories come from memory.
- * Talents are fetched from the data source.
+ * Get initial categories and their talents.
  */
 export async function getInitialTalentsData() {
   const allCategories = await getCategories();
@@ -2009,32 +1974,16 @@ export async function getInitialTalentsData() {
   };
 }
 
-/*
-|--------------------------------------------------------------------------
-| Internal Talent Fetch
-|--------------------------------------------------------------------------
-*/
-
 /**
- * Fetch talents belonging to a category.
- *
- * CURRENT DATA SOURCE:
- * talents-data.js
- *
- * FIRESTORE LATER:
- * Replace the filtering/slicing below with a
- * Firestore query using categoryId + limit + cursor.
+ * Get talents belonging to a specific category.
  */
 async function getTalentsByCategory({
   categoryId,
   limit = TALENTS_PER_LOAD,
   cursor = 0,
 } = {}) {
-
-
-
   const category = getCategoryById(categoryId);
-  console.log(`RECECUCUVVVVV  ${categoryId} --------------- ${category}`);
+
   if (!category) {
     return {
       talents: [],
@@ -2067,30 +2016,18 @@ async function getTalentsByCategory({
 
   return {
     talents: results,
-
     nextCursor,
-
     hasMore: nextCursor !== null,
   };
 }
 
-/*
-|--------------------------------------------------------------------------
-| 3. Load More Talents
-|--------------------------------------------------------------------------
-*/
-
 /**
- * Fetches the next 8 talents for a category.
- *
- * The client sends the category ID and cursor.
+ * Load more talents for a category.
  */
 export async function getMoreTalents({
   categoryId,
   cursor,
 } = {}) {
-
-  
   const result = await getTalentsByCategory({
     categoryId,
     limit: TALENTS_PER_LOAD,
@@ -2105,4 +2042,47 @@ export async function getMoreTalents({
         getCategoryById(categoryId)?.totalTalents || 0
       ),
   };
+}
+
+/**
+ * Get top talents for the Discover page.
+ *
+ * Ranking is based on likes + work count.
+ */
+export async function getTopTalents(
+  limit = DISCOVER_TALENTS_LIMIT
+) {
+  return [...talents]
+    .sort((a, b) => {
+      const scoreA =
+        Number(a.likes || 0) +
+        Number(a.workCount || 0);
+
+      const scoreB =
+        Number(b.likes || 0) +
+        Number(b.workCount || 0);
+
+      return scoreB - scoreA;
+    })
+    .slice(0, limit);
+}
+
+/**
+ * Get newest talents for the Discover page.
+ */
+export async function getNewTalents(
+  limit = DISCOVER_TALENTS_LIMIT
+) {
+  return [...talents]
+    .sort((a, b) => {
+      if (!a.createdAt || !b.createdAt) {
+        return 0;
+      }
+
+      return (
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+      );
+    })
+    .slice(0, limit);
 }

@@ -1,12 +1,18 @@
 import Link from "next/link";
+
 import SectionHeading from "./SectionHeading";
 import CategoryIcon from "@/components/categories/CategoryIcon";
 
-export default function TopCategoriesSection({
-  categories,
-  className = "",
-}) {
-  if (!categories.length) {
+import { getTopCategoriesAction } from "@/actions/categories";
+
+const TOP_CATEGORIES_COUNT = 10;
+
+export default async function TopCategoriesSection({ className = "" }) {
+  const result = await getTopCategoriesAction({
+    limit: TOP_CATEGORIES_COUNT,
+  });
+
+  if (!result.success || !result.categories.length) {
     return null;
   }
 
@@ -21,7 +27,7 @@ export default function TopCategoriesSection({
       />
 
       <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {categories.map((category, index) => (
+        {result.categories.map((category, index) => (
           <Link
             key={category.id}
             href={`/talents?category=${encodeURIComponent(category.name)}`}
@@ -40,8 +46,7 @@ export default function TopCategoriesSection({
             </h3>
 
             <p className="mt-1 text-xs text-slate-400">
-              {category.count}{" "}
-              {category.count === 1 ? "talent" : "talents"}
+              {category.count} {category.count === 1 ? "talent" : "talents"}
             </p>
           </Link>
         ))}

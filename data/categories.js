@@ -1,3 +1,5 @@
+import { talents } from "@/data/talents";
+
 export const categories = [
     {
         id: "barbers",
@@ -217,3 +219,47 @@ export const categories = [
         totalTalents: 25,
     },
 ];
+
+
+const TOP_CATEGORIES_LIMIT = 10;
+
+function normalize(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase();
+}
+
+/**
+ * Get all categories.
+ */
+export async function getCategories() {
+    return categories;
+}
+
+/**
+ * Get the top categories based on
+ * the number of talents in each category.
+ */
+export async function getTopCategories(
+    limit = TOP_CATEGORIES_LIMIT
+) {
+    const allCategories = await getCategories();
+
+    const categoriesWithCounts =
+        allCategories.map((category) => {
+            const count = talents.filter(
+                (talent) =>
+                    normalize(talent.category) ===
+                    normalize(category.name)
+            ).length;
+
+            return {
+                ...category,
+                count,
+            };
+        });
+
+    return [...categoriesWithCounts]
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit);
+}

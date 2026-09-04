@@ -1,9 +1,7 @@
-/* =========================================================
-   SAMPLE WORKS
-   Replace with Firebase later.
 
-   Each work belongs to a talent through `talentId`.
-========================================================= */
+import { talents } from "@/data/talents";
+
+const TRENDING_WORKS_LIMIT = 10;
 
 export const works = [
   /* =======================================================
@@ -636,3 +634,37 @@ export const works = [
     likes: 21,
   },
 ];
+
+
+
+export async function getWorks() {
+  return works;
+}
+
+
+export async function getTrendingWorks(
+  limit = TRENDING_WORKS_LIMIT
+) {
+  const allWorks = await getWorks();
+
+  return [...allWorks]
+    .sort(
+      (a, b) =>
+        Number(b.likes || 0) -
+        Number(a.likes || 0)
+    )
+    .slice(0, limit)
+    .map((work) => {
+      const talent = talents.find(
+        (item) =>
+          String(item.id) ===
+          String(work.talentId)
+      );
+
+      return {
+        ...work,
+        talent: talent || null,
+      };
+    })
+    .filter((work) => work.talent);
+}
