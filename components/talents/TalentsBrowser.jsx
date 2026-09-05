@@ -1,15 +1,8 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import {
-  ChevronDown,
-  LoaderCircle,
-} from "lucide-react";
+import { ChevronDown, LoaderCircle } from "lucide-react";
 
 import QuickCategories from "@/components/talents/QuickCategories";
 import TalentFilters from "@/components/talents/TalentFilters";
@@ -42,8 +35,7 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const [loadingCategories, setLoadingCategories] =
-    useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   /*
    * =========================================================
@@ -69,13 +61,9 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const categoryResults = useTalentsStore(
-    (state) => state.categoryResults,
-  );
+  const categoryResults = useTalentsStore((state) => state.categoryResults);
 
-  const setTalentsLoading = useTalentsStore(
-    (state) => state.setTalentsLoading,
-  );
+  const setTalentsLoading = useTalentsStore((state) => state.setTalentsLoading);
 
   /*
    * =========================================================
@@ -104,12 +92,7 @@ export default function TalentsContent({
       location: browser.location || "",
       sort: browser.sort || "",
     });
-  }, [
-    browser.search,
-    browser.category,
-    browser.location,
-    browser.sort,
-  ]);
+  }, [browser.search, browser.category, browser.location, browser.sort]);
 
   /*
    * =========================================================
@@ -132,10 +115,7 @@ export default function TalentsContent({
    */
 
   function handleLoadMoreCategories() {
-    if (
-      loadingCategories ||
-      !browser.hasMoreCategories
-    ) {
+    if (loadingCategories || !browser.hasMoreCategories) {
       return;
     }
 
@@ -144,10 +124,7 @@ export default function TalentsContent({
     try {
       browser.loadMoreCategories();
     } catch (error) {
-      console.error(
-        "Failed to load more categories:",
-        error,
-      );
+      console.error("Failed to load more categories:", error);
     } finally {
       setLoadingCategories(false);
     }
@@ -159,9 +136,7 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const isSearching = Boolean(
-    browser.search?.trim(),
-  );
+  const isSearching = Boolean(browser.search?.trim());
 
   /*
    * Only categories currently mounted by this component
@@ -185,39 +160,23 @@ export default function TalentsContent({
    * Therefore an old result cannot be used for a new search.
    */
 
-  const currentCategoryResultEntries =
-    visibleCategoryIds.map(
-      (categoryId) => {
-        const result =
-          categoryResults[categoryId];
+  const currentCategoryResultEntries = visibleCategoryIds.map((categoryId) => {
+    const result = categoryResults[categoryId];
 
-        if (!result) {
-          return [
-            categoryId,
-            undefined,
-          ];
-        }
+    if (!result) {
+      return [categoryId, undefined];
+    }
 
-        /*
-         * Ignore results belonging to an older filter state.
-         */
+    /*
+     * Ignore results belonging to an older filter state.
+     */
 
-        if (
-          result.filtersKey !==
-          filtersKey
-        ) {
-          return [
-            categoryId,
-            undefined,
-          ];
-        }
+    if (result.filtersKey !== filtersKey) {
+      return [categoryId, undefined];
+    }
 
-        return [
-          categoryId,
-          result.hasData,
-        ];
-      },
-    );
+    return [categoryId, result.hasData];
+  });
 
   /*
    * =========================================================
@@ -235,8 +194,7 @@ export default function TalentsContent({
   const categoryResultsReady =
     visibleCategoryIds.length > 0 &&
     currentCategoryResultEntries.every(
-      ([, hasData]) =>
-        typeof hasData === "boolean",
+      ([, hasData]) => typeof hasData === "boolean",
     );
 
   /*
@@ -245,10 +203,9 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const hasAnyMatchingResults =
-    currentCategoryResultEntries.some(
-      ([, hasData]) => hasData === true,
-    );
+  const hasAnyMatchingResults = currentCategoryResultEntries.some(
+    ([, hasData]) => hasData === true,
+  );
 
   /*
    * =========================================================
@@ -259,9 +216,7 @@ export default function TalentsContent({
    * still being evaluated.
    */
 
-  const shouldShowEmptyState =
-    categoryResultsReady &&
-    !hasAnyMatchingResults;
+  const shouldShowEmptyState = categoryResultsReady && !hasAnyMatchingResults;
 
   /*
    * =========================================================
@@ -269,8 +224,7 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const allCategoriesLoaded =
-    !browser.hasMoreCategories;
+  const allCategoriesLoaded = !browser.hasMoreCategories;
 
   /*
    * =========================================================
@@ -321,79 +275,62 @@ export default function TalentsContent({
           />
         ) : (
           <div className="mt-10 space-y-14">
-            {browser.visibleCategories.map(
-              (category) => (
-                <CategorySection
-                  key={category.id}
-                  category={category}
-                  search={browser.search}
-                  location={browser.location}
-                  sort={browser.sort}
-                  filtersKey={filtersKey}
-                />
-              ),
-            )}
+            {browser.visibleCategories.map((category) => (
+              <CategorySection
+                key={category.id}
+                category={category}
+                search={browser.search}
+                location={browser.location}
+                sort={browser.sort}
+                filtersKey={filtersKey}
+              />
+            ))}
 
             {/* ===============================================
                 LOAD MORE CATEGORIES
             =============================================== */}
 
-            {!isSearching &&
-              browser.hasMoreCategories && (
-                <div className="flex justify-center pt-2">
-                  <button
-                    type="button"
-                    onClick={
-                      handleLoadMoreCategories
-                    }
-                    disabled={loadingCategories}
-                    aria-busy={
-                      loadingCategories
-                    }
-                    className="inline-flex h-11 min-w-37.5 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {loadingCategories ? (
-                      <>
-                        <LoaderCircle
-                          size={16}
-                          className="animate-spin"
-                          aria-hidden="true"
-                        />
+            {!isSearching && browser.hasMoreCategories && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleLoadMoreCategories}
+                  disabled={loadingCategories}
+                  aria-busy={loadingCategories}
+                  className="inline-flex h-11 min-w-37.5 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loadingCategories ? (
+                    <>
+                      <LoaderCircle
+                        size={16}
+                        className="animate-spin"
+                        aria-hidden="true"
+                      />
 
-                        <span>
-                          Loading categories...
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span>
-                          Load more categories
-                        </span>
+                      <span>Loading categories...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Load more categories</span>
 
-                        <ChevronDown
-                          size={16}
-                          aria-hidden="true"
-                        />
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+                      <ChevronDown size={16} aria-hidden="true" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* ===============================================
                 ALL CATEGORIES COMPLETED
             =============================================== */}
 
-            {!isSearching &&
-              allCategoriesLoaded &&
-              hasAnyMatchingResults && (
-                <div className="flex justify-center pt-2">
-                  <p className="mt-0.5 text-xs leading-5 text-slate-500">
-                    You&apos;ve explored all
-                    available talent categories.
-                  </p>
-                </div>
-              )}
+            {!isSearching && allCategoriesLoaded && hasAnyMatchingResults && (
+              <div className="flex justify-center pt-2">
+                <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                  You&apos;ve explored all available talent categories.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

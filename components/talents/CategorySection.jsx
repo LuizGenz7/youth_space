@@ -123,6 +123,7 @@ export default function CategorySection({
 
     async function loadInitialTalents() {
       try {
+        
         const result = await loadCategoryTalentsAction({
           categoryId,
         });
@@ -327,8 +328,7 @@ export default function CategorySection({
 
     try {
       const result = await loadMoreTalentsAction({
-        id: categoryId,
-        talents,
+        category,
       });
 
       if (!result?.success) {

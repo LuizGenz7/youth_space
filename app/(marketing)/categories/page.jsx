@@ -5,14 +5,24 @@ import Footer from "@/components/layout/Footer";
 import CategoriesHero from "@/components/categories/CategoriesHero";
 import CategoriesClient from "@/components/categories/CategoriesClient";
 import CategoriesSkeleton from "@/components/categories/CategoriesSkeleton";
-
-import { getCategories } from "@/data/categories";
 import CategoriesHeroSkeleton from "@/components/categories/CategoriesHeroSkeleton";
 import { YouthSpaceBanner } from "@/components/categories/CategoriesContent";
 
+import { getAllCategoriesAction } from "@/actions/categories";
+
 async function CategoriesContent() {
-  const categories = await getCategories();
-  return <CategoriesClient categories={categories} />;
+  try {
+    const result = await getAllCategoriesAction();
+
+    const categories =
+      result?.success && Array.isArray(result.categories)
+        ? result.categories
+        : [];
+
+    return <CategoriesClient categories={categories} />;
+  } catch {
+    return <CategoriesClient categories={[]} />;
+  }
 }
 
 export default function CategoriesPage() {
@@ -27,10 +37,11 @@ export default function CategoriesPage() {
       <Suspense fallback={<CategoriesSkeleton />}>
         <CategoriesContent />
       </Suspense>
+
       <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        {/* Youth Space Banner */}
         <YouthSpaceBanner />
       </div>
+
       <Footer />
     </main>
   );

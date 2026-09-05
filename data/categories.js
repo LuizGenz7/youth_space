@@ -1,5 +1,3 @@
-import { talents } from "@/data/talents";
-
 export const categories = [
     {
         id: "barbers",
@@ -220,46 +218,74 @@ export const categories = [
     },
 ];
 
-
 const TOP_CATEGORIES_LIMIT = 10;
+const RANDOM_CATEGORIES_LIMIT = 10;
 
-function normalize(value) {
-    return String(value || "")
-        .trim()
-        .toLowerCase();
-}
-
-/**
- * Get all categories.
+/*
+ * --------------------------------------------------
+ * CATEGORIES
+ * --------------------------------------------------
  */
+
 export async function getCategories() {
     return categories;
 }
 
+export async function getAllCategories() {
+    return getCategories();
+}
+
+/*
+ * --------------------------------------------------
+ * TOP CATEGORIES
+ * --------------------------------------------------
+ */
+
 /**
- * Get the top categories based on
- * the number of talents in each category.
+ * Get categories with the highest number of talents.
+ *
+ * totalTalents is already stored on each category,
+ * so there is no need to load the talents collection.
  */
 export async function getTopCategories(
     limit = TOP_CATEGORIES_LIMIT
 ) {
     const allCategories = await getCategories();
 
-    const categoriesWithCounts =
-        allCategories.map((category) => {
-            const count = talents.filter(
-                (talent) =>
-                    normalize(talent.category) ===
-                    normalize(category.name)
-            ).length;
+    const safeLimit = Math.min(
+        Math.max(Number(limit) || TOP_CATEGORIES_LIMIT, 1),
+        TOP_CATEGORIES_LIMIT
+    );
 
-            return {
-                ...category,
-                count,
-            };
-        });
+    return [...allCategories]
+        .sort(
+            (a, b) =>
+                Number(b.totalTalents || 0) -
+                Number(a.totalTalents || 0)
+        )
+        .slice(0, safeLimit);
+}
 
-    return [...categoriesWithCounts]
-        .sort((a, b) => b.count - a.count)
-        .slice(0, limit);
+/*
+ * --------------------------------------------------
+ * RANDOM CATEGORIES
+ * --------------------------------------------------
+ */
+
+/**
+ * Get a random selection of categories.
+ */
+export async function getRandomCategories(
+    limit = RANDOM_CATEGORIES_LIMIT
+) {
+    const allCategories = await getCategories();
+
+    const safeLimit = Math.min(
+        Math.max(Number(limit) || RANDOM_CATEGORIES_LIMIT, 1),
+        RANDOM_CATEGORIES_LIMIT
+    );
+
+    return [...allCategories]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, safeLimit);
 }

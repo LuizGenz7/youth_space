@@ -1347,7 +1347,7 @@ export const talents = [
     name: "Florence Banda",
     role: "Home Cleaner",
     category: "Cleaning Services",
-    location: "Lusaka",
+    location: "Copperbelt",
     initials: "FB",
     image:
       "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80",
@@ -1918,6 +1918,9 @@ export const talents = [
   },
 ];
 
+
+
+
 import { categories } from "@/data/categories";
 
 const INITIAL_CATEGORIES_LIMIT = 6;
@@ -1931,16 +1934,51 @@ const DISCOVER_TALENTS_LIMIT = 10;
  */
 
 function normalize(value) {
-  return String(value || "")
+  return String(value ?? "")
     .trim()
     .toLowerCase();
 }
 
 function getCategoryById(categoryId) {
   return categories.find(
-    (category) =>
-      category.id === categoryId,
+    (category) => category.id === categoryId
   );
+}
+
+function getSafeLimit(
+  limit,
+  fallback,
+  maximum
+) {
+  const value = Number(limit);
+
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(
+    Math.max(Math.floor(value), 1),
+    maximum
+  );
+}
+
+function getSafeCursor(cursor) {
+  const value = Number(cursor);
+
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(Math.floor(value), 0);
+}
+
+function emptyTalentResult() {
+  return {
+    talents: [],
+    nextCursor: null,
+    hasMore: false,
+    totalTalents: 0,
+  };
 }
 
 /*
@@ -1952,7 +1990,7 @@ function getCategoryById(categoryId) {
 /**
  * Get all categories.
  *
- * Server-only.
+ * Server-only data access.
  */
 export async function getCategories() {
   return categories;
@@ -1968,37 +2006,29 @@ export async function getCategories() {
  * Get the initial categories and their first
  * batch of talents.
  *
- * This is intended for the initial server render
+ * Used for the initial server render
  * of the Talents page.
  */
 export async function getInitialTalentsData() {
-  const allCategories =
-    await getCategories();
+  const allCategories = await getCategories();
 
-  const initialCategories =
-    allCategories.slice(
-      0,
-      INITIAL_CATEGORIES_LIMIT,
-    );
+  const initialCategories = allCategories.slice(
+    0,
+    INITIAL_CATEGORIES_LIMIT
+  );
 
-  const talentResults =
-    await Promise.all(
-      initialCategories.map(
-        (category) =>
-          getCategoryTalents({
-            categoryId:
-              category.id,
-            limit:
-              TALENTS_PER_LOAD,
-          }),
-      ),
-    );
+  const talentResults = await Promise.all(
+    initialCategories.map((category) =>
+      getCategoryTalents({
+        categoryId: category.id,
+        limit: TALENTS_PER_LOAD,
+      })
+    )
+  );
 
-  const initialTalents =
-    talentResults.flatMap(
-      (result) =>
-        result.talents,
-    );
+  const initialTalents = talentResults.flatMap(
+    (result) => result.talents
+  );
 
   return {
     categories: allCategories,
@@ -2015,9 +2045,6 @@ export async function getInitialTalentsData() {
 /**
  * Get the first batch of talents for a category.
  *
- * This is the server-side function used by
- * loadCategoryTalentsAction().
- *
  * @param {{
  *   categoryId: string,
  *   limit?: number
@@ -2027,77 +2054,28 @@ export async function getCategoryTalents({
   categoryId,
   limit = TALENTS_PER_LOAD,
 } = {}) {
-  const category =
-    getCategoryById(categoryId);
-
-  /*
-   * Never trust the client-provided limit.
-   */
-  const safeLimit = Math.min(
-    Math.max(
-      Number(limit) || TALENTS_PER_LOAD,
-      1,
-    ),
-    TALENTS_PER_LOAD,
-  );
-
-  if (!category) {
-    return {
-      talents: [],
-      nextCursor: null,
-      hasMore: false,
-      totalTalents: 0,
-    };
-  }
-
-  const categoryTalents =
-    talents.filter(
-      (talent) =>
-        normalize(
-          talent.category,
-        ) ===
-        normalize(
-          category.name,
-        ),
-    );
-
-  const results =
-    categoryTalents.slice(
-      0,
-      safeLimit,
-    );
-
-  const nextCursor =
-    results.length <
-      categoryTalents.length
-      ? results.length
-      : null;
-
-  return {
-    talents: results,
-    nextCursor,
-    hasMore:
-      nextCursor !== null,
-    totalTalents:
-      categoryTalents.length,
-  };
+  return getTalentsByCategory({
+    categoryId,
+    limit,
+    cursor: 0,
+  });
 }
 
 /*
  * --------------------------------------------------
- * GENERIC CATEGORY PAGINATION
+ * CATEGORY PAGINATION
  * --------------------------------------------------
  */
 
 /**
  * Get talents belonging to a specific category.
  *
+ * For the current local-data implementation,
  * cursor represents the number of records already
  * consumed.
  *
- * This function currently uses the local data array.
- * When Firestore pagination is introduced, this
- * function can internally use startAfter().
+ * Later this can internally be changed to a real
+ * Firestore cursor without changing the action API.
  *
  * @param {{
  *   categoryId: string,
@@ -2110,66 +2088,50 @@ async function getTalentsByCategory({
   limit = TALENTS_PER_LOAD,
   cursor = 0,
 } = {}) {
-  const category =
-    getCategoryById(categoryId);
+  const category = getCategoryById(categoryId);
 
   if (!category) {
-    return {
-      talents: [],
-      nextCursor: null,
-      hasMore: false,
-      totalTalents: 0,
-    };
+    return emptyTalentResult();
   }
 
-  const categoryTalents =
-    talents.filter(
-      (talent) =>
-        normalize(
-          talent.category,
-        ) ===
-        normalize(
-          category.name,
-        ),
-    );
-
-  /*
-   * Keep pagination values server-controlled.
-   */
-  const safeLimit = Math.min(
-    Math.max(
-      Number(limit) ||
-      TALENTS_PER_LOAD,
-      1,
-    ),
+  const safeLimit = getSafeLimit(
+    limit,
     TALENTS_PER_LOAD,
+    TALENTS_PER_LOAD
+  );
+
+  const safeCursor = getSafeCursor(cursor);
+
+  const categoryName = normalize(category.name);
+
+  const categoryTalents = talents.filter(
+    (talent) =>
+      normalize(talent.category) ===
+      categoryName
   );
 
   const start = Math.min(
-    Math.max(
-      Number(cursor) || 0,
-      0,
-    ),
-    categoryTalents.length,
+    safeCursor,
+    categoryTalents.length
   );
 
-  const results =
-    categoryTalents.slice(
-      start,
-      start + safeLimit,
-    );
+  const results = categoryTalents.slice(
+    start,
+    start + safeLimit
+  );
 
-  const nextCursor =
-    start + results.length <
-      categoryTalents.length
-      ? start + results.length
-      : null;
+  const nextPosition =
+    start + results.length;
+
+  const hasMore =
+    nextPosition < categoryTalents.length;
 
   return {
     talents: results,
-    nextCursor,
-    hasMore:
-      nextCursor !== null,
+    nextCursor: hasMore
+      ? nextPosition
+      : null,
+    hasMore,
     totalTalents:
       categoryTalents.length,
   };
@@ -2184,8 +2146,6 @@ async function getTalentsByCategory({
 /**
  * Load the next batch of talents for a category.
  *
- * Server-only.
- *
  * @param {{
  *   categoryId: string,
  *   cursor?: number
@@ -2195,102 +2155,78 @@ export async function getMoreTalents({
   categoryId,
   cursor = 0,
 } = {}) {
-  const result =
-    await getTalentsByCategory({
-      categoryId,
-      limit: TALENTS_PER_LOAD,
-      cursor,
-    });
-
-  return {
-    talents:
-      result.talents,
-
-    nextCursor:
-      result.nextCursor,
-
-    hasMore:
-      result.hasMore,
-
-    totalTalents:
-      result.totalTalents,
-  };
+  return getTalentsByCategory({
+    categoryId,
+    limit: TALENTS_PER_LOAD,
+    cursor,
+  });
 }
 
 /*
  * --------------------------------------------------
- * DISCOVER
+ * DISCOVER — TOP TALENTS
  * --------------------------------------------------
  */
 
 /**
- * Get top talents for the Discover page.
+ * Get the top talents for Discover.
  *
- * Ranking is based on likes + work count.
- *
- * Server-only.
+ * Current ranking:
+ *   likes + workCount
  */
 export async function getTopTalents(
-  limit = DISCOVER_TALENTS_LIMIT,
+  limit = DISCOVER_TALENTS_LIMIT
 ) {
-  const safeLimit = Math.min(
-    Math.max(
-      Number(limit) ||
-      DISCOVER_TALENTS_LIMIT,
-      1,
-    ),
+  const safeLimit = getSafeLimit(
+    limit,
     DISCOVER_TALENTS_LIMIT,
+    DISCOVER_TALENTS_LIMIT
   );
 
   return [...talents]
     .sort((a, b) => {
       const scoreA =
-        Number(a.likes || 0) +
-        Number(a.workCount || 0);
+        Number(a.likes ?? 0) +
+        Number(a.workCount ?? 0);
 
       const scoreB =
-        Number(b.likes || 0) +
-        Number(b.workCount || 0);
+        Number(b.likes ?? 0) +
+        Number(b.workCount ?? 0);
 
       return scoreB - scoreA;
     })
     .slice(0, safeLimit);
 }
 
+/*
+ * --------------------------------------------------
+ * DISCOVER — NEW TALENTS
+ * --------------------------------------------------
+ */
+
 /**
- * Get newest talents for the Discover page.
- *
- * Server-only.
+ * Get the newest talents for Discover.
  */
 export async function getNewTalents(
-  limit = DISCOVER_TALENTS_LIMIT,
+  limit = DISCOVER_TALENTS_LIMIT
 ) {
-  const safeLimit = Math.min(
-    Math.max(
-      Number(limit) ||
-      DISCOVER_TALENTS_LIMIT,
-      1,
-    ),
+  const safeLimit = getSafeLimit(
+    limit,
     DISCOVER_TALENTS_LIMIT,
+    DISCOVER_TALENTS_LIMIT
   );
 
   return [...talents]
     .sort((a, b) => {
-      if (
-        !a.createdAt ||
-        !b.createdAt
-      ) {
-        return 0;
-      }
+      const dateA = a.createdAt
+        ? new Date(a.createdAt).getTime()
+        : 0;
 
-      return (
-        new Date(
-          b.createdAt,
-        ).getTime() -
-        new Date(
-          a.createdAt,
-        ).getTime()
-      );
+      const dateB = b.createdAt
+        ? new Date(b.createdAt).getTime()
+        : 0;
+
+      return dateB - dateA;
     })
     .slice(0, safeLimit);
 }

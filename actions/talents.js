@@ -16,46 +16,82 @@ import {
 const INITIAL_CATEGORY_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
 
+const MAX_LOADED_COUNT = 1000;
+
 /* =========================================================
    SCHEMAS
 ========================================================= */
 
-const categoryTalentsSchema = z.object({
-    categoryId: z.string().trim().min(1).max(100),
+const categoryIdSchema = z
+    .string()
+    .trim()
+    .min(1, "Category ID is required.")
+    .max(100, "Category ID is too long.");
 
-    limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(8)
-        .optional(),
-});
 
-const loadMoreTalentsSchema = z.object({
-    categoryId: z.string().trim().min(1).max(100),
+const categoryLimitSchema = z
+    .number()
+    .int()
+    .min(1)
+    .max(INITIAL_CATEGORY_LOAD);
 
-    loadedCount: z
-        .number()
-        .int()
-        .min(0)
-        .max(1000),
-});
 
-const discoverTalentsSchema = z.object({
-    limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(10),
-});
+const categoryTalentsSchema = z
+    .object({
+        categoryId: categoryIdSchema,
+
+        limit: categoryLimitSchema.optional(),
+    })
+    .strict();
+
+/**
+ * Load more talents request.
+ *
+ * IMPORTANT:
+ * Only accept the values actually required by
+ * the server. Never accept the complete category
+ * object from the client.
+ */
+const loadMoreTalentsSchema = z
+    .object({
+        categoryId: categoryIdSchema,
+
+        loadedCount: z
+            .number()
+            .int()
+            .min(0)
+            .max(MAX_LOADED_COUNT),
+    })
+    .strict();
+
+/**
+ * Discover talent request.
+ */
+const discoverTalentsSchema = z
+    .object({
+        limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(DISCOVER_TALENTS_LIMIT),
+    })
+    .strict();
 
 /* =========================================================
    CATEGORY TALENTS
 ========================================================= */
 
-
-export async function loadCategoryTalentsAction(input) {
-    const validation = categoryTalentsSchema.safeParse(input);
+/**
+ * Load the first batch of talents for a category.
+ *
+ * Public action.
+ * No authentication required.
+ */
+export async function loadCategoryTalentsAction(
+    input = {},
+) {
+    const validation =
+        categoryTalentsSchema.safeParse(input);
 
     if (!validation.success) {
         return {
@@ -87,7 +123,12 @@ export async function loadCategoryTalentsAction(input) {
             hasMore: Boolean(result?.hasMore),
             error: null,
         };
-    } catch (e) {
+    } catch (error) {
+        console.error(
+            "loadCategoryTalentsAction:",
+            error,
+        );
+
         return {
             success: false,
             talents: [],
@@ -105,18 +146,26 @@ export async function loadCategoryTalentsAction(input) {
 /**
  * Load the next batch of talents for a category.
  *
- * The client provides the category object.
- * Only the category ID and currently loaded count
- * are extracted and validated on the server.
+ * Public action.
+ * No authentication required.
+ *
+ * IMPORTANT:
+ * The client sends only:
+ *
+ * {
+ *     categoryId,
+ *     loadedCount
+ * }
+ *
+ * Do not accept the complete category object.
  */
-export async function loadMoreTalentsAction(category) {
+export async function loadMoreTalentsAction({category}) {
     const input = {
         categoryId: category?.id,
         loadedCount: Array.isArray(category?.talents)
             ? category.talents.length
             : 0,
     };
-
     const validation =
         loadMoreTalentsSchema.safeParse(input);
 
@@ -172,6 +221,9 @@ export async function loadMoreTalentsAction(category) {
 
 /**
  * Get top talents for the Discover page.
+ *
+ * Public action.
+ * No authentication required.
  */
 export async function getTopTalentsAction(
     input = {},
@@ -179,7 +231,8 @@ export async function getTopTalentsAction(
     const validation =
         discoverTalentsSchema.safeParse({
             limit:
-                input.limit ?? DISCOVER_TALENTS_LIMIT,
+                input?.limit ??
+                DISCOVER_TALENTS_LIMIT,
         });
 
     if (!validation.success) {
@@ -222,6 +275,9 @@ export async function getTopTalentsAction(
 
 /**
  * Get newest talents for the Discover page.
+ *
+ * Public action.
+ * No authentication required.
  */
 export async function getNewTalentsAction(
     input = {},
@@ -229,7 +285,8 @@ export async function getNewTalentsAction(
     const validation =
         discoverTalentsSchema.safeParse({
             limit:
-                input.limit ?? DISCOVER_TALENTS_LIMIT,
+                input?.limit ??
+                DISCOVER_TALENTS_LIMIT,
         });
 
     if (!validation.success) {

@@ -44,16 +44,24 @@ export default function QuickCategories({
 
   return (
     <div>
-      {/* Header */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
       <div className="flex items-end justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
             Browse categories
           </p>
 
-          <h2 className="mt-1 text-xl font-black">
+          <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">
             What are you looking for?
           </h2>
+
+          <p className="mt-1 text-xs text-slate-500">
+            Start with a category to find talent that matches
+            what you need.
+          </p>
         </div>
 
         <Link
@@ -65,9 +73,15 @@ export default function QuickCategories({
         </Link>
       </div>
 
-      {/* Categories */}
+      {/* =================================================
+          CATEGORIES
+      ================================================= */}
+
       <div className="relative mt-5">
-        {/* Left arrow */}
+        {/* -------------------------------------------------
+            LEFT ARROW
+        ------------------------------------------------- */}
+
         <button
           type="button"
           onClick={() =>
@@ -79,11 +93,18 @@ export default function QuickCategories({
           <ChevronLeft size={18} />
         </button>
 
-        {/* Category list */}
+        {/* -------------------------------------------------
+            CATEGORY LIST
+        ------------------------------------------------- */}
+
         <div
           ref={scrollRef}
           className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-none sm:mx-0 sm:px-0 lg:px-12"
         >
+          {/* ------------------------------------------------
+              ALL
+          ------------------------------------------------ */}
+
           <CategoryButton
             title="All"
             count={totalTalents}
@@ -93,6 +114,10 @@ export default function QuickCategories({
               onCategoryChange("All")
             }
           />
+
+          {/* ------------------------------------------------
+              CATEGORIES
+          ------------------------------------------------ */}
 
           {categoriesWithCounts.map((item) => (
             <CategoryButton
@@ -111,7 +136,10 @@ export default function QuickCategories({
           ))}
         </div>
 
-        {/* Right arrow */}
+        {/* -------------------------------------------------
+            RIGHT ARROW
+        ------------------------------------------------- */}
+
         <button
           type="button"
           onClick={() =>
@@ -127,6 +155,12 @@ export default function QuickCategories({
   );
 }
 
+/*
+ * =========================================================
+ * CATEGORY BUTTON
+ * =========================================================
+ */
+
 function CategoryButton({
   title,
   count,
@@ -138,6 +172,7 @@ function CategoryButton({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={`group flex min-w-36.25 shrink-0 items-center gap-3 rounded-2xl border p-3.5 text-left transition active:scale-[0.98] ${
         active
           ? "border-slate-950 bg-slate-950 text-white shadow-md"

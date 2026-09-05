@@ -6,11 +6,19 @@ import { getTopTalentsAction } from "@/actions/talents";
 const TALENT_LIMIT = 4;
 
 export default async function FeaturedTalents() {
-  const result = await getTopTalentsAction({
-    limit: TALENT_LIMIT,
-  });
+  let featuredTalents = [];
 
-  const featuredTalents = result.success ? result.talents : [];
+  try {
+    const result = await getTopTalentsAction({
+      limit: TALENT_LIMIT,
+    });
+
+    if (result?.success && Array.isArray(result.talents)) {
+      featuredTalents = result.talents;
+    }
+  } catch {
+    featuredTalents = [];
+  }
 
   return (
     <section className="bg-slate-50">

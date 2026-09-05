@@ -1,8 +1,16 @@
 import SectionHeading from "./SectionHeading";
 import CategoryCard from "@/components/categories/CategoryCard";
 
-export default async function LocalServices({ categories }) {
-  const popularCategories = categories;
+import { getRandomCategoriesAction } from "@/actions/categories";
+
+export default async function LocalServices() {
+  const result = await getRandomCategoriesAction({
+    limit: 8,
+  });
+
+  const categories = result.success
+    ? result.categories
+    : [];
 
   return (
     <section className="bg-white">
@@ -15,10 +23,13 @@ export default async function LocalServices({ categories }) {
           link="Explore categories"
         />
 
-        {popularCategories.length > 0 ? (
+        {categories.length > 0 ? (
           <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {popularCategories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
+            {categories.map((category) => (
+              <CategoryCard
+                key={category.id}
+                category={category}
+              />
             ))}
           </div>
         ) : (

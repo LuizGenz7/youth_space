@@ -17,31 +17,19 @@ import LocalServicesLoading from "@/components/home/LocalServicesLoading";
 import FeaturedTalentsLoading from "@/components/home/FeaturedTalentsLoading";
 import LatestWorkLoading from "@/components/home/LatestWorkLoading";
 
-import { getTopCategoriesAction } from "@/actions/categories";
-
-const CATEGORY_LIMIT = 8;
-
 export default async function HomePage() {
-  const categoriesResult = await getTopCategoriesAction({
-    limit: CATEGORY_LIMIT,
-  });
-
-  const categories = categoriesResult.success
-    ? categoriesResult.categories
-    : [];
-
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <Header />
 
-      <Hero categories={categories.slice(0, 4)} />
+      <Hero />
 
       <Suspense fallback={<PopularCategoriesLoading />}>
-        <PopularCategories categories={categories.slice(0, 4)} />
+        <PopularCategories />
       </Suspense>
 
       <Suspense fallback={<LocalServicesLoading />}>
-        <LocalServices categories={categories} />
+        <LocalServices />
       </Suspense>
 
       <Suspense fallback={<FeaturedTalentsLoading />}>
