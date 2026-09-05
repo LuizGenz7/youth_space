@@ -9,12 +9,19 @@ import {
     getNewTalents,
 } from "@/data/talents";
 
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const INITIAL_CATEGORY_LOAD = 8;
+const DISCOVER_TALENTS_LIMIT = 10;
+
+/* =========================================================
+   SCHEMAS
+========================================================= */
+
 const categoryTalentsSchema = z.object({
-    categoryId: z
-        .string()
-        .trim()
-        .min(1)
-        .max(100),
+    categoryId: z.string().trim().min(1).max(100),
 
     limit: z
         .number()
@@ -25,11 +32,7 @@ const categoryTalentsSchema = z.object({
 });
 
 const loadMoreTalentsSchema = z.object({
-    categoryId: z
-        .string()
-        .trim()
-        .min(1)
-        .max(100),
+    categoryId: z.string().trim().min(1).max(100),
 
     loadedCount: z
         .number()
@@ -46,22 +49,13 @@ const discoverTalentsSchema = z.object({
         .max(10),
 });
 
-const MAX_LOAD = 8;
-const INITIAL_CATEGORY_LOAD = 8;
-const DISCOVER_TALENTS_LIMIT = 10;
+/* =========================================================
+   CATEGORY TALENTS
+========================================================= */
 
-/**
- * Load the first batch of talents for a category.
- *
- * The client only needs to provide the category ID.
- */
-export async function loadCategoryTalentsAction(
-    input,
-) {
-    const validation =
-        categoryTalentsSchema.safeParse(
-            input,
-        );
+
+export async function loadCategoryTalentsAction(input) {
+    const validation = categoryTalentsSchema.safeParse(input);
 
     if (!validation.success) {
         return {
@@ -79,66 +73,52 @@ export async function loadCategoryTalentsAction(
     } = validation.data;
 
     try {
-        const result =
-            await getCategoryTalents({
-                categoryId,
-                limit,
-            });
+        const result = await getCategoryTalents({
+            categoryId,
+            limit,
+        });
 
         return {
             success: true,
-            talents:
-                result?.talents || [],
-            nextCursor:
-                result?.nextCursor || null,
-            hasMore:
-                Boolean(result?.hasMore),
+            talents: Array.isArray(result?.talents)
+                ? result.talents
+                : [],
+            nextCursor: result?.nextCursor ?? null,
+            hasMore: Boolean(result?.hasMore),
             error: null,
         };
-    } catch (error) {
-        console.log(
-            "loadCategoryTalentsAction:",
-            error,
-        );
-
+    } catch (e) {
         return {
             success: false,
             talents: [],
             nextCursor: null,
             hasMore: false,
-            error:
-                "Unable to load category talents.",
+            error: "Unable to load category talents.",
         };
     }
 }
 
+/* =========================================================
+   LOAD MORE CATEGORY TALENTS
+========================================================= */
+
 /**
  * Load the next batch of talents for a category.
  *
- * Accepts the category object from the client and
- * safely extracts only the values needed by the
- * server.
+ * The client provides the category object.
+ * Only the category ID and currently loaded count
+ * are extracted and validated on the server.
  */
-export async function loadMoreTalentsAction(
-    category,
-) {
-
-    /*
-     * Extract only trusted shape from the incoming
-     * category object.
-     */
+export async function loadMoreTalentsAction(category) {
     const input = {
         categoryId: category?.id,
-        loadedCount:
-            Array.isArray(category?.talents)
-                ? category.talents.length
-                : 0,
+        loadedCount: Array.isArray(category?.talents)
+            ? category.talents.length
+            : 0,
     };
 
     const validation =
-        loadMoreTalentsSchema.safeParse(
-            input,
-        );
+        loadMoreTalentsSchema.safeParse(input);
 
     if (!validation.success) {
         return {
@@ -156,25 +136,22 @@ export async function loadMoreTalentsAction(
     } = validation.data;
 
     try {
+        const result = await getMoreTalents({
+            categoryId,
+            cursor: loadedCount,
+        });
 
-        console.log('DDIDIIDDIIDID' + loadedCount)
-        const result =
-            await getMoreTalents({
-                categoryId,
-                cursor: loadedCount
-            });
         return {
             success: true,
-            talents:
-                result?.talents || [],
-            nextCursor:
-                result?.nextCursor || null,
-            hasMore:
-                Boolean(result?.hasMore),
+            talents: Array.isArray(result?.talents)
+                ? result.talents
+                : [],
+            nextCursor: result?.nextCursor ?? null,
+            hasMore: Boolean(result?.hasMore),
             error: null,
         };
     } catch (error) {
-        console.log(
+        console.error(
             "loadMoreTalentsAction:",
             error,
         );
@@ -184,14 +161,17 @@ export async function loadMoreTalentsAction(
             talents: [],
             nextCursor: null,
             hasMore: false,
-            error:
-                "Unable to load more talents.",
+            error: "Unable to load more talents.",
         };
     }
 }
 
+/* =========================================================
+   DISCOVER — TOP TALENTS
+========================================================= */
+
 /**
- * Get top talents for Discover.
+ * Get top talents for the Discover page.
  */
 export async function getTopTalentsAction(
     input = {},
@@ -199,8 +179,7 @@ export async function getTopTalentsAction(
     const validation =
         discoverTalentsSchema.safeParse({
             limit:
-                input.limit ??
-                DISCOVER_TALENTS_LIMIT,
+                input.limit ?? DISCOVER_TALENTS_LIMIT,
         });
 
     if (!validation.success) {
@@ -212,14 +191,15 @@ export async function getTopTalentsAction(
     }
 
     try {
-        const talents =
-            await getTopTalents(
-                validation.data.limit,
-            );
+        const talents = await getTopTalents(
+            validation.data.limit,
+        );
 
         return {
             success: true,
-            talents,
+            talents: Array.isArray(talents)
+                ? talents
+                : [],
             error: null,
         };
     } catch (error) {
@@ -231,14 +211,17 @@ export async function getTopTalentsAction(
         return {
             success: false,
             talents: [],
-            error:
-                "Unable to load top talents.",
+            error: "Unable to load top talents.",
         };
     }
 }
 
+/* =========================================================
+   DISCOVER — NEWEST TALENTS
+========================================================= */
+
 /**
- * Get newest talents for Discover.
+ * Get newest talents for the Discover page.
  */
 export async function getNewTalentsAction(
     input = {},
@@ -246,8 +229,7 @@ export async function getNewTalentsAction(
     const validation =
         discoverTalentsSchema.safeParse({
             limit:
-                input.limit ??
-                DISCOVER_TALENTS_LIMIT,
+                input.limit ?? DISCOVER_TALENTS_LIMIT,
         });
 
     if (!validation.success) {
@@ -259,14 +241,15 @@ export async function getNewTalentsAction(
     }
 
     try {
-        const talents =
-            await getNewTalents(
-                validation.data.limit,
-            );
+        const talents = await getNewTalents(
+            validation.data.limit,
+        );
 
         return {
             success: true,
-            talents,
+            talents: Array.isArray(talents)
+                ? talents
+                : [],
             error: null,
         };
     } catch (error) {
@@ -278,8 +261,7 @@ export async function getNewTalentsAction(
         return {
             success: false,
             talents: [],
-            error:
-                "Unable to load newest talents.",
+            error: "Unable to load newest talents.",
         };
     }
 }

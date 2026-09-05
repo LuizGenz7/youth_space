@@ -30,11 +30,5 @@ export default function TalentsPage() {
 
 async function TalentsBrowserData() {
   const { talents, categories } = await getInitialTalentsData();
-
-  return (
-    <TalentsBrowser
-      talents={talents}
-      categories={categories}
-    />
-  );
+  return <TalentsBrowser talents={talents} categories={categories} />;
 }
