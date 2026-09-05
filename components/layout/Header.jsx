@@ -1,19 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ArrowRight,
-  MapPin,
-  Menu,
-  User,
-  X,
-} from "lucide-react";
+import { ArrowRight, MapPin, Menu, User, X } from "lucide-react";
 
-import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
+import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 
-export default function Header() {
+export default function Header({ noChange = false }) {
   const pathname = usePathname();
 
   /*
@@ -22,7 +17,7 @@ export default function Header() {
    * =========================================================
    */
 
-  const isLoggedIn = true;
+  const isLoggedIn = false;
 
   const currentUser = {
     id: "pi1eux",
@@ -101,7 +96,14 @@ export default function Header() {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  const isTransparent = transparent && !menuOpen;
+  /*
+   * noChange controls whether the header is allowed
+   * to become transparent at the top of the page.
+   *
+   * true  -> normal transparent-on-top behaviour
+   * false -> always solid header
+   */
+  const isTransparent = !noChange && transparent && !menuOpen;
 
   const initials = currentUser.name
     .split(" ")
@@ -130,70 +132,19 @@ export default function Header() {
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
           {/* =================================================
-              BRAND
-          ================================================= */}
+    BRAND
+================================================= */}
 
-          <Link
-            href="/"
-            onClick={closeMenu}
-            className="group flex items-center gap-2.5"
-          >
+          <Link href="/" onClick={closeMenu} className="group">
             <div className="transition-transform duration-300 group-hover:scale-105">
-              <YouthSpaceIcon
-                size={40}
+              <YouthSpaceBrand
+                size={38}
                 priority
-                className={
-                  isTransparent
-                    ? "bg-transparent"
-                    : "bg-slate-950"
-                }
+                transparent={isTransparent}
+                showTitle={true}
               />
             </div>
-
-            <div className="leading-none">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[14px] font-black tracking-tight transition-colors duration-300 sm:text-[15px] ${
-                    isTransparent
-                      ? "text-white"
-                      : "text-slate-950"
-                  }`}
-                >
-                  Youth Space
-                </span>
-
-                <span
-                  className={`hidden rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wider transition-colors duration-300 sm:inline-flex ${
-                    isTransparent
-                      ? "bg-white/15 text-white/80"
-                      : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  Zambia
-                </span>
-              </div>
-
-              <p
-                className={`mt-1 text-[9px] transition-colors duration-300 sm:text-[10px] ${
-                  isTransparent
-                    ? "text-white/60"
-                    : "text-slate-400"
-                }`}
-              >
-                by{" "}
-                <span
-                  className={`font-bold ${
-                    isTransparent
-                      ? "text-white/80"
-                      : "text-slate-600"
-                  }`}
-                >
-                  TechGU
-                </span>
-              </p>
-            </div>
           </Link>
-
           {/* =================================================
               DESKTOP NAVIGATION
           ================================================= */}
@@ -257,11 +208,7 @@ export default function Header() {
 
           <button
             type="button"
-            aria-label={
-              menuOpen
-                ? "Close navigation"
-                : "Open navigation"
-            }
+            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
             className={`flex h-10 w-10 items-center justify-center rounded-xl border transition active:scale-95 md:hidden ${
@@ -282,9 +229,7 @@ export default function Header() {
 
         <div
           className={`overflow-hidden border-t border-slate-100 bg-white transition-[max-height,opacity] duration-200 md:hidden ${
-            menuOpen
-              ? "max-h-[520px] opacity-100"
-              : "max-h-0 opacity-0"
+            menuOpen ? "max-h-[520px] opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <nav
@@ -351,9 +296,7 @@ export default function Header() {
                     <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
                       <MapPin size={11} />
 
-                      <span className="truncate">
-                        {currentUser.location}
-                      </span>
+                      <span className="truncate">{currentUser.location}</span>
                     </div>
                   </div>
 
@@ -431,33 +374,21 @@ function GuestActions({ transparent }) {
    PROFILE BUTTON
 ========================================================= */
 
-function ProfileButton({
-  user,
-  initials,
-  transparent,
-}) {
+function ProfileButton({ user, initials, transparent }) {
   return (
     <Link
       href="/profile"
       aria-label={`Open ${user.name}'s profile`}
       className={`group flex items-center gap-2 rounded-2xl p-1.5 transition ${
-        transparent
-          ? "hover:bg-white/10"
-          : "hover:bg-slate-100"
+        transparent ? "hover:bg-white/10" : "hover:bg-slate-100"
       }`}
     >
-      <ProfileAvatar
-        image={user.image}
-        initials={initials}
-        name={user.name}
-      />
+      <ProfileAvatar image={user.image} initials={initials} name={user.name} />
 
       <div className="hidden text-left lg:block">
         <p
           className={`max-w-[120px] truncate text-xs font-black ${
-            transparent
-              ? "text-white"
-              : "text-slate-950"
+            transparent ? "text-white" : "text-slate-950"
           }`}
         >
           {user.name}
@@ -465,16 +396,12 @@ function ProfileButton({
 
         <div
           className={`mt-0.5 flex max-w-[120px] items-center gap-1 text-[10px] font-medium ${
-            transparent
-              ? "text-white/60"
-              : "text-slate-400"
+            transparent ? "text-white/60" : "text-slate-400"
           }`}
         >
           <MapPin size={10} />
 
-          <span className="truncate">
-            {user.location}
-          </span>
+          <span className="truncate">{user.location}</span>
         </div>
       </div>
     </Link>
@@ -485,29 +412,23 @@ function ProfileButton({
    PROFILE AVATAR
 ========================================================= */
 
-function ProfileAvatar({
-  image,
-  initials,
-  name,
-  size = "md",
-}) {
+function ProfileAvatar({ image, initials, name, size = "md" }) {
   const [imageError, setImageError] = useState(false);
 
-  const sizeClass =
-    size === "sm"
-      ? "h-10 w-10 text-xs"
-      : "h-10 w-10 text-xs";
+  const sizeClass = size === "sm" ? "h-10 w-10" : "h-10 w-10";
 
   if (image && !imageError) {
     return (
       <div
-        className={`${sizeClass} shrink-0 overflow-hidden rounded-xl bg-slate-100`}
+        className={`${sizeClass} relative shrink-0 overflow-hidden rounded-xl bg-slate-100`}
       >
-        <img
+        <Image
           src={image}
           alt={name}
-          className="h-full w-full object-cover"
+          fill
+          sizes="40px"
           onError={() => setImageError(true)}
+          className="object-cover"
         />
       </div>
     );
@@ -526,12 +447,7 @@ function ProfileAvatar({
    MOBILE NAV LINK
 ========================================================= */
 
-function MobileNavLink({
-  href,
-  children,
-  onClick,
-  active = false,
-}) {
+function MobileNavLink({ href, children, onClick, active = false }) {
   return (
     <Link
       href={href}
@@ -552,12 +468,7 @@ function MobileNavLink({
    DESKTOP NAV LINK
 ========================================================= */
 
-function NavLink({
-  href,
-  children,
-  active = false,
-  transparent = false,
-}) {
+function NavLink({ href, children, active = false, transparent = false }) {
   return (
     <Link
       href={href}

@@ -16,6 +16,7 @@ export default async function TalentSection({
   href,
   className = "",
 }) {
+  
   const result =
     type === "new"
       ?  await getNewTalentsAction({

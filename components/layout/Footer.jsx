@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
+import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 
 export default function Footer() {
   const pathname = usePathname();
@@ -16,13 +16,7 @@ export default function Footer() {
 
           <div className="max-w-sm">
             <Link href="/" className="flex items-center gap-3">
-              <YouthSpaceIcon size={40} />
-
-              <div>
-                <p className="font-black">Youth Space</p>
-
-                <p className="text-xs text-slate-400">by TechGU</p>
-              </div>
+              <YouthSpaceBrand  size={40} />
             </Link>
 
             <p className="mt-5 text-sm leading-6 text-slate-500">

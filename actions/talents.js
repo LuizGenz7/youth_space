@@ -96,7 +96,7 @@ export async function loadCategoryTalentsAction(
             error: null,
         };
     } catch (error) {
-        console.error(
+        console.log(
             "loadCategoryTalentsAction:",
             error,
         );
@@ -122,6 +122,7 @@ export async function loadCategoryTalentsAction(
 export async function loadMoreTalentsAction(
     category,
 ) {
+
     /*
      * Extract only trusted shape from the incoming
      * category object.
@@ -155,13 +156,13 @@ export async function loadMoreTalentsAction(
     } = validation.data;
 
     try {
+
+        console.log('DDIDIIDDIIDID' + loadedCount)
         const result =
             await getMoreTalents({
                 categoryId,
-                cursor: loadedCount,
-                limit: MAX_LOAD,
+                cursor: loadedCount
             });
-
         return {
             success: true,
             talents:
@@ -173,7 +174,7 @@ export async function loadMoreTalentsAction(
             error: null,
         };
     } catch (error) {
-        console.error(
+        console.log(
             "loadMoreTalentsAction:",
             error,
         );

@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -13,7 +14,7 @@ import {
   Mail,
   Sparkles,
 } from "lucide-react";
-import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
+import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 
 const LOGIN_IMAGE =
   "https://bongohive.co.zm/app/uploads/2024/12/462231872_1518820968810746_4996820145898586779_n.jpg";
@@ -49,17 +50,7 @@ export default function LoginPage() {
 
           <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
             <Link href="/" className="group flex items-center gap-2.5">
-               <YouthSpaceIcon />
-
-              <div className="leading-none">
-                <p className="text-[15px] font-black tracking-tight text-slate-950">
-                  Youth Space
-                </p>
-
-                <p className="mt-1 text-[9px] text-slate-400">
-                  by <span className="font-bold text-slate-600">TechGU</span>
-                </p>
-              </div>
+              <YouthSpaceBrand  />
             </Link>
 
             <Link
@@ -90,8 +81,8 @@ export default function LoginPage() {
                 </h1>
 
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
-                  Continue discovering talent, sharing your work and connecting
-                  with people across Zambia.
+                  Continue discovering talent, sharing your work and
+                  connecting with people across Zambia.
                 </p>
               </div>
 
@@ -164,13 +155,21 @@ export default function LoginPage() {
 
                     <button
                       type="button"
-                      onClick={() => setShowPassword((value) => !value)}
+                      onClick={() =>
+                        setShowPassword((value) => !value)
+                      }
                       aria-label={
-                        showPassword ? "Hide password" : "Show password"
+                        showPassword
+                          ? "Hide password"
+                          : "Show password"
                       }
                       className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -181,7 +180,9 @@ export default function LoginPage() {
                   <input
                     type="checkbox"
                     checked={rememberMe}
-                    onChange={(event) => setRememberMe(event.target.checked)}
+                    onChange={(event) =>
+                      setRememberMe(event.target.checked)
+                    }
                     className="h-4 w-4 rounded border-slate-300 accent-slate-950"
                   />
 
@@ -205,6 +206,7 @@ export default function LoginPage() {
                   ) : (
                     <>
                       Sign in
+
                       <ArrowRight
                         size={16}
                         className="transition-transform group-hover:translate-x-1"
@@ -284,48 +286,35 @@ export default function LoginPage() {
         ===================================================== */}
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
-          {/* =================================================
-              BACKGROUND FALLBACK
-          ================================================= */}
+          {/* Background fallback */}
 
           <div className="absolute inset-0 bg-slate-950" />
 
-          {/* =================================================
-              BACKGROUND IMAGE
-          ================================================= */}
+          {/* Background image */}
 
           {!imageError && (
-            <img
+            <Image
               src={LOGIN_IMAGE}
               alt=""
+              fill
+              priority
+              sizes="(min-width: 1280px) 50vw, 46vw"
               onError={() => setImageError(true)}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="object-cover"
             />
           )}
 
-          {/* =================================================
-              IMAGE TREATMENT
-          ================================================= */}
-
-          {/* Main dark overlay */}
+          {/* Image treatment */}
 
           <div className="absolute inset-0 bg-slate-950/45" />
 
-          {/* Left-side gradient */}
-
           <div className="absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-slate-950/75 via-slate-950/35 to-transparent" />
-
-          {/* Bottom gradient */}
 
           <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-transparent to-slate-950/95" />
 
-          {/* Subtle top gradient */}
-
           <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-slate-950/50 to-transparent" />
 
-          {/* =================================================
-              GRID
-          ================================================= */}
+          {/* Grid */}
 
           <div
             className="absolute inset-0 opacity-[0.06]"
@@ -333,24 +322,20 @@ export default function LoginPage() {
               backgroundImage:
                 "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
               backgroundSize: "64px 64px",
-              maskImage: "linear-gradient(to bottom, black, transparent 80%)",
+              maskImage:
+                "linear-gradient(to bottom, black, transparent 80%)",
               WebkitMaskImage:
                 "linear-gradient(to bottom, black, transparent 80%)",
             }}
           />
 
-          {/* =================================================
-              DECORATIVE LIGHT
-          ================================================= */}
+          {/* Decorative light */}
 
           <div className="absolute -right-32 top-1/4 h-80 w-80 rounded-full bg-white/10 blur-[120px]" />
 
           <div className="absolute -left-32 bottom-1/4 h-72 w-72 rounded-full bg-white/5 blur-[100px]" />
 
-          {/* =================================================
-              FALLBACK CONTENT
-              Visible if image fails
-          ================================================= */}
+          {/* Fallback content */}
 
           {imageError && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -368,9 +353,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* =================================================
-              CONTENT
-          ================================================= */}
+          {/* Content */}
 
           <div className="relative z-10 flex h-full flex-col p-8 xl:p-12 2xl:p-16">
             {/* Top */}
@@ -407,18 +390,25 @@ export default function LoginPage() {
               </h2>
 
               <p className="mt-6 max-w-lg text-sm leading-7 text-white/65 xl:text-base">
-                Youth Space connects young Zambians with people, businesses and
-                opportunities that value what they can do.
+                Youth Space connects young Zambians with people,
+                businesses and opportunities that value what they can
+                do.
               </p>
 
               {/* Features */}
 
               <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
-                <VisualFeature>Discover young talent</VisualFeature>
+                <VisualFeature>
+                  Discover young talent
+                </VisualFeature>
 
-                <VisualFeature>Showcase your skills</VisualFeature>
+                <VisualFeature>
+                  Showcase your skills
+                </VisualFeature>
 
-                <VisualFeature>Connect locally</VisualFeature>
+                <VisualFeature>
+                  Connect locally
+                </VisualFeature>
               </div>
             </div>
 
@@ -427,8 +417,8 @@ export default function LoginPage() {
             <div className="mt-auto pt-16">
               <div className="max-w-xl border-l border-white/20 pl-5">
                 <p className="text-sm font-medium leading-6 text-white/55">
-                  "Your skills can open doors. Youth Space helps people find
-                  them."
+                  "Your skills can open doors. Youth Space helps people
+                  find them."
                 </p>
 
                 <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
@@ -443,10 +433,6 @@ export default function LoginPage() {
   );
 }
 
-/* =========================================================
-   VISUAL FEATURE
-========================================================= */
-
 function VisualFeature({ children }) {
   return (
     <div className="flex items-center gap-2 text-xs font-bold text-white/70">
@@ -459,13 +445,13 @@ function VisualFeature({ children }) {
   );
 }
 
-/* =========================================================
-   GOOGLE ICON
-========================================================= */
-
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
       <path
         fill="#4285F4"
         d="M21.35 12.23c0-.72-.06-1.41-.18-2.08H12v3.94h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.25Z"

@@ -124,7 +124,7 @@ export default async function Hero() {
           {/* Primary actions */}
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
-              href="/discover"
+              href="/talents"
               className="group inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-slate-950 shadow-xl shadow-black/20 transition hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-2xl"
             >
               Explore talent

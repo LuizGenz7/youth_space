@@ -8,6 +8,7 @@ import CategoriesSkeleton from "@/components/categories/CategoriesSkeleton";
 
 import { getCategories } from "@/data/categories";
 import CategoriesHeroSkeleton from "@/components/categories/CategoriesHeroSkeleton";
+import { YouthSpaceBanner } from "@/components/categories/CategoriesContent";
 
 async function CategoriesContent() {
   const categories = await getCategories();
@@ -26,7 +27,10 @@ export default function CategoriesPage() {
       <Suspense fallback={<CategoriesSkeleton />}>
         <CategoriesContent />
       </Suspense>
-
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        {/* Youth Space Banner */}
+        <YouthSpaceBanner />
+      </div>
       <Footer />
     </main>
   );

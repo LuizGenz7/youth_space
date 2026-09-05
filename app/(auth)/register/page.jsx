@@ -1,9 +1,9 @@
-
 // app/register/page.js
 
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -15,7 +15,7 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
-import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
+import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 
 const REGISTER_IMAGE =
   "https://www.bbcchildreninneed.co.uk/wp-content/uploads/2025/09/wemove-main-image.png";
@@ -50,29 +50,11 @@ export default function RegisterPage() {
         ===================================================== */}
 
         <section className="flex min-h-screen w-full flex-col lg:w-[54%] xl:w-[50%]">
-          {/* ===================================================
-              HEADER
-          =================================================== */}
+          {/* Header */}
 
           <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
-            <Link
-              href="/"
-              className="group flex items-center gap-2.5"
-            >
-              <YouthSpaceIcon />
-
-              <div className="leading-none">
-                <p className="text-[15px] font-black tracking-tight text-slate-950">
-                  Youth Space
-                </p>
-
-                <p className="mt-1 text-[9px] text-slate-400">
-                  by{" "}
-                  <span className="font-bold text-slate-600">
-                    TechGU
-                  </span>
-                </p>
-              </div>
+            <Link href="/" className="group flex items-center gap-2.5">
+              <YouthSpaceBrand />
             </Link>
 
             <Link
@@ -83,9 +65,7 @@ export default function RegisterPage() {
             </Link>
           </header>
 
-          {/* ===================================================
-              FORM AREA
-          =================================================== */}
+          {/* Form area */}
 
           <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
             <div className="w-full max-w-[440px]">
@@ -105,19 +85,14 @@ export default function RegisterPage() {
                 </h1>
 
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
-                  Create your profile, showcase what you can do and
-                  connect with people across Zambia.
+                  Create your profile, showcase what you can do and connect with
+                  people across Zambia.
                 </p>
               </div>
 
-              {/* =================================================
-                  FORM
-              ================================================= */}
+              {/* Form */}
 
-              <form
-                onSubmit={handleSubmit}
-                className="mt-8 space-y-5"
-              >
+              <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                 {/* Full name */}
 
                 <div>
@@ -204,9 +179,7 @@ export default function RegisterPage() {
 
                     <PasswordToggle
                       visible={showPassword}
-                      onClick={() =>
-                        setShowPassword((value) => !value)
-                      }
+                      onClick={() => setShowPassword((value) => !value)}
                     />
                   </div>
 
@@ -234,11 +207,7 @@ export default function RegisterPage() {
                     <input
                       id="confirmPassword"
                       name="confirmPassword"
-                      type={
-                        showConfirmPassword
-                          ? "text"
-                          : "password"
-                      }
+                      type={showConfirmPassword ? "text" : "password"}
                       autoComplete="new-password"
                       placeholder="Repeat your password"
                       required
@@ -247,11 +216,7 @@ export default function RegisterPage() {
 
                     <PasswordToggle
                       visible={showConfirmPassword}
-                      onClick={() =>
-                        setShowConfirmPassword(
-                          (value) => !value,
-                        )
-                      }
+                      onClick={() => setShowConfirmPassword((value) => !value)}
                     />
                   </div>
                 </div>
@@ -262,9 +227,7 @@ export default function RegisterPage() {
                   <input
                     type="checkbox"
                     checked={agree}
-                    onChange={(event) =>
-                      setAgree(event.target.checked)
-                    }
+                    onChange={(event) => setAgree(event.target.checked)}
                     className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-slate-950"
                   />
 
@@ -302,7 +265,6 @@ export default function RegisterPage() {
                   ) : (
                     <>
                       Create account
-
                       <ArrowRight
                         size={16}
                         className="transition-transform group-hover:translate-x-1"
@@ -331,7 +293,6 @@ export default function RegisterPage() {
                 className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md"
               >
                 <GoogleIcon />
-
                 Continue with Google
               </button>
 
@@ -363,11 +324,23 @@ export default function RegisterPage() {
         ===================================================== */}
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
-          {/* =================================================
-              FALLBACK
-          ================================================= */}
+          {/* Background */}
 
           <div className="absolute inset-0 bg-slate-950" />
+
+          {/* Image */}
+
+          {!imageError && (
+            <Image
+              src={REGISTER_IMAGE}
+              alt=""
+              fill
+              priority
+              sizes="(min-width: 1280px) 50vw, 46vw"
+              onError={() => setImageError(true)}
+              className="object-cover"
+            />
+          )}
 
           {/* Decorative fallback circles */}
 
@@ -387,42 +360,17 @@ export default function RegisterPage() {
             </>
           )}
 
-          {/* =================================================
-              IMAGE
-          ================================================= */}
-
-          {!imageError && (
-            <img
-              src={REGISTER_IMAGE}
-              alt=""
-              onError={() => setImageError(true)}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          )}
-
-          {/* =================================================
-              IMAGE TREATMENT
-          ================================================= */}
-
-          {/* Overall darkening */}
+          {/* Image treatment */}
 
           <div className="absolute inset-0 bg-slate-950/45" />
 
-          {/* Left content gradient */}
-
           <div className="absolute inset-y-0 left-0 w-3/4 bg-gradient-to-r from-slate-950/80 via-slate-950/40 to-transparent" />
-
-          {/* Bottom fade */}
 
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/25 to-slate-950/10" />
 
-          {/* Top fade */}
-
           <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-slate-950/50 to-transparent" />
 
-          {/* =================================================
-              GRID
-          ================================================= */}
+          {/* Grid */}
 
           <div
             className="absolute inset-0 opacity-[0.055]"
@@ -437,17 +385,13 @@ export default function RegisterPage() {
             }}
           />
 
-          {/* =================================================
-              DECORATIVE LIGHT
-          ================================================= */}
+          {/* Decorative light */}
 
           <div className="absolute -right-40 top-1/4 h-96 w-96 rounded-full bg-white/10 blur-[130px]" />
 
           <div className="absolute -left-32 bottom-1/4 h-80 w-80 rounded-full bg-white/5 blur-[110px]" />
 
-          {/* =================================================
-              CONTENT
-          ================================================= */}
+          {/* Content */}
 
           <div className="relative z-10 flex min-h-screen flex-col justify-between p-8 xl:p-12 2xl:p-16">
             {/* Top */}
@@ -482,25 +426,18 @@ export default function RegisterPage() {
               </h2>
 
               <p className="mt-6 max-w-lg text-sm leading-7 text-white/65 xl:text-base xl:leading-8">
-                Build a profile, share the work you're proud of and
-                make it easier for people to discover what you can
-                do.
+                Build a profile, share the work you're proud of and make it
+                easier for people to discover what you can do.
               </p>
 
               {/* Feature cards */}
 
               <div className="mt-9 grid max-w-xl gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                <VisualFeature>
-                  Build your profile
-                </VisualFeature>
+                <VisualFeature>Build your profile</VisualFeature>
 
-                <VisualFeature>
-                  Share your work
-                </VisualFeature>
+                <VisualFeature>Share your work</VisualFeature>
 
-                <VisualFeature>
-                  Get discovered
-                </VisualFeature>
+                <VisualFeature>Get discovered</VisualFeature>
               </div>
             </div>
 
@@ -514,16 +451,12 @@ export default function RegisterPage() {
                   </p>
 
                   <p className="mt-2 text-xs text-white/45">
-                    Discover talent. Share your skills. Create
-                    opportunities.
+                    Turning Talent Into Opportunity.
                   </p>
                 </div>
 
                 <div className="hidden h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 xl:flex">
-                  <Sparkles
-                    size={14}
-                    className="text-white/40"
-                  />
+                  <Sparkles size={14} className="text-white/40" />
                 </div>
               </div>
             </div>
@@ -543,16 +476,10 @@ function PasswordToggle({ visible, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      aria-label={
-        visible ? "Hide password" : "Show password"
-      }
+      aria-label={visible ? "Hide password" : "Show password"}
       className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
     >
-      {visible ? (
-        <EyeOff size={18} />
-      ) : (
-        <Eye size={18} />
-      )}
+      {visible ? <EyeOff size={18} /> : <Eye size={18} />}
     </button>
   );
 }
@@ -579,11 +506,7 @@ function VisualFeature({ children }) {
 
 function GoogleIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M21.35 12.23c0-.72-.06-1.41-.18-2.08H12v3.94h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.25Z"

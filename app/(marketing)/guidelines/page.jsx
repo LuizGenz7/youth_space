@@ -36,9 +36,9 @@ export default function GuidelinesPage() {
           />
         </div>
 
-        <div className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/[0.04] blur-3xl" />
+        <div className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/4 blur-3xl" />
 
-        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-white/[0.03] blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-white/3 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-8 sm:px-6 sm:pb-20 lg:px-8 lg:pb-24">
           {/* Header */}

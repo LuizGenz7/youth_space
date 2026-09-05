@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CheckCircle2, LoaderCircle } from "lucide-react";
 
 import QuickCategories from "@/components/talents/QuickCategories";
 import TalentFilters from "@/components/talents/TalentFilters";
@@ -10,18 +11,12 @@ import EmptyState from "@/components/talents/EmptyState";
 import useTalentBrowser from "@/hooks/talents/useTalentBrowser";
 import { useTalentsStore } from "@/stores/talentsStore";
 
-import { LoaderCircle } from "lucide-react";
-import { loadCategoryTalentsAction } from "@/actions/talents";
-
-const TALENTS_PER_CATEGORY = 8;
-
 export default function TalentsContent({
   talents: initialTalents = [],
   categories = [],
 }) {
-  const [talents, setTalents] = useState(initialTalents);
+  const [talents] = useState(initialTalents);
   const [loadingCategories, setLoadingCategories] = useState(false);
-  const [categoryLoading, setCategoryLoading] = useState({});
 
   const browser = useTalentBrowser({
     talents,
@@ -29,6 +24,12 @@ export default function TalentsContent({
   });
 
   const setTalentsLoading = useTalentsStore((state) => state.setTalentsLoading);
+
+  /*
+   * =========================================================
+   * TALENTS STORE LOADING STATE
+   * =========================================================
+   */
 
   useEffect(() => {
     setTalentsLoading(false);
@@ -38,55 +39,11 @@ export default function TalentsContent({
     };
   }, [setTalentsLoading]);
 
-  async function loadCategoryTalents(category) {
-    if (!category?.id) return;
-
-    if (categoryLoading[category.id]) return;
-
-    const alreadyLoaded = talents.some(
-      (talent) => String(talent.categoryId || "") === String(category.id),
-    );
-
-    if (alreadyLoaded) return;
-
-    setCategoryLoading((current) => ({
-      ...current,
-      [category.id]: true,
-    }));
-
-    try {
-      const result = await loadCategoryTalentsAction({
-        categoryId: category.id,
-        limit: TALENTS_PER_CATEGORY,
-      });
-
-      if (!result?.success) {
-        console.error(result?.error || "Failed to load category talents.");
-        return;
-      }
-
-      if (!Array.isArray(result.talents) || result.talents.length === 0) {
-        return;
-      }
-
-      setTalents((current) => {
-        const existingIds = new Set(current.map((talent) => talent.id));
-
-        const newTalents = result.talents.filter(
-          (talent) => !existingIds.has(talent.id),
-        );
-
-        return [...current, ...newTalents];
-      });
-    } catch (error) {
-      console.error("loadCategoryTalents:", error);
-    } finally {
-      setCategoryLoading((current) => ({
-        ...current,
-        [category.id]: false,
-      }));
-    }
-  }
+  /*
+   * =========================================================
+   * LOAD MORE CATEGORIES
+   * =========================================================
+   */
 
   async function handleLoadMoreCategories() {
     if (loadingCategories || !browser.hasMoreCategories) {
@@ -96,16 +53,6 @@ export default function TalentsContent({
     setLoadingCategories(true);
 
     try {
-      const currentCount = browser.visibleCategories.length;
-      const nextCategories = browser.availableCategories.slice(
-        currentCount,
-        currentCount + 6,
-      );
-
-      await Promise.all(
-        nextCategories.map((category) => loadCategoryTalents(category)),
-      );
-
       browser.loadMoreCategories();
     } catch (error) {
       console.error("handleLoadMoreCategories:", error);
@@ -116,14 +63,26 @@ export default function TalentsContent({
 
   const isSearching = Boolean(browser.search?.trim());
 
+  const hasVisibleCategories = browser.visibleCategories.length > 0;
+
+  const allCategoriesLoaded = !browser.hasMoreCategories;
+
   return (
     <section>
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+        {/* =====================================================
+            QUICK CATEGORIES
+            ===================================================== */}
+
         <QuickCategories
           categories={browser.availableCategories}
           activeCategory={browser.category}
           onCategoryChange={browser.changeCategory}
         />
+
+        {/* =====================================================
+            FILTERS
+            ===================================================== */}
 
         <TalentFilters
           totalResults={browser.totalResults}
@@ -140,23 +99,19 @@ export default function TalentsContent({
           onClear={browser.clearFilters}
         />
 
-        {browser.visibleCategories.length > 0 ? (
-          <div className="mt-10 space-y-14">
-            {browser.visibleCategories.map((category) => {
-              const loading = Boolean(categoryLoading[category.id]);
+        {/* =====================================================
+            CATEGORY RESULTS
+            ===================================================== */}
 
-              return (
-                <CategorySection
-                  key={category.id}
-                  category={category}
-                  talents={browser.getCategoryTalents(category)}
-                  total={browser.getCategoryTotal(category)}
-                  hasMore={browser.hasMoreTalents(category)}
-                  loading={loading}
-                  onLoadMore={() => loadCategoryTalents(category)}
-                />
-              );
-            })}
+        {hasVisibleCategories ? (
+          <div className="mt-10 space-y-14">
+            {browser.visibleCategories.map((category) => (
+              <CategorySection key={category.id} category={category} />
+            ))}
+
+            {/* =================================================
+                LOAD MORE CATEGORIES
+                ================================================= */}
 
             {!isSearching && browser.hasMoreCategories && (
               <div className="flex justify-center pt-2">
@@ -165,7 +120,7 @@ export default function TalentsContent({
                   onClick={handleLoadMoreCategories}
                   disabled={loadingCategories}
                   aria-busy={loadingCategories}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loadingCategories ? (
                     <>
@@ -175,12 +130,24 @@ export default function TalentsContent({
                         aria-hidden="true"
                       />
 
-                      <span>Loading...</span>
+                      <span>Loading categories...</span>
                     </>
                   ) : (
                     <span>Load more categories</span>
                   )}
                 </button>
+              </div>
+            )}
+
+            {/* =================================================
+                ALL CATEGORIES COMPLETED
+                ================================================= */}
+
+            {!isSearching && allCategoriesLoaded && (
+              <div className="flex justify-center pt-2">
+                <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                  You&apos;ve explored all available talent categories.
+                </p>
               </div>
             )}
           </div>

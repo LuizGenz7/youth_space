@@ -20,9 +20,6 @@ export default function CategoriesSkeleton() {
             </div>
           ))}
         </div>
-
-        {/* Youth Space Banner */}
-        <div className="mt-10 min-h-[360px] animate-pulse bg-slate-200 sm:mt-16 sm:min-h-[400px]" />
       </div>
     </section>
   );

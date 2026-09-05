@@ -1,3 +1,5 @@
+// app/about/page.js
+
 import Link from "next/link";
 import {
   ArrowRight,
@@ -10,6 +12,7 @@ import {
 
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 
 export default function AboutPage() {
   return (
@@ -39,60 +42,60 @@ export default function AboutPage() {
 
 function AboutHero() {
   return (
-    <section className="relative overflow-hidden border-b border-slate-200 bg-slate-50">
-      {/* Background */}
+    <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
+      {/* =====================================================
+          BACKGROUND
+      ===================================================== */}
 
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-[-300px] h-[650px] w-[650px] -translate-x-1/2 rounded-full bg-white blur-3xl" />
-
-        <div className="absolute -right-40 top-40 h-96 w-96 rounded-full bg-slate-200/50 blur-3xl" />
-
-        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-slate-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
+            backgroundSize: "56px 56px",
+          }}
+        />
       </div>
 
-      {/* Grid */}
+      {/* Soft glows */}
 
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.25]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-          maskImage: "linear-gradient(to bottom, black, transparent 80%)",
-          WebkitMaskImage:
-            "linear-gradient(to bottom, black, transparent 80%)",
-        }}
-      />
+      <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/4 blur-3xl" />
 
-      <div className="relative mx-auto max-w-7xl px-5 pb-20 pt-28 sm:px-6 sm:pb-28 sm:pt-32 lg:px-8 lg:pb-32">
+      <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-white/3 blur-3xl" />
+
+      {/* =====================================================
+          HERO CONTENT
+      ===================================================== */}
+
+      <div className="relative mx-auto max-w-7xl px-5 pb-20 pt-20 sm:px-6 sm:pb-24 sm:pt-24 lg:px-8 lg:pb-28 lg:pt-28">
         <div className="mx-auto max-w-4xl text-center">
           {/* Eyebrow */}
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-950 text-white">
-              <Sparkles size={12} />
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 backdrop-blur-md">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
+              <Sparkles size={11} />
             </span>
 
-            <span className="text-xs font-bold text-slate-600">
+            <span className="text-[10px] font-bold text-white/70">
               About Youth Space
             </span>
           </div>
 
           {/* Heading */}
 
-          <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.065em] sm:text-6xl lg:text-[76px]">
+          <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.065em] text-white sm:text-6xl lg:text-[76px]">
             Young talent
-            <span className="block text-slate-400">
+            <span className="block text-white/40">
               deserves to be discovered.
             </span>
           </h1>
 
           {/* Description */}
 
-          <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-            Youth Space helps people discover talented young Zambians,
-            explore their work and connect with people who have the skills
-            they need.
+          <p className="mx-auto mt-7 max-w-2xl text-sm leading-7 text-white/55 sm:text-base sm:leading-8">
+            Youth Space helps people discover talented young Zambians, explore
+            their work and connect with people who have the skills they need.
           </p>
 
           {/* Actions */}
@@ -100,10 +103,9 @@ function AboutHero() {
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               href="/discover"
-              className="group inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-bold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-slate-800"
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-slate-950 shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-slate-100"
             >
               Discover talent
-
               <ArrowRight
                 size={16}
                 className="transition-transform group-hover:translate-x-1"
@@ -112,7 +114,7 @@ function AboutHero() {
 
             <Link
               href="/register"
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-900 transition hover:border-slate-300 hover:shadow-md"
+              className="inline-flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-6 text-sm font-bold text-white transition hover:bg-white/10"
             >
               Showcase your work
             </Link>
@@ -234,12 +236,7 @@ function HowItWorks() {
    HOW IT WORKS CARD
 ========================================================= */
 
-function HowItWorksCard({
-  number,
-  icon: Icon,
-  title,
-  description,
-}) {
+function HowItWorksCard({ number, icon: Icon, title, description }) {
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
       <div className="flex items-center justify-between">
@@ -247,16 +244,12 @@ function HowItWorksCard({
           <Icon size={19} />
         </div>
 
-        <span className="text-xs font-black text-slate-300">
-          {number}
-        </span>
+        <span className="text-xs font-black text-slate-300">{number}</span>
       </div>
 
       <h3 className="mt-8 text-lg font-black">{title}</h3>
 
-      <p className="mt-2 text-sm leading-6 text-slate-500">
-        {description}
-      </p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
     </article>
   );
 }
@@ -312,7 +305,6 @@ function DiscoverSection() {
               className="group mt-8 inline-flex items-center gap-2 text-sm font-black text-slate-950"
             >
               Explore categories
-
               <ArrowRight
                 size={15}
                 className="transition-transform group-hover:translate-x-1"
@@ -322,24 +314,12 @@ function DiscoverSection() {
 
           {/* Visual */}
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-950 p-6 sm:p-8">
+          <div className="relative overflow-hidden border border-slate-200 bg-slate-950 p-6 sm:p-8">
             <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
 
             <div className="relative">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-slate-950">
-                  Y
-                </div>
-
-                <div>
-                  <p className="text-xs font-black text-white">
-                    Youth Space
-                  </p>
-
-                  <p className="text-[10px] text-slate-400">
-                    Talent & opportunity
-                  </p>
-                </div>
+                <YouthSpaceBrand  transparent/>
               </div>
 
               <div className="mt-12">
@@ -355,13 +335,13 @@ function DiscoverSection() {
               <div className="mt-10 grid grid-cols-2 gap-2">
                 <div className="rounded-2xl bg-white/10 p-4">
                   <p className="text-xl font-black text-white">Skills</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Discover talent
-                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">Discover talent</p>
                 </div>
 
                 <div className="rounded-2xl bg-white/10 p-4">
                   <p className="text-xl font-black text-white">Work</p>
+
                   <p className="mt-1 text-xs text-slate-400">
                     Explore creations
                   </p>
@@ -415,7 +395,7 @@ function AboutCTA() {
   return (
     <section className="bg-white">
       <div className="mx-auto max-w-5xl px-5 py-20 sm:px-6 sm:py-28 lg:px-8">
-        <div className="overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-12 text-center sm:px-12 sm:py-16">
+        <div className="overflow-hidden bg-slate-950 px-6 py-12 text-center sm:px-12 sm:py-16">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
             Your next opportunity could start here
           </p>

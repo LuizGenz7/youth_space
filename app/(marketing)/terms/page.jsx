@@ -20,34 +20,67 @@ export default function TermsPage() {
           HERO
       ===================================================== */}
 
-      <section className="border-b border-slate-200 bg-slate-50">
-        <div className="mx-auto max-w-4xl px-5 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
+        {/* Background grid */}
+
+        <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
+              backgroundSize: "56px 56px",
+            }}
+          />
+        </div>
+
+        {/* Soft glows */}
+
+        <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/4 blur-3xl" />
+
+        <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-white/3 blur-3xl" />
+
+        {/* Hero content */}
+
+        <div className="relative mx-auto max-w-4xl px-5 pb-16 pt-20 sm:px-6 sm:pb-20 sm:pt-24 lg:pb-24 lg:pt-28">
+          {/* Back */}
+
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 transition hover:text-slate-950"
+            className="inline-flex items-center gap-2 text-xs font-bold text-white/45 transition hover:text-white"
           >
             <ArrowLeft size={14} />
             Back home
           </Link>
 
-          <div className="mt-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
+          {/* Icon */}
+
+          <div className="mt-10 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-950">
             <FileText size={22} />
           </div>
 
-          <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+          {/* Eyebrow */}
+
+          <p className="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
             Terms of Use
           </p>
 
-          <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] sm:text-5xl">
+          {/* Heading */}
+
+          <h1 className="mt-3 text-4xl font-black tracking-[-0.055em] text-white sm:text-5xl lg:text-6xl">
             Simple rules for a better community.
           </h1>
 
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base sm:leading-8">
-            These terms explain the basic rules for using Youth Space,
-            creating a profile, sharing work and connecting with other people.
+          {/* Description */}
+
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-white/55 sm:text-base sm:leading-8">
+            These terms explain the basic rules for using Youth Space, creating
+            a profile, sharing work and connecting with other people.
           </p>
 
-          <p className="mt-5 text-xs font-medium text-slate-400">
+          {/* Date */}
+
+          <p className="mt-6 text-xs font-medium text-white/30">
             Last updated: September 1, 2026
           </p>
         </div>
@@ -86,8 +119,8 @@ export default function TermsPage() {
           <div className="mt-12 space-y-10 sm:mt-16">
             <TermsSection number="01" title="Accepting these terms">
               <p>
-                By using Youth Space, you agree to follow these Terms of Use
-                and our Community Guidelines.
+                By using Youth Space, you agree to follow these Terms of Use and
+                our Community Guidelines.
               </p>
 
               <p>
@@ -98,8 +131,8 @@ export default function TermsPage() {
 
             <TermsSection number="02" title="Using Youth Space">
               <p>
-                Youth Space is a platform designed to help people discover
-                young talent, skills, creative work and local services.
+                Youth Space is a platform designed to help people discover young
+                talent, skills, creative work and local services.
               </p>
 
               <p>
@@ -171,16 +204,16 @@ export default function TermsPage() {
 
               <p>
                 Before meeting someone, hiring a service provider or sharing
-                personal information, use your own judgment and take
-                appropriate safety precautions.
+                personal information, use your own judgment and take appropriate
+                safety precautions.
               </p>
             </TermsSection>
 
             <TermsSection number="08" title="Services and transactions">
               <p>
                 Youth Space may help users discover people offering services,
-                but it does not necessarily provide, guarantee or endorse
-                those services.
+                but it does not necessarily provide, guarantee or endorse those
+                services.
               </p>
 
               <p>
@@ -198,15 +231,15 @@ export default function TermsPage() {
               </p>
 
               <p>
-                You may not copy, reproduce or misuse Youth Space&apos;s branding
-                or platform without permission.
+                You may not copy, reproduce or misuse Youth Space&apos;s
+                branding or platform without permission.
               </p>
             </TermsSection>
 
             <TermsSection number="10" title="Platform availability">
               <p>
-                We aim to keep Youth Space available and reliable, but we
-                cannot guarantee that the platform will always be available,
+                We aim to keep Youth Space available and reliable, but we cannot
+                guarantee that the platform will always be available,
                 uninterrupted or completely error-free.
               </p>
 
@@ -223,8 +256,8 @@ export default function TermsPage() {
               </p>
 
               <p>
-                Where appropriate, we may also take action to protect users,
-                the community or the security of the platform.
+                Where appropriate, we may also take action to protect users, the
+                community or the security of the platform.
               </p>
             </TermsSection>
 
@@ -249,9 +282,7 @@ export default function TermsPage() {
                 reflect new features, services or requirements.
               </p>
 
-              <p>
-                The latest version will always be published on this page.
-              </p>
+              <p>The latest version will always be published on this page.</p>
             </TermsSection>
           </div>
 
@@ -259,29 +290,34 @@ export default function TermsPage() {
               COMMUNITY CTA
           ================================================= */}
 
-          <div className="mt-14 overflow-hidden rounded-3xl bg-slate-950 p-6 sm:mt-20 sm:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-white/40">
-              Be part of it
-            </p>
+          <div className="relative mt-14 overflow-hidden bg-slate-950 p-6 sm:mt-20 sm:p-8">
+            {/* Subtle glow */}
 
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Build a better Youth Space.
-            </h2>
+            <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-white/5 blur-3xl" />
 
-            <p className="mt-3 max-w-xl text-sm leading-6 text-white/50">
-              Discover talent, share your work and connect with people in a
-              respectful and responsible way.
-            </p>
+            <div className="relative">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-white/40">
+                Be part of it
+              </p>
 
-            <Link
-              href="/guidelines"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-slate-100"
-            >
-              Read community guidelines
-              <ChevronRight size={15} />
-            </Link>
+              <h2 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
+                Build a better Youth Space.
+              </h2>
+
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/50">
+                Discover talent, share your work and connect with people in a
+                respectful and responsible way.
+              </p>
+
+              <Link
+                href="/guidelines"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-slate-100"
+              >
+                Read community guidelines
+                <ChevronRight size={15} />
+              </Link>
+            </div>
           </div>
-
         </div>
       </section>
 
@@ -303,9 +339,7 @@ function TermsHighlight({ icon: Icon, title, description }) {
 
       <h3 className="mt-5 text-sm font-black">{title}</h3>
 
-      <p className="mt-2 text-xs leading-5 text-slate-500">
-        {description}
-      </p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p>
     </div>
   );
 }

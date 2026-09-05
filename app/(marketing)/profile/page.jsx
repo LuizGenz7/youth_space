@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 import { categories } from "@/data/categories";
-import YouthSpaceIcon from "@/components/brand/YouthSpaceIcon";
+import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 
 /* ==========================================================================
    MOCK DATA
@@ -486,7 +486,7 @@ export default function ProfilePage() {
 
             {/* Small brand mark */}
             <div className="absolute left-5 top-5 sm:left-7 sm:top-6">
-              <YouthSpaceIcon />
+              <YouthSpaceBrand transparent />
             </div>
 
             {/* Profile type */}

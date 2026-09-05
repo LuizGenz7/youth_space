@@ -15,9 +15,7 @@ function normalize(value) {
     .toLowerCase();
 }
 
-export default function CategoriesContent({
-  categories = [],
-}) {
+export default function CategoriesContent({ categories = [] }) {
   const searchParams = useSearchParams();
 
   const search = searchParams.get("search") || "";
@@ -38,12 +36,15 @@ export default function CategoriesContent({
     : categories;
 
   const sortedCategories = [...filteredCategories].sort(
-    (a, b) =>
-      Number(b.count || 0) - Number(a.count || 0),
+    (a, b) => Number(b.count || 0) - Number(a.count || 0),
   );
 
   if (!sortedCategories.length) {
-    return <EmptySearch />;
+    return (
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        <EmptySearch />
+      </div>
+    );
   }
 
   return (
@@ -52,21 +53,16 @@ export default function CategoriesContent({
         {/* Categories */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {sortedCategories.map((category) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-            />
+            <CategoryCard key={category.id} category={category} />
           ))}
         </div>
 
-        {/* Youth Space Banner */}
-        <YouthSpaceBanner />
       </div>
     </section>
   );
 }
 
-function YouthSpaceBanner() {
+export function YouthSpaceBanner() {
   const [imageError, setImageError] = useState(false);
 
   const image =
@@ -114,16 +110,14 @@ function YouthSpaceBanner() {
 
           <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl">
             Discover talent.
-            <span className="block text-white/60">
-              Create opportunities.
-            </span>
+            <span className="block text-white/60">Create opportunities.</span>
           </h2>
 
           <p className="mt-5 max-w-lg text-sm leading-6 text-white/70 sm:text-base sm:leading-7">
-            Youth Space brings talented young people across Zambia
-            together with people looking for skills, creativity, and
-            services. Discover what young people can do and find the
-            right talent for your next opportunity.
+            Youth Space brings talented young people across Zambia together with
+            people looking for skills, creativity, and services. Discover what
+            young people can do and find the right talent for your next
+            opportunity.
           </p>
 
           <div className="mt-7">

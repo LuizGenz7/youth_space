@@ -3,13 +3,8 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowRight,
-  Globe,
-  Mail,
-  MessageCircle,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Globe, Mail, MessageCircle, Sparkles } from "lucide-react";
+import Footer from "@/components/layout/Footer";
 
 export default function ContactPage() {
   return (
@@ -38,10 +33,7 @@ export default function ContactPage() {
           {/* Top */}
 
           <div className="flex items-center justify-between">
-            <Link
-              href="/"
-              className="group flex items-center gap-2.5"
-            >
+            <Link href="/" className="group flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-slate-950 transition group-hover:scale-105">
                 Y
               </div>
@@ -86,8 +78,8 @@ export default function ContactPage() {
 
             <p className="mt-6 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
               Whether you have a question about Youth Space, want to report
-              something, need help with your profile or simply want to share
-              an idea, we&apos;re here to listen.
+              something, need help with your profile or simply want to share an
+              idea, we&apos;re here to listen.
             </p>
           </div>
         </div>
@@ -111,8 +103,8 @@ export default function ContactPage() {
             </h2>
 
             <p className="mt-4 max-w-md text-sm leading-7 text-slate-500">
-              Tell us what you need help with, what you&apos;re building, or
-              how we can make Youth Space better.
+              Tell us what you need help with, what you&apos;re building, or how
+              we can make Youth Space better.
             </p>
 
             {/* Quick response */}
@@ -123,8 +115,7 @@ export default function ContactPage() {
               </p>
 
               <p className="mt-2 text-xs leading-5 text-slate-500">
-                WhatsApp us for a quick conversation with the Youth Space
-                team.
+                WhatsApp us for a quick conversation with the Youth Space team.
               </p>
 
               <a
@@ -195,22 +186,7 @@ export default function ContactPage() {
           FOOTER
       ===================================================== */}
 
-      <footer className="border-t border-slate-100">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-6 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-10 xl:px-14">
-          <p className="text-[10px] font-medium text-slate-400">
-            © {new Date().getFullYear()} Youth Space. All rights reserved.
-          </p>
-
-          <a
-            href="https://techgu.com"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[10px] font-bold text-slate-400 transition hover:text-slate-950"
-          >
-            A TechGU product
-          </a>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }
@@ -219,14 +195,7 @@ export default function ContactPage() {
    CONTACT CARD
 ========================================================= */
 
-function ContactCard({
-  icon,
-  label,
-  title,
-  description,
-  href,
-  action,
-}) {
+function ContactCard({ icon, label, title, description, href, action }) {
   return (
     <a
       href={href}
@@ -246,9 +215,7 @@ function ContactCard({
         {title}
       </h3>
 
-      <p className="mt-2 text-xs leading-5 text-slate-500">
-        {description}
-      </p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p>
 
       <div className="mt-5 flex items-center gap-2 text-xs font-black text-slate-950">
         {action}
