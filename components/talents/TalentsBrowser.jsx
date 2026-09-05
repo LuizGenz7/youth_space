@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronDown, LoaderCircle } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  ChevronDown,
+  LoaderCircle,
+} from "lucide-react";
 
 import QuickCategories from "@/components/talents/QuickCategories";
 import TalentFilters from "@/components/talents/TalentFilters";
@@ -16,24 +24,92 @@ export default function TalentsContent({
   categories = [],
 }) {
   /*
+   * =========================================================
+   * SERVER DATA
+   * =========================================================
+   *
    * Keep the server-provided talents stable.
    *
-   * CategorySection is responsible for loading additional
-   * talents when a category has no initial data.
+   * CategorySection is responsible for category-level
+   * fetching and pagination.
    */
+
   const [talents] = useState(initialTalents);
+
+  /*
+   * =========================================================
+   * LOCAL UI STATE
+   * =========================================================
+   */
 
   const [loadingCategories, setLoadingCategories] =
     useState(false);
+
+  /*
+   * =========================================================
+   * TALENT BROWSER
+   * =========================================================
+   *
+   * The URL remains the source of truth for:
+   *
+   * - search
+   * - category
+   * - location
+   * - sort
+   */
 
   const browser = useTalentBrowser({
     talents,
     categories,
   });
 
+  /*
+   * =========================================================
+   * ZUSTAND
+   * =========================================================
+   */
+
+  const categoryResults = useTalentsStore(
+    (state) => state.categoryResults,
+  );
+
   const setTalentsLoading = useTalentsStore(
     (state) => state.setTalentsLoading,
   );
+
+  /*
+   * =========================================================
+   * FILTER KEY
+   * =========================================================
+   *
+   * Every unique filter combination gets its own key.
+   *
+   * This prevents results from an old search being reused
+   * for a new search.
+   *
+   * Example:
+   *
+   * search=John
+   * category=
+   * location=All locations
+   * sort=Recommended
+   *
+   * becomes a unique key.
+   */
+
+  const filtersKey = useMemo(() => {
+    return JSON.stringify({
+      search: browser.search.trim(),
+      category: browser.category || "",
+      location: browser.location || "",
+      sort: browser.sort || "",
+    });
+  }, [
+    browser.search,
+    browser.category,
+    browser.location,
+    browser.sort,
+  ]);
 
   /*
    * =========================================================
@@ -87,11 +163,120 @@ export default function TalentsContent({
     browser.search?.trim(),
   );
 
-  const hasVisibleCategories =
-    browser.visibleCategories.length > 0;
+  /*
+   * Only categories currently mounted by this component
+   * participate in the global result calculation.
+   */
+
+  const visibleCategoryIds = useMemo(() => {
+    return browser.visibleCategories
+      .map((category) => category.id)
+      .filter(Boolean);
+  }, [browser.visibleCategories]);
+
+  /*
+   * =========================================================
+   * CURRENT FILTER RESULTS
+   * =========================================================
+   *
+   * CategorySection stores its result together with the
+   * filter key that produced it.
+   *
+   * Therefore an old result cannot be used for a new search.
+   */
+
+  const currentCategoryResultEntries =
+    visibleCategoryIds.map(
+      (categoryId) => {
+        const result =
+          categoryResults[categoryId];
+
+        if (!result) {
+          return [
+            categoryId,
+            undefined,
+          ];
+        }
+
+        /*
+         * Ignore results belonging to an older filter state.
+         */
+
+        if (
+          result.filtersKey !==
+          filtersKey
+        ) {
+          return [
+            categoryId,
+            undefined,
+          ];
+        }
+
+        return [
+          categoryId,
+          result.hasData,
+        ];
+      },
+    );
+
+  /*
+   * =========================================================
+   * RESULTS READY
+   * =========================================================
+   *
+   * Every visible category must report a result for the
+   * CURRENT filtersKey.
+   *
+   * undefined means:
+   *
+   * "This category has not evaluated the current filters yet."
+   */
+
+  const categoryResultsReady =
+    visibleCategoryIds.length > 0 &&
+    currentCategoryResultEntries.every(
+      ([, hasData]) =>
+        typeof hasData === "boolean",
+    );
+
+  /*
+   * =========================================================
+   * ANY MATCHING RESULTS
+   * =========================================================
+   */
+
+  const hasAnyMatchingResults =
+    currentCategoryResultEntries.some(
+      ([, hasData]) => hasData === true,
+    );
+
+  /*
+   * =========================================================
+   * GLOBAL EMPTY STATE
+   * =========================================================
+   *
+   * Never show EmptyState while the current filter state is
+   * still being evaluated.
+   */
+
+  const shouldShowEmptyState =
+    categoryResultsReady &&
+    !hasAnyMatchingResults;
+
+  /*
+   * =========================================================
+   * CATEGORY FOOTER
+   * =========================================================
+   */
 
   const allCategoriesLoaded =
     !browser.hasMoreCategories;
+
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
   return (
     <section>
@@ -126,10 +311,15 @@ export default function TalentsContent({
         />
 
         {/* ===================================================
-            CATEGORY RESULTS
+            RESULTS
         =================================================== */}
 
-        {hasVisibleCategories ? (
+        {shouldShowEmptyState ? (
+          <EmptyState
+            hasData={talents.length > 0}
+            onClear={browser.clearFilters}
+          />
+        ) : (
           <div className="mt-10 space-y-14">
             {browser.visibleCategories.map(
               (category) => (
@@ -139,6 +329,7 @@ export default function TalentsContent({
                   search={browser.search}
                   location={browser.location}
                   sort={browser.sort}
+                  filtersKey={filtersKey}
                 />
               ),
             )}
@@ -194,7 +385,8 @@ export default function TalentsContent({
             =============================================== */}
 
             {!isSearching &&
-              allCategoriesLoaded && (
+              allCategoriesLoaded &&
+              hasAnyMatchingResults && (
                 <div className="flex justify-center pt-2">
                   <p className="mt-0.5 text-xs leading-5 text-slate-500">
                     You&apos;ve explored all
@@ -203,11 +395,6 @@ export default function TalentsContent({
                 </div>
               )}
           </div>
-        ) : (
-          <EmptyState
-            hasData={talents.length > 0}
-            onClear={browser.clearFilters}
-          />
         )}
       </div>
     </section>

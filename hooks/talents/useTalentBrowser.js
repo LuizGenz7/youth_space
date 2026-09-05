@@ -12,12 +12,17 @@ const CATEGORIES_PER_LOAD = 6;
 
 export const locations = [
   "All locations",
+  "Central",
+  "Copperbelt",
+  "Eastern",
+  "Luapula",
   "Lusaka",
-  "Ndola",
-  "Kitwe",
-  "Livingstone",
+  "Muchinga",
+  "Northern",
+  "North-Western",
+  "Southern",
+  "Western",
 ];
-
 export const sortOptions = [
   "Recommended",
   "Newest",
@@ -25,11 +30,23 @@ export const sortOptions = [
   "Available now",
 ];
 
+/*
+ * =========================================================
+ * HELPERS
+ * =========================================================
+ */
+
 function normalize(value) {
   return String(value || "")
     .trim()
     .toLowerCase();
 }
+
+/*
+ * =========================================================
+ * HOOK
+ * =========================================================
+ */
 
 export default function useTalentBrowser({
   talents = [],
@@ -41,17 +58,24 @@ export default function useTalentBrowser({
 
   /*
    * =========================================================
-   * FILTER STATE
+   * CURRENT FILTER / SEARCH STATE
    * =========================================================
    *
    * The URL is the source of truth.
    *
-   * CategorySection receives these values and performs
-   * filtering on the talents it already has.
+   * Example:
+   *
+   * /talents?search=john&category=Design&location=Lusaka&sort=Newest
+   *
+   * becomes:
+   *
+   * search   = "john"
+   * category = "Design"
+   * location = "Lusaka"
+   * sort     = "Newest"
    */
 
-  const search =
-    searchParams.get("search") || "";
+  const search = searchParams.get("search") || "";
 
   const categoryParam =
     searchParams.get("category") || "";
@@ -66,8 +90,12 @@ export default function useTalentBrowser({
 
   /*
    * =========================================================
-   * CATEGORY PAGINATION
+   * CATEGORY PAGINATION STATE
    * =========================================================
+   *
+   * Controls how many category sections are visible.
+   *
+   * This is completely separate from talent filtering.
    */
 
   const [
@@ -80,13 +108,12 @@ export default function useTalentBrowser({
    * AVAILABLE CATEGORIES
    * =========================================================
    *
-   * Categories come from the server.
+   * Only categories containing talents are displayed.
    *
-   * We intentionally do not filter categories based on the
-   * current talent filters.
+   * We do NOT apply search/location/sort here.
    *
-   * This allows CategorySection to decide whether it needs
-   * to lazy-load its own data.
+   * CategorySection needs the original category information
+   * so it can decide whether it needs to lazy-load talents.
    */
 
   const availableCategories = useMemo(() => {
@@ -100,6 +127,9 @@ export default function useTalentBrowser({
    * =========================================================
    * ACTIVE CATEGORY
    * =========================================================
+   *
+   * Converts the category value from the URL into the
+   * actual category object.
    */
 
   const activeCategory = useMemo(() => {
@@ -127,15 +157,30 @@ export default function useTalentBrowser({
    * CATEGORY SECTIONS
    * =========================================================
    *
+   * Attach the talents that were already supplied by the
+   * server to their matching categories.
+   *
    * IMPORTANT:
    *
-   * We use the ORIGINAL talents here.
+   * DO NOT filter these talents using:
    *
-   * We do NOT apply search, location or sort here.
+   * - search
+   * - location
+   * - sort
    *
-   * This prevents a filter from turning a category's
-   * initialTalents into an empty array and accidentally
-   * triggering CategorySection's lazy fetch.
+   * CategorySection handles those filters.
+   *
+   * This is important for lazy loading.
+   *
+   * Example:
+   *
+   * Category has 50 talents.
+   *
+   * Server initially gives us 8.
+   *
+   * If the user searches "John", we still keep those
+   * original 8 talents. We don't turn the category into
+   * an empty array and accidentally trigger a fetch.
    */
 
   const categorySections = useMemo(() => {
@@ -161,8 +206,20 @@ export default function useTalentBrowser({
 
   /*
    * =========================================================
-   * URL HELPERS
+   * URL UPDATE
    * =========================================================
+   *
+   * All search/filter changes go through this function.
+   *
+   * Example:
+   *
+   * updateParams({
+   *   search: "John"
+   * });
+   *
+   * produces:
+   *
+   * /talents?search=John
    */
 
   function updateParams(updates = {}) {
@@ -204,6 +261,9 @@ export default function useTalentBrowser({
    * =========================================================
    * RESET CATEGORY PAGINATION
    * =========================================================
+   *
+   * Whenever a filter changes, start category pagination
+   * from the beginning.
    */
 
   function resetPagination() {
@@ -214,8 +274,13 @@ export default function useTalentBrowser({
 
   /*
    * =========================================================
-   * FILTER ACTIONS
+   * SEARCH
    * =========================================================
+   *
+   * This updates the search value in the URL.
+   *
+   * The actual talent filtering happens inside
+   * CategorySection.
    */
 
   function changeSearch(value) {
@@ -228,6 +293,12 @@ export default function useTalentBrowser({
     resetPagination();
   }
 
+  /*
+   * =========================================================
+   * CATEGORY FILTER
+   * =========================================================
+   */
+
   function changeCategory(value) {
     updateParams({
       category: value,
@@ -235,6 +306,12 @@ export default function useTalentBrowser({
 
     resetPagination();
   }
+
+  /*
+   * =========================================================
+   * LOCATION FILTER
+   * =========================================================
+   */
 
   function changeLocation(value) {
     updateParams({
@@ -244,6 +321,12 @@ export default function useTalentBrowser({
     resetPagination();
   }
 
+  /*
+   * =========================================================
+   * SORT
+   * =========================================================
+   */
+
   function changeSort(value) {
     updateParams({
       sort: value,
@@ -251,6 +334,22 @@ export default function useTalentBrowser({
 
     resetPagination();
   }
+
+  /*
+   * =========================================================
+   * CLEAR FILTERS
+   * =========================================================
+   *
+   * Removes all query parameters.
+   *
+   * Example:
+   *
+   * /talents?search=John&location=Lusaka
+   *
+   * becomes:
+   *
+   * /talents
+   */
 
   function clearFilters() {
     router.replace(pathname, {
@@ -262,7 +361,7 @@ export default function useTalentBrowser({
 
   /*
    * =========================================================
-   * FILTER STATE
+   * FILTER STATUS
    * =========================================================
    */
 
@@ -280,23 +379,29 @@ export default function useTalentBrowser({
    * VISIBLE CATEGORIES
    * =========================================================
    *
-   * Category filtering only controls WHICH sections are
-   * displayed.
+   * Category filtering controls WHICH category sections
+   * are displayed.
    *
-   * Talent filtering itself happens inside CategorySection.
+   * Talent filtering does NOT happen here.
+   *
+   * CategorySection handles:
+   *
+   * - search
+   * - location
+   * - sort
    */
 
   const visibleCategories =
     activeCategoryName
       ? categorySections.filter(
-          (category) =>
-            normalize(category.name) ===
-            normalize(activeCategoryName),
-        )
+        (category) =>
+          normalize(category.name) ===
+          normalize(activeCategoryName),
+      )
       : categorySections.slice(
-          0,
-          visibleCategoryCount,
-        );
+        0,
+        visibleCategoryCount,
+      );
 
   /*
    * =========================================================
@@ -307,7 +412,7 @@ export default function useTalentBrowser({
   const hasMoreCategories =
     !activeCategoryName &&
     visibleCategoryCount <
-      categorySections.length;
+    categorySections.length;
 
   function loadMoreCategories() {
     if (!hasMoreCategories) {
@@ -318,7 +423,7 @@ export default function useTalentBrowser({
       (currentCount) =>
         Math.min(
           currentCount +
-            CATEGORIES_PER_LOAD,
+          CATEGORIES_PER_LOAD,
           categorySections.length,
         ),
     );
@@ -329,11 +434,12 @@ export default function useTalentBrowser({
    * RESULTS
    * =========================================================
    *
-   * This is the number of talents initially supplied to
-   * the page.
+   * This is the number of talents supplied to this page.
    *
-   * Individual CategorySection components apply the active
-   * filters to their own loaded data.
+   * It is NOT the number of talents matching the current
+   * search/filter combination.
+   *
+   * CategorySection performs the actual filtering.
    */
 
   const totalResults = talents.length;
@@ -346,7 +452,7 @@ export default function useTalentBrowser({
 
   return {
     /*
-     * Filters
+     * Current search / filters
      */
     search,
     category: activeCategoryName,
@@ -354,7 +460,7 @@ export default function useTalentBrowser({
     sort,
 
     /*
-     * Filter options
+     * Available filter options
      */
     locations,
     sortOptions,
@@ -367,7 +473,7 @@ export default function useTalentBrowser({
     visibleCategories,
 
     /*
-     * Results
+     * Result information
      */
     totalResults,
     hasActiveFilters,

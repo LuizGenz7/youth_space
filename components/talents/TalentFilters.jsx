@@ -1,12 +1,15 @@
 "use client";
 
-import {
-  ArrowDownAZ,
-  MapPin,
-} from "lucide-react";
+import { ArrowDownAZ, MapPin } from "lucide-react";
 
 import FilterButton from "@/components/talents/FilterButton";
 import FilterChip from "@/components/talents/FilterChip";
+
+/*
+ * =========================================================
+ * COMPONENT
+ * =========================================================
+ */
 
 export default function TalentFilters({
   totalResults = 0,
@@ -22,35 +25,127 @@ export default function TalentFilters({
   onCategoryChange,
   onClear,
 }) {
-  const hasFilters =
-    Boolean(activeCategory) ||
-    location !== "All locations" ||
-    Boolean(search);
+  /*
+   * =======================================================
+   * NORMALIZED VALUES
+   * =======================================================
+   */
+
+  const normalizedSearch = search?.trim() || "";
+
+  const normalizedCategory = activeCategory?.trim() || "";
+
+  /*
+   * =======================================================
+   * FILTER STATE
+   * =======================================================
+   */
+
+  const hasSearch = Boolean(normalizedSearch);
+
+  const hasCategory = Boolean(normalizedCategory);
+
+  const hasLocation = location !== "All locations";
+
+  const hasSort = sort !== "Recommended";
+
+  const hasFilters = hasSearch || hasCategory || hasLocation || hasSort;
+
+  /*
+   * =======================================================
+   * DESCRIPTION
+   * =======================================================
+   *
+   * One clear, catchy sentence for each state.
+   *
+   * Everything is deterministic, so there is no risk of
+   * server/client hydration mismatches.
+   */
+
+  let description =
+    "Discover talented people, explore their skills, and find the right talent for what you need.";
+
+  /*
+   * -------------------------------------------------------
+   * SEARCH + OTHER FILTERS
+   * -------------------------------------------------------
+   */
+
+  if (hasSearch && (hasCategory || hasLocation)) {
+    description = `Explore talent matching "${normalizedSearch}" and your selected filters.`;
+  } else if (hasSearch) {
+
+  /*
+   * -------------------------------------------------------
+   * SEARCH
+   * -------------------------------------------------------
+   */
+    description = `Discover talented people whose skills match "${normalizedSearch}".`;
+  } else if (hasCategory && hasLocation) {
+
+  /*
+   * -------------------------------------------------------
+   * CATEGORY + LOCATION
+   * -------------------------------------------------------
+   */
+    description = `Discover ${normalizedCategory.toLowerCase()} talent from ${location}.`;
+  } else if (hasCategory) {
+
+  /*
+   * -------------------------------------------------------
+   * CATEGORY
+   * -------------------------------------------------------
+   */
+    description = `Discover talented people turning ${normalizedCategory.toLowerCase()} into skills, services, and opportunities.`;
+  } else if (hasLocation) {
+
+  /*
+   * -------------------------------------------------------
+   * LOCATION
+   * -------------------------------------------------------
+   */
+    description = `Discover talented people in ${location} and see what they can create.`;
+  } else if (hasSort) {
+
+  /*
+   * -------------------------------------------------------
+   * SORT
+   * -------------------------------------------------------
+   */
+    description = `Explore talented people, sorted to help you find what you're looking for faster.`;
+  }
+
+  /*
+   * =======================================================
+   * RENDER
+   * =======================================================
+   */
 
   return (
     <div className="mt-8 border-b border-slate-200 pb-6">
-      {/* Results + filters */}
+      {/* =================================================
+          INTRO + FILTER CONTROLS
+          ================================================= */}
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        {/* Results information */}
+        {/* -------------------------------------------------
+            INFORMATION
+            ------------------------------------------------- */}
+
         <div>
           <p className="text-sm font-bold text-slate-950">
-            {totalResults}{" "}
-            {totalResults === 1
-              ? "talent"
-              : "talents"}{" "}
-            found
+            Discover talented people
           </p>
 
-          <p className="mt-1 text-xs text-slate-500">
-            {activeCategory
-              ? `Showing ${activeCategory} talents.`
-              : search
-                ? `Showing results for "${search}".`
-                : "Browse talented people by category."}
+          <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500">
+            {description}
           </p>
         </div>
 
-        {/* Dropdown filters */}
+        {/* -------------------------------------------------
+            FILTER BUTTONS
+            ------------------------------------------------- */}
+
         <div className="flex flex-wrap gap-2">
           <FilterButton
             icon={MapPin}
@@ -68,46 +163,53 @@ export default function TalentFilters({
         </div>
       </div>
 
-      {/* Active filters */}
+      {/* =================================================
+          ACTIVE FILTERS
+          ================================================= */}
+
       {hasFilters && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="mr-1 text-xs font-bold text-slate-400">
             Filters:
           </span>
 
-          {/* Search */}
-          {search && (
+          {/* ------------------------------------------------
+              SEARCH
+              ------------------------------------------------ */}
+
+          {hasSearch && (
             <FilterChip
-              label={`"${search}"`}
-              onRemove={() =>
-                onSearchChange("")
-              }
+              label={`"${normalizedSearch}"`}
+              onRemove={() => onSearchChange("")}
             />
           )}
 
-          {/* Category */}
-          {activeCategory && (
+          {/* ------------------------------------------------
+              CATEGORY
+              ------------------------------------------------ */}
+
+          {hasCategory && (
             <FilterChip
-              label={activeCategory}
-              onRemove={() =>
-                onCategoryChange("All")
-              }
+              label={normalizedCategory}
+              onRemove={() => onCategoryChange("All")}
             />
           )}
 
-          {/* Location */}
-          {location !== "All locations" && (
+          {/* ------------------------------------------------
+              LOCATION
+              ------------------------------------------------ */}
+
+          {hasLocation && (
             <FilterChip
               label={location}
-              onRemove={() =>
-                onLocationChange(
-                  "All locations",
-                )
-              }
+              onRemove={() => onLocationChange("All locations")}
             />
           )}
 
-          {/* Clear */}
+          {/* ------------------------------------------------
+              CLEAR ALL
+              ------------------------------------------------ */}
+
           <button
             type="button"
             onClick={onClear}
