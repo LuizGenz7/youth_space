@@ -672,13 +672,13 @@ export async function createProfile(
 export async function getProfileByUid(
     uid
 ) {
-    "use cache";
+    // "use cache";
 
-    cacheLife("minutes");
+    // cacheLife("minutes");
 
-    cacheTag(
-        PROFILE_CACHE_TAG
-    );
+    // cacheTag(
+    //     PROFILE_CACHE_TAG
+    // );
 
     const normalizedUid =
         normalizeString(uid);
@@ -687,9 +687,9 @@ export async function getProfileByUid(
         return null;
     }
 
-    cacheTag(
-        `profile:${normalizedUid}`
-    );
+    // cacheTag(
+    //     `profile:${normalizedUid}`
+    // );
 
     const snapshot =
         await getProfileRef(
@@ -710,9 +710,9 @@ export async function getProfileByUid(
 export async function getProfileByUsername(
     username
 ) {
-    "use cache";
+    // "use cache";
 
-    cacheLife("minutes");
+    // cacheLife("minutes");
 
     const normalizedUsername =
         normalizeString(
@@ -723,13 +723,13 @@ export async function getProfileByUsername(
         return null;
     }
 
-    cacheTag(
-        PROFILE_CACHE_TAG
-    );
+    // cacheTag(
+    //     PROFILE_CACHE_TAG
+    // );
 
-    cacheTag(
-        `profile-username:${normalizedUsername}`
-    );
+    // cacheTag(
+    //     `profile-username:${normalizedUsername}`
+    // );
 
     const usernameSnapshot =
         await getUsernameRef(
@@ -773,9 +773,9 @@ export async function getProfileByUsername(
 export async function getUsernameRecord(
     username
 ) {
-    "use cache";
+    // "use cache";
 
-    cacheLife("minutes");
+    // cacheLife("minutes");
 
     const normalizedUsername =
         normalizeString(
@@ -786,9 +786,9 @@ export async function getUsernameRecord(
         return null;
     }
 
-    cacheTag(
-        `profile-username:${normalizedUsername}`
-    );
+    // cacheTag(
+    //     `profile-username:${normalizedUsername}`
+    // );
 
     const snapshot =
         await getUsernameRef(
