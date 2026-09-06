@@ -202,7 +202,7 @@ export default function RegisterPage() {
     } catch (error) {
       showSnackbar({
         type: "error",
-        message: getFirebaseAuthError(error),
+        message: error,
       });
     } finally {
       setLoading(false);
