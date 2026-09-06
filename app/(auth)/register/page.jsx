@@ -48,6 +48,7 @@ export default function RegisterPage() {
   const [agree, setAgree] = useState(false);
 
   const [loading, setLoading] = useState(false);
+    const [m, setM] = useState('');
 
   const [googleLoading, setGoogleLoading] =
     useState(false);
@@ -200,6 +201,7 @@ export default function RegisterPage() {
         "/register/complete-profile"
       );
     } catch (error) {
+      setM(error);
       showSnackbar({
         type: "error",
         message: error,
@@ -309,6 +311,7 @@ export default function RegisterPage() {
               href="/"
               className="group flex items-center gap-2.5"
             >
+          
               <YouthSpaceBrand />
             </Link>
 
@@ -331,6 +334,7 @@ export default function RegisterPage() {
 
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                   Join Youth Space
+                  {m && <p>{m}</p>}
                 </p>
 
                 <h1 className="mt-3 text-3xl font-black tracking-[-0.045em] sm:text-4xl">
