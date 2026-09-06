@@ -127,13 +127,13 @@ function normalizeServices(value) {
 
                 description:
                     typeof service.description ===
-                    "string"
+                        "string"
                         ? service.description.trim()
                         : "",
 
                 price:
                     service.price !== undefined &&
-                    service.price !== null
+                        service.price !== null
                         ? String(service.price)
                         : "",
 
@@ -539,7 +539,7 @@ export async function createProfile(
 
                     avatar:
                         typeof profileData?.avatar ===
-                        "string"
+                            "string"
                             ? profileData.avatar
                             : null,
 
@@ -672,13 +672,13 @@ export async function createProfile(
 export async function getProfileByUid(
     uid
 ) {
-    // "use cache";
+    "use cache";
 
-    // cacheLife("minutes");
+    cacheLife("minutes");
 
-    // cacheTag(
-    //     PROFILE_CACHE_TAG
-    // );
+    cacheTag(
+        PROFILE_CACHE_TAG
+    );
 
     const normalizedUid =
         normalizeString(uid);
@@ -687,9 +687,9 @@ export async function getProfileByUid(
         return null;
     }
 
-    // cacheTag(
-    //     `profile:${normalizedUid}`
-    // );
+    cacheTag(
+        `profile:${normalizedUid}`
+    );
 
     const snapshot =
         await getProfileRef(
@@ -710,9 +710,9 @@ export async function getProfileByUid(
 export async function getProfileByUsername(
     username
 ) {
-    // "use cache";
+    "use cache";
 
-    // cacheLife("minutes");
+    cacheLife("minutes");
 
     const normalizedUsername =
         normalizeString(
@@ -723,13 +723,13 @@ export async function getProfileByUsername(
         return null;
     }
 
-    // cacheTag(
-    //     PROFILE_CACHE_TAG
-    // );
+    cacheTag(
+        PROFILE_CACHE_TAG
+    );
 
-    // cacheTag(
-    //     `profile-username:${normalizedUsername}`
-    // );
+    cacheTag(
+        `profile-username:${normalizedUsername}`
+    );
 
     const usernameSnapshot =
         await getUsernameRef(
@@ -773,9 +773,9 @@ export async function getProfileByUsername(
 export async function getUsernameRecord(
     username
 ) {
-    // "use cache";
+    "use cache";
 
-    // cacheLife("minutes");
+    cacheLife("minutes");
 
     const normalizedUsername =
         normalizeString(
@@ -786,9 +786,9 @@ export async function getUsernameRecord(
         return null;
     }
 
-    // cacheTag(
-    //     `profile-username:${normalizedUsername}`
-    // );
+    cacheTag(
+        `profile-username:${normalizedUsername}`
+    );
 
     const snapshot =
         await getUsernameRef(
@@ -870,8 +870,8 @@ export async function updateProfile(
     const requestedCategoryId =
         updates.categoryId !== undefined
             ? normalizeString(
-                  updates.categoryId
-              )
+                updates.categoryId
+            )
             : currentCategoryId;
 
     const categoryChanged =
@@ -964,7 +964,7 @@ export async function updateProfile(
     ) {
         cleanUpdates.avatar =
             typeof updates.avatar ===
-            "string"
+                "string"
                 ? updates.avatar
                 : null;
     }
@@ -1038,8 +1038,8 @@ export async function updateProfile(
             const oldCategoryRef =
                 currentCategoryId
                     ? getCategoryRef(
-                          currentCategoryId
-                      )
+                        currentCategoryId
+                    )
                     : null;
 
             const newCategoryRef =
@@ -1060,7 +1060,7 @@ export async function updateProfile(
             if (
                 !currentCategoryId ||
                 currentCategoryId !==
-                    newCategory.id
+                newCategory.id
             ) {
                 categoryRefs.push(
                     newCategoryRef
@@ -1088,7 +1088,7 @@ export async function updateProfile(
                     categoryMap.set(
                         ref.id,
                         categorySnapshots[
-                            index
+                        index
                         ]
                     );
                 }
@@ -1138,7 +1138,7 @@ export async function updateProfile(
             if (
                 oldCategoryRef &&
                 oldCategoryRef.id !==
-                    newCategoryRef.id
+                newCategoryRef.id
             ) {
                 transaction.update(
                     oldCategoryRef,
@@ -1273,8 +1273,8 @@ export async function updateUsername(
                 const oldUsernameRef =
                     currentUsername
                         ? getUsernameRef(
-                              currentUsername
-                          )
+                            currentUsername
+                        )
                         : null;
 
                 transaction.set(
@@ -1368,8 +1368,8 @@ export async function updateProfileWithUsername(
     const requestedUsername =
         updates.username !== undefined
             ? normalizeString(
-                  updates.username
-              ).toLowerCase()
+                updates.username
+            ).toLowerCase()
             : currentProfile.username;
 
     if (
@@ -1392,10 +1392,10 @@ export async function updateProfileWithUsername(
 
     const requestedCategoryId =
         updates.categoryId !==
-        undefined
+            undefined
             ? normalizeString(
-                  updates.categoryId
-              )
+                updates.categoryId
+            )
             : currentCategoryId;
 
     const categoryChanged =
@@ -1421,7 +1421,7 @@ export async function updateProfileWithUsername(
 
     if (
         updates.categoryId !==
-            undefined &&
+        undefined &&
         !newCategory
     ) {
         newCategory =
@@ -1578,7 +1578,7 @@ export async function updateProfileWithUsername(
                 ) {
                     cleanUpdates.avatar =
                         typeof updates.avatar ===
-                        "string"
+                            "string"
                             ? updates.avatar
                             : null;
                 }
@@ -1626,8 +1626,8 @@ export async function updateProfileWithUsername(
                     const oldCategoryRef =
                         currentCategoryId
                             ? getCategoryRef(
-                                  currentCategoryId
-                              )
+                                currentCategoryId
+                            )
                             : null;
 
                     const newCategoryRef =
@@ -1648,7 +1648,7 @@ export async function updateProfileWithUsername(
                     if (
                         !oldCategoryRef ||
                         oldCategoryRef.id !==
-                            newCategoryRef.id
+                        newCategoryRef.id
                     ) {
                         categoryRefs.push(
                             newCategoryRef
@@ -1676,7 +1676,7 @@ export async function updateProfileWithUsername(
                             categoryMap.set(
                                 ref.id,
                                 categorySnapshots[
-                                    index
+                                index
                                 ]
                             );
                         }
@@ -1717,7 +1717,7 @@ export async function updateProfileWithUsername(
                     if (
                         oldCategoryRef &&
                         oldCategoryRef.id !==
-                            newCategoryRef.id
+                        newCategoryRef.id
                     ) {
                         transaction.update(
                             oldCategoryRef,
@@ -1736,7 +1736,7 @@ export async function updateProfileWithUsername(
                     if (
                         !oldCategoryRef ||
                         oldCategoryRef.id !==
-                            newCategoryRef.id
+                        newCategoryRef.id
                     ) {
                         transaction.update(
                             newCategoryRef,
@@ -1761,8 +1761,8 @@ export async function updateProfileWithUsername(
                 const oldUsernameRef =
                     databaseUsername
                         ? getUsernameRef(
-                              databaseUsername
-                          )
+                            databaseUsername
+                        )
                         : null;
 
                 if (
@@ -1950,15 +1950,15 @@ export async function deleteProfile(
     const usernameRef =
         username
             ? getUsernameRef(
-                  username
-              )
+                username
+            )
             : null;
 
     const categoryRef =
         categoryId
             ? getCategoryRef(
-                  categoryId
-              )
+                categoryId
+            )
             : null;
 
     await db.runTransaction(
