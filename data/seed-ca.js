@@ -280,8 +280,7 @@ async function seedCategories() {
         createdAt:
           FieldValue.serverTimestamp(),
 
-        updatedAt:
-          FieldValue.serverTimestamp(),
+        
       },
       {
         merge: true,
