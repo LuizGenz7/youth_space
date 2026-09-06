@@ -1,9 +1,18 @@
-'use client';
+"use client";
 
-import { ArrowRight, CheckCircle2, Heart, MapPin, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+
+import {
+  ArrowRight,
+  CheckCircle2,
+  Heart,
+  MapPin,
+  UserRound,
+} from "lucide-react";
+
+import { toggleLikeAction } from "@/actions/works";
 
 export default function WorkCard({ work, talent }) {
   const {
@@ -22,7 +31,76 @@ export default function WorkCard({ work, talent }) {
     role ||
     "Work";
 
-  const likes = work.likes ?? 0;
+  const initialLikes = Number(
+    work.likes ?? 0
+  );
+
+  const [loved, setLoved] = useState(
+    Boolean(work.liked)
+  );
+
+  const [likeCount, setLikeCount] =
+    useState(initialLikes);
+
+  const [isPending, startTransition] =
+    useTransition();
+
+  function handleToggleLike() {
+    if (isPending) return;
+
+    const previousLoved = loved;
+    const previousLikes = likeCount;
+
+    /*
+     * Optimistic UI
+     */
+    const nextLoved = !previousLoved;
+
+    setLoved(nextLoved);
+
+    setLikeCount(
+      nextLoved
+        ? previousLikes + 1
+        : Math.max(0, previousLikes - 1)
+    );
+
+    startTransition(async () => {
+      try {
+        const result =
+          await toggleLikeAction({
+            workId: work.id,
+          });
+
+        if (!result?.success) {
+          /*
+           * Roll back when authentication
+           * or the server operation fails.
+           */
+          setLoved(previousLoved);
+          setLikeCount(previousLikes);
+
+          return;
+        }
+
+        /*
+         * Server is the source of truth.
+         */
+        setLoved(
+          Boolean(result.liked)
+        );
+
+        setLikeCount(
+          Number(result.likes ?? 0)
+        );
+      } catch {
+        /*
+         * Roll back on unexpected errors.
+         */
+        setLoved(previousLoved);
+        setLikeCount(previousLikes);
+      }
+    });
+  }
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl">
@@ -40,7 +118,8 @@ export default function WorkCard({ work, talent }) {
           alt={`${work.title} by ${name}`}
           initials={initials}
           category={category}
-          likes={likes}
+          likes={likeCount}
+          loved={loved}
         />
       </Link>
 
@@ -67,7 +146,6 @@ export default function WorkCard({ work, talent }) {
                 size={12}
                 className="fill-slate-950 text-white"
               />
-
               Verified
             </span>
           )}
@@ -84,6 +162,16 @@ export default function WorkCard({ work, talent }) {
         </Link>
 
         {/* =================================================
+            DESCRIPTION
+        ================================================= */}
+
+        {work.description && (
+          <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-slate-400">
+            {work.description}
+          </p>
+        )}
+
+        {/* =================================================
             TALENT
         ================================================= */}
 
@@ -91,8 +179,6 @@ export default function WorkCard({ work, talent }) {
           href={`/talents/${talentId}`}
           className="mt-3 flex items-center gap-2"
         >
-          {/* Avatar */}
-
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[8px] font-black text-slate-700">
             {initials || (
               <UserRound
@@ -102,8 +188,6 @@ export default function WorkCard({ work, talent }) {
               />
             )}
           </div>
-
-          {/* Talent information */}
 
           <div className="min-w-0">
             <p className="truncate text-xs font-bold text-slate-800">
@@ -130,16 +214,55 @@ export default function WorkCard({ work, talent }) {
         ================================================= */}
 
         <div className="mt-auto">
-          {/* Likes */}
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+            {/* Likes */}
 
-          <div className="mt-4 flex items-center border-t border-slate-100 pt-3">
             <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
-              <Heart size={11} />
+              <Heart
+                size={11}
+                className={
+                  loved
+                    ? "fill-slate-950 text-slate-950"
+                    : ""
+                }
+              />
 
               <span>
-                {likes} {likes === 1 ? "like" : "likes"}
+                {likeCount}{" "}
+                {likeCount === 1
+                  ? "like"
+                  : "likes"}
               </span>
             </div>
+
+            {/* Like button */}
+
+            <button
+              type="button"
+              onClick={handleToggleLike}
+              disabled={isPending}
+              aria-label={
+                loved
+                  ? `Unlike ${work.title}`
+                  : `Like ${work.title}`
+              }
+              aria-pressed={loved}
+              aria-busy={isPending}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
+                loved
+                  ? "bg-slate-950 text-white"
+                  : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              }`}
+            >
+              <Heart
+                size={14}
+                className={
+                  loved
+                    ? "fill-white"
+                    : ""
+                }
+              />
+            </button>
           </div>
 
           {/* =================================================
@@ -173,26 +296,24 @@ function WorkImage({
   initials,
   category,
   likes,
+  loved,
 }) {
-  const [imageError, setImageError] = useState(false);
+  const [imageError, setImageError] =
+    useState(false);
 
   const showImage =
     Boolean(src) && !imageError;
 
   return (
     <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-      {/* =================================================
-          FALLBACK
-      ================================================= */}
+      {/* Fallback */}
 
       <WorkImageFallback
         initials={initials}
         category={category}
       />
 
-      {/* =================================================
-          IMAGE
-      ================================================= */}
+      {/* Image */}
 
       {showImage && (
         <Image
@@ -201,19 +322,17 @@ function WorkImage({
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
           className="relative z-10 object-cover transition duration-500 group-hover:scale-105"
-          onError={() => setImageError(true)}
+          onError={() =>
+            setImageError(true)
+          }
         />
       )}
 
-      {/* =================================================
-          GRADIENT
-      ================================================= */}
+      {/* Gradient */}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-20 bg-gradient-to-t from-slate-950/30 to-transparent" />
 
-      {/* =================================================
-          CATEGORY
-      ================================================= */}
+      {/* Category */}
 
       <div className="absolute left-2.5 top-2.5 z-30 max-w-[65%]">
         <span className="inline-flex max-w-full truncate rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-700 shadow-sm backdrop-blur">
@@ -221,19 +340,22 @@ function WorkImage({
         </span>
       </div>
 
-      {/* =================================================
-          LIKES
-      ================================================= */}
+      {/* Likes */}
 
       <div className="absolute right-2.5 top-2.5 z-30 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black text-slate-700 shadow-sm backdrop-blur">
-        <Heart size={11} />
+        <Heart
+          size={11}
+          className={
+            loved
+              ? "fill-slate-950 text-slate-950"
+              : ""
+          }
+        />
 
         {likes}
       </div>
 
-      {/* =================================================
-          SELECTED
-      ================================================= */}
+      {/* Youth Space Pick */}
 
       <div className="absolute bottom-2.5 left-2.5 z-30 flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-bold text-slate-700 shadow-sm backdrop-blur">
         <CheckCircle2

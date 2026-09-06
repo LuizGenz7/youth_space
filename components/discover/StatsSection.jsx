@@ -1,15 +1,11 @@
 import { BriefcaseBusiness, Sparkles, Users } from "lucide-react";
 
-import { talents } from "@/data/talents";
-import { categories } from "@/data/categories";
-import { works } from "@/data/works";
-
 import StatCard from "./StatCard";
 
 export default function StatsSection({ className = "" }) {
-  const totalTalents = talents.length;
-  const totalCategories = categories.length;
-  const totalWorks = works.length;
+  const totalTalents = 0;
+  const totalCategories = 0;
+  const totalWorks = 0;
 
   return (
     <div

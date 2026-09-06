@@ -25,9 +25,14 @@ const MAX_LOADED_COUNT = 1000;
 const categoryIdSchema = z
     .string()
     .trim()
-    .min(1, "Category ID is required.")
-    .max(100, "Category ID is too long.");
-
+    .min(
+        1,
+        "Category ID is required."
+    )
+    .max(
+        100,
+        "Category ID is too long."
+    );
 
 const categoryLimitSchema = z
     .number()
@@ -35,26 +40,21 @@ const categoryLimitSchema = z
     .min(1)
     .max(INITIAL_CATEGORY_LOAD);
 
-
 const categoryTalentsSchema = z
     .object({
-        categoryId: categoryIdSchema,
+        categoryId:
+            categoryIdSchema,
 
-        limit: categoryLimitSchema.optional(),
+        limit:
+            categoryLimitSchema
+                .optional(),
     })
     .strict();
 
-/**
- * Load more talents request.
- *
- * IMPORTANT:
- * Only accept the values actually required by
- * the server. Never accept the complete category
- * object from the client.
- */
 const loadMoreTalentsSchema = z
     .object({
-        categoryId: categoryIdSchema,
+        categoryId:
+            categoryIdSchema,
 
         loadedCount: z
             .number()
@@ -64,9 +64,6 @@ const loadMoreTalentsSchema = z
     })
     .strict();
 
-/**
- * Discover talent request.
- */
 const discoverTalentsSchema = z
     .object({
         limit: z
@@ -86,12 +83,21 @@ const discoverTalentsSchema = z
  *
  * Public action.
  * No authentication required.
+ *
+ * Client sends only:
+ *
+ * {
+ *     categoryId,
+ *     limit
+ * }
  */
 export async function loadCategoryTalentsAction(
     input = {},
 ) {
     const validation =
-        categoryTalentsSchema.safeParse(input);
+        categoryTalentsSchema.safeParse(
+            input,
+        );
 
     if (!validation.success) {
         return {
@@ -109,18 +115,31 @@ export async function loadCategoryTalentsAction(
     } = validation.data;
 
     try {
-        const result = await getCategoryTalents({
-            categoryId,
-            limit,
-        });
+        const result =
+            await getCategoryTalents({
+                categoryId,
+                limit,
+            });
 
         return {
             success: true,
-            talents: Array.isArray(result?.talents)
-                ? result.talents
-                : [],
-            nextCursor: result?.nextCursor ?? null,
-            hasMore: Boolean(result?.hasMore),
+
+            talents:
+                Array.isArray(
+                    result?.talents,
+                )
+                    ? result.talents
+                    : [],
+
+            nextCursor:
+                result?.nextCursor ??
+                null,
+
+            hasMore:
+                Boolean(
+                    result?.hasMore,
+                ),
+
             error: null,
         };
     } catch (error) {
@@ -134,7 +153,8 @@ export async function loadCategoryTalentsAction(
             talents: [],
             nextCursor: null,
             hasMore: false,
-            error: "Unable to load category talents.",
+            error:
+                "Unable to load category talents.",
         };
     }
 }
@@ -149,25 +169,22 @@ export async function loadCategoryTalentsAction(
  * Public action.
  * No authentication required.
  *
- * IMPORTANT:
- * The client sends only:
+ * Client sends only:
  *
  * {
  *     categoryId,
  *     loadedCount
  * }
  *
- * Do not accept the complete category object.
+ * Never accept the complete category object.
  */
-export async function loadMoreTalentsAction({category}) {
-    const input = {
-        categoryId: category?.id,
-        loadedCount: Array.isArray(category?.talents)
-            ? category.talents.length
-            : 0,
-    };
+export async function loadMoreTalentsAction(
+    input = {},
+) {
     const validation =
-        loadMoreTalentsSchema.safeParse(input);
+        loadMoreTalentsSchema.safeParse(
+            input,
+        );
 
     if (!validation.success) {
         return {
@@ -185,18 +202,31 @@ export async function loadMoreTalentsAction({category}) {
     } = validation.data;
 
     try {
-        const result = await getMoreTalents({
-            categoryId,
-            cursor: loadedCount,
-        });
+        const result =
+            await getMoreTalents({
+                categoryId,
+                cursor: loadedCount,
+            });
 
         return {
             success: true,
-            talents: Array.isArray(result?.talents)
-                ? result.talents
-                : [],
-            nextCursor: result?.nextCursor ?? null,
-            hasMore: Boolean(result?.hasMore),
+
+            talents:
+                Array.isArray(
+                    result?.talents,
+                )
+                    ? result.talents
+                    : [],
+
+            nextCursor:
+                result?.nextCursor ??
+                null,
+
+            hasMore:
+                Boolean(
+                    result?.hasMore,
+                ),
+
             error: null,
         };
     } catch (error) {
@@ -210,7 +240,8 @@ export async function loadMoreTalentsAction({category}) {
             talents: [],
             nextCursor: null,
             hasMore: false,
-            error: "Unable to load more talents.",
+            error:
+                "Unable to load more talents.",
         };
     }
 }
@@ -244,15 +275,19 @@ export async function getTopTalentsAction(
     }
 
     try {
-        const talents = await getTopTalents(
-            validation.data.limit,
-        );
+        const talents =
+            await getTopTalents(
+                validation.data.limit,
+            );
 
         return {
             success: true,
-            talents: Array.isArray(talents)
-                ? talents
-                : [],
+
+            talents:
+                Array.isArray(talents)
+                    ? talents
+                    : [],
+
             error: null,
         };
     } catch (error) {
@@ -264,7 +299,8 @@ export async function getTopTalentsAction(
         return {
             success: false,
             talents: [],
-            error: "Unable to load top talents.",
+            error:
+                "Unable to load top talents.",
         };
     }
 }
@@ -298,15 +334,19 @@ export async function getNewTalentsAction(
     }
 
     try {
-        const talents = await getNewTalents(
-            validation.data.limit,
-        );
+        const talents =
+            await getNewTalents(
+                validation.data.limit,
+            );
 
         return {
             success: true,
-            talents: Array.isArray(talents)
-                ? talents
-                : [],
+
+            talents:
+                Array.isArray(talents)
+                    ? talents
+                    : [],
+
             error: null,
         };
     } catch (error) {
@@ -318,7 +358,8 @@ export async function getNewTalentsAction(
         return {
             success: false,
             talents: [],
-            error: "Unable to load newest talents.",
+            error:
+                "Unable to load newest talents.",
         };
     }
 }

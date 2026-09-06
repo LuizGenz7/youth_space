@@ -14,26 +14,32 @@ import StatBadge from "./StatBadge";
 
 export default function TalentHero({ talent }) {
   const {
-    name,
+    displayName,
     role,
     category,
-    location,
-    image,
-    initials,
+    province,
+    district,
+    avatar,
     verified,
     available,
     likes,
     workCount,
   } = talent;
 
+  const location = [district, province]
+    .filter(Boolean)
+    .join(", ");
+
+  const initials = getInitials(displayName);
+
   return (
     <section className="relative overflow-hidden bg-slate-950">
       {/* Background */}
 
       <div className="absolute inset-0">
-        {image ? (
+        {avatar ? (
           <Image
-            src={image}
+            src={avatar}
             alt=""
             fill
             priority
@@ -75,17 +81,17 @@ export default function TalentHero({ talent }) {
           {/* Avatar */}
 
           <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl border-4 border-white/20 bg-white/10 shadow-2xl backdrop-blur sm:h-36 sm:w-36">
-            {image ? (
+            {avatar ? (
               <Image
-                src={image}
-                alt={name}
+                src={avatar}
+                alt={displayName || "Talent"}
                 fill
                 sizes="(max-width: 640px) 112px, 144px"
                 className="object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-white/10 text-2xl font-black text-white">
-                {initials || getInitials(name)}
+                {initials}
               </div>
             )}
           </div>
@@ -95,7 +101,7 @@ export default function TalentHero({ talent }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-3xl font-black tracking-[-0.045em] text-white sm:text-4xl lg:text-5xl">
-                {name}
+                {displayName}
               </h1>
 
               {verified && (
@@ -132,7 +138,7 @@ export default function TalentHero({ talent }) {
             {location && (
               <div className="mt-3 flex items-center gap-1.5 text-sm text-white/55">
                 <MapPin size={14} />
-                {location}
+                <span>{location}</span>
               </div>
             )}
 

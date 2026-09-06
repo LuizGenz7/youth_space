@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -13,13 +14,13 @@ import {
 } from "lucide-react";
 
 export default function TalentCard({
-  id,
-  image,
-  initials,
-  name,
+  username,
+  avatar,
+  displayName,
   role,
   category,
-  location,
+  province,
+  district,
   skills = [],
   likes = 0,
   workCount = 0,
@@ -27,22 +28,28 @@ export default function TalentCard({
   available = false,
 }) {
   const [imageError, setImageError] = useState(false);
+
   const [loved, setLoved] = useState(false);
 
-  const showImage = Boolean(image) && !imageError;
+  const showImage = Boolean(avatar) && !imageError;
+
+  const location = [district, province].filter(Boolean).join(", ");
+
+  const initials = getInitials(displayName);
+
+  // Public URL uses username.
+  const profileUrl = `/talents/${username}`;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl">
-      {/* =================================================
-          IMAGE
-      ================================================= */}
+      {/* IMAGE */}
 
-      <Link href={`/talents/${id}`} className="block">
+      <Link href={profileUrl} className="block">
         <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
           {showImage ? (
             <Image
-              src={image}
-              alt={`${role || category || "Talent"} by ${name}`}
+              src={avatar}
+              alt={`${role || "Talent"} by ${displayName || "talent"}`}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               className="object-cover transition duration-500 group-hover:scale-105"
@@ -55,93 +62,86 @@ export default function TalentCard({
             />
           )}
 
-          {/* Bottom image gradient */}
+          {/* Bottom gradient */}
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/30 to-transparent" />
 
-          {/* =================================================
-              LIKES
-          ================================================= */}
+          {/* Likes */}
 
           <div className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black text-slate-700 shadow-sm backdrop-blur">
             <Heart size={11} />
-
             {likes}
           </div>
 
-          {/* =================================================
-              AVAILABLE
-          ================================================= */}
+          {/* Available */}
 
           {available && (
             <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-bold text-slate-700 shadow-sm backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-
               Available
             </div>
           )}
         </div>
       </Link>
 
-      {/* =================================================
-          CONTENT
-      ================================================= */}
+      {/* CONTENT */}
 
       <div className="flex flex-1 flex-col p-4">
-        {/* =================================================
-            CATEGORY + VERIFIED
-        ================================================= */}
+        {/* CATEGORY + VERIFIED */}
 
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
-            {category || role}
+            {category || role || "Talent"}
           </span>
 
           {verified && (
             <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold text-slate-500">
-              <CheckCircle2
-                size={12}
-                className="fill-slate-950 text-white"
-              />
-
+              <CheckCircle2 size={12} className="fill-slate-950 text-white" />
               Verified
             </span>
           )}
         </div>
 
-        {/* =================================================
-            TALENT
-        ================================================= */}
+        {/* TALENT */}
 
         <div className="mt-3 flex items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[8px] font-black text-slate-700">
-            {initials || (
-              <UserRound
-                size={13}
-                strokeWidth={1.8}
-                className="text-slate-400"
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[8px] font-black text-slate-700">
+            {avatar && !imageError ? (
+              <Image
+                src={avatar}
+                alt=""
+                width={32}
+                height={32}
+                className="h-full w-full object-cover"
+                onError={() => setImageError(true)}
               />
+            ) : (
+              initials || (
+                <UserRound
+                  size={13}
+                  strokeWidth={1.8}
+                  className="text-slate-400"
+                />
+              )
             )}
           </div>
 
           <div className="min-w-0">
             <p className="truncate text-xs font-bold text-slate-800">
-              {name}
+              {displayName || "Unnamed talent"}
             </p>
 
             <div className="mt-0.5 flex items-center gap-1 text-[9px] text-slate-400">
               <MapPin size={9} />
 
               <span className="truncate">
-                {location}
+                {location || "Location not provided"}
               </span>
             </div>
           </div>
         </div>
 
-        {/* =================================================
-            SKILLS — SHOW 3
-        ================================================= */}
+        {/* SKILLS */}
 
         {skills.length > 0 && (
           <div className="mt-3 flex gap-1.5 overflow-hidden">
@@ -162,9 +162,7 @@ export default function TalentCard({
           </div>
         )}
 
-        {/* =================================================
-            BOTTOM
-        ================================================= */}
+        {/* BOTTOM */}
 
         <div className="mt-auto">
           {/* Stats */}
@@ -183,23 +181,20 @@ export default function TalentCard({
                 <BriefcaseBusiness size={11} />
 
                 <span>
-                  {workCount}{" "}
-                  {workCount === 1 ? "work" : "works"}
+                  {workCount} {workCount === 1 ? "work" : "works"}
                 </span>
               </div>
             </div>
 
-            {/* =================================================
-                LOVE
-            ================================================= */}
+            {/* LOVE */}
 
             <button
               type="button"
               onClick={() => setLoved((current) => !current)}
               aria-label={
                 loved
-                  ? `Remove love from ${name}`
-                  : `Love ${name}`
+                  ? `Remove love from ${displayName}`
+                  : `Love ${displayName}`
               }
               aria-pressed={loved}
               className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition active:scale-95 ${
@@ -208,27 +203,17 @@ export default function TalentCard({
                   : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               }`}
             >
-              <Heart
-                size={14}
-                className={
-                  loved
-                    ? "fill-white"
-                    : ""
-                }
-              />
+              <Heart size={14} className={loved ? "fill-white" : ""} />
             </button>
           </div>
 
-          {/* =================================================
-              VIEW PROFILE BUTTON
-          ================================================= */}
+          {/* VIEW PROFILE */}
 
           <Link
-            href={`/talents/${id}`}
+            href={profileUrl}
             className="group/button mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-bold text-white transition hover:bg-slate-800 hover:shadow-md"
           >
             View profile
-
             <ArrowRight
               size={14}
               className="transition-transform duration-200 group-hover/button:translate-x-0.5"
@@ -241,19 +226,32 @@ export default function TalentCard({
 }
 
 /* =========================================================
+   HELPERS
+========================================================= */
+
+function getInitials(name) {
+  if (!name) {
+    return "";
+  }
+
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+}
+
+/* =========================================================
    IMAGE FALLBACK
 ========================================================= */
 
 function TalentImageFallback({ initials, category }) {
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-      {/* Decorative shapes */}
-
       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-slate-200/60 blur-2xl" />
 
       <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-slate-200/50 blur-2xl" />
-
-      {/* Center */}
 
       <div className="relative flex flex-col items-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -262,11 +260,7 @@ function TalentImageFallback({ initials, category }) {
               {initials}
             </span>
           ) : (
-            <UserRound
-              size={30}
-              strokeWidth={1.5}
-              className="text-slate-300"
-            />
+            <UserRound size={30} strokeWidth={1.5} className="text-slate-300" />
           )}
         </div>
 

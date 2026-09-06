@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 
 export default function ContactCard({ talent }) {
+  console.log(talent);
   const phone = talent.phone || talent.whatsapp;
 
   return (

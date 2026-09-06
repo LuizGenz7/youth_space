@@ -10,9 +10,11 @@
     "techpush": "git add . && git commit -m \"Update Youth Space\" && git push"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.102.8",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "firebase": "^12.18.0",
+    "firebase-admin": "^14.3.0",
     "lucide-react": "^1.38.0",
     "next": "16.3.3",
     "react": "19.2.8",

@@ -10,14 +10,20 @@ export default function FilterButton({
   icon: Icon,
   options = [],
   value,
+  full = false,
+  placeholder = "Select option",
   onChange,
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
   const selectedOption =
-    options.find((option) => option === value) ||
-    value;
+    options.find((option) => option === value);
+
+  const displayValue =
+    selectedOption || placeholder;
+
+  const hasValue = Boolean(selectedOption);
 
   useEffect(() => {
     function handlePointerDown(event) {
@@ -52,7 +58,7 @@ export default function FilterButton({
   return (
     <div
       ref={containerRef}
-      className="relative"
+      className={`relative ${full ? "w-full" : ""}`}
     >
       {/* Trigger */}
       <button
@@ -73,8 +79,14 @@ export default function FilterButton({
           className="shrink-0 text-slate-400"
         />
 
-        <span className="max-w-32 truncate">
-          {selectedOption}
+        <span
+          className={`max-w-32 truncate ${
+            hasValue
+              ? "text-slate-700"
+              : "text-slate-400"
+          }`}
+        >
+          {displayValue}
         </span>
 
         <ChevronDown

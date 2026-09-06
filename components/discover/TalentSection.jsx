@@ -1,14 +1,18 @@
 import TalentCard from "@/components/talents/TalentCard";
 import SectionHeading from "./SectionHeading";
 
-import { getTopTalentsAction, getNewTalentsAction } from "@/actions/talents";
+import {
+  getTopTalentsAction,
+  getNewTalentsAction,
+} from "@/actions/talents";
 
 const TALENTS_COUNT = 10;
 
 const TALENT_SECTION_CONFIG = {
   top: {
     emptyTitle: "No top talents yet.",
-    emptyDescription: "Top talents will appear here as the community grows.",
+    emptyDescription:
+      "Top talents will appear here as the community grows.",
   },
 
   new: {
@@ -26,7 +30,9 @@ export default async function TalentSection({
   href,
   className = "",
 }) {
-  const config = TALENT_SECTION_CONFIG[type] ?? TALENT_SECTION_CONFIG.top;
+  const config =
+    TALENT_SECTION_CONFIG[type] ??
+    TALENT_SECTION_CONFIG.top;
 
   let result = null;
 
@@ -68,8 +74,11 @@ export default async function TalentSection({
     );
   }
 
-  const talents = [] || Array.isArray(result.talents) ? result.talents : [];
+  const talents = Array.isArray(result.talents)
+  ? result.talents
+  : [];
 
+console.log("TalentSection talents:", talents);
   /*
    * --------------------------------------------------
    * EMPTY
@@ -116,13 +125,13 @@ export default async function TalentSection({
         {talents.map((talent) => (
           <TalentCard
             key={talent.id}
-            id={talent.id}
-            image={talent.image}
-            initials={talent.initials}
-            name={talent.name}
+            username={talent.username}
+            avatar={talent.avatar}
+            displayName={talent.displayName}
             role={talent.role}
             category={talent.category}
-            location={talent.location}
+            province={talent.province}
+            district={talent.district}
             skills={talent.skills}
             likes={talent.likes}
             workCount={talent.workCount}
@@ -141,7 +150,11 @@ export default async function TalentSection({
  * --------------------------------------------------
  */
 
-function TalentState({ title, description, dashed = false }) {
+function TalentState({
+  title,
+  description,
+  dashed = false,
+}) {
   return (
     <div
       className={[
@@ -151,9 +164,13 @@ function TalentState({ title, description, dashed = false }) {
           : "border border-slate-200",
       ].join(" ")}
     >
-      <p className="text-sm font-bold text-slate-700">{title}</p>
+      <p className="text-sm font-bold text-slate-700">
+        {title}
+      </p>
 
-      <p className="mt-1 text-xs text-slate-400">{description}</p>
+      <p className="mt-1 text-xs text-slate-400">
+        {description}
+      </p>
     </div>
   );
 }
