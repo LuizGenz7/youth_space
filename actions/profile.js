@@ -195,7 +195,7 @@ const updateProfileSchema = z
             .trim()
             .min(
                 7,
-                "Please enter a valid WhatsApp number."
+                "WhatsApp number is too long."
             )
             .max(
                 20,
@@ -264,16 +264,21 @@ const updateProfileSchema = z
  * --------------------------------------------------
  * CATEGORY VALIDATION
  * --------------------------------------------------
- *
- * The client only supplies categoryId.
- *
- * The actual category must exist in Firestore.
  */
 
 async function validateCategory(
     categoryId
 ) {
+    console.log(
+        "PROFILE: validateCategory started",
+        categoryId
+    );
+
     if (!categoryId) {
+        console.log(
+            "PROFILE: no category ID"
+        );
+
         return {
             valid: true,
             category: null,
@@ -284,6 +289,11 @@ async function validateCategory(
         await getCategoryById(
             categoryId
         );
+
+    console.log(
+        "PROFILE: category lookup result",
+        !!category
+    );
 
     if (!category) {
         return {
@@ -302,22 +312,26 @@ async function validateCategory(
  * --------------------------------------------------
  * COMPLETE PROFILE
  * --------------------------------------------------
- *
- * Called after registration.
- *
- * UID, email and displayName are NEVER accepted
- * from the client.
  */
 
 export async function completeProfileAction(
     input = {}
 ) {
+    console.log(
+        "PROFILE: completeProfileAction started"
+    );
+
     const validation =
         completeProfileSchema.safeParse(
             input
         );
 
     if (!validation.success) {
+        console.error(
+            "PROFILE: validation failed",
+            validation.error.issues
+        );
+
         return {
             success: false,
             alreadyExists: false,
@@ -329,9 +343,28 @@ export async function completeProfileAction(
         };
     }
 
+    console.log(
+        "PROFILE: validation passed"
+    );
+
     try {
+        /*
+         * --------------------------------------------------
+         * AUTHENTICATION
+         * --------------------------------------------------
+         */
+
+        console.log(
+            "PROFILE: checking authentication"
+        );
+
         const user =
             await requireAuth();
+
+        console.log(
+            "PROFILE: authenticated",
+            user?.uid
+        );
 
         /*
          * --------------------------------------------------
@@ -339,10 +372,19 @@ export async function completeProfileAction(
          * --------------------------------------------------
          */
 
+        console.log(
+            "PROFILE: checking existing profile"
+        );
+
         const existingProfile =
             await getProfileByUid(
                 user.uid
             );
+
+        console.log(
+            "PROFILE: existing profile result",
+            !!existingProfile
+        );
 
         if (existingProfile) {
             return {
@@ -360,10 +402,19 @@ export async function completeProfileAction(
          * --------------------------------------------------
          */
 
+        console.log(
+            "PROFILE: validating category"
+        );
+
         const categoryResult =
             await validateCategory(
                 validation.data.categoryId
             );
+
+        console.log(
+            "PROFILE: category validation complete",
+            categoryResult.valid
+        );
 
         if (!categoryResult.valid) {
             return {
@@ -380,6 +431,10 @@ export async function completeProfileAction(
          * CREATE PROFILE
          * --------------------------------------------------
          */
+
+        console.log(
+            "PROFILE: creating Firestore profile"
+        );
 
         const profile =
             await createProfile({
@@ -401,11 +456,20 @@ export async function completeProfileAction(
                         .category.name,
             });
 
+        console.log(
+            "PROFILE: profile created",
+            profile?.username
+        );
+
         /*
          * --------------------------------------------------
          * CACHE INVALIDATION
          * --------------------------------------------------
          */
+
+        console.log(
+            "PROFILE: updating cache tags"
+        );
 
         updateTag("profiles");
 
@@ -419,6 +483,10 @@ export async function completeProfileAction(
 
         updateTag("categories");
 
+        console.log(
+            "PROFILE: completeProfileAction completed"
+        );
+
         return {
             success: true,
             alreadyExists: false,
@@ -427,6 +495,11 @@ export async function completeProfileAction(
             error: null,
         };
     } catch (error) {
+        console.error(
+            "PROFILE: completeProfileAction FAILED",
+            error
+        );
+
         return handleProfileError(error);
     }
 }
@@ -435,8 +508,6 @@ export async function completeProfileAction(
  * --------------------------------------------------
  * GET MY PROFILE
  * --------------------------------------------------
- *
- * Authenticated users only.
  */
 
 export async function getMyProfileAction() {
@@ -463,7 +534,12 @@ export async function getMyProfileAction() {
             profile,
             error: null,
         };
-    } catch {
+    } catch (error) {
+        console.error(
+            "GET MY PROFILE ERROR:",
+            error
+        );
+
         return {
             success: false,
             profile: null,
@@ -477,10 +553,6 @@ export async function getMyProfileAction() {
  * --------------------------------------------------
  * GET PUBLIC PROFILE
  * --------------------------------------------------
- *
- * Public.
- *
- * /talents/[username]
  */
 
 export async function getProfileAction(
@@ -520,7 +592,12 @@ export async function getProfileAction(
             profile,
             error: null,
         };
-    } catch {
+    } catch (error) {
+        console.error(
+            "GET PROFILE ERROR:",
+            error
+        );
+
         return {
             success: false,
             profile: null,
@@ -534,8 +611,6 @@ export async function getProfileAction(
  * --------------------------------------------------
  * CHECK USERNAME
  * --------------------------------------------------
- *
- * Public.
  */
 
 export async function checkUsernameAction(
@@ -568,7 +643,12 @@ export async function checkUsernameAction(
             available,
             error: null,
         };
-    } catch {
+    } catch (error) {
+        console.error(
+            "CHECK USERNAME ERROR:",
+            error
+        );
+
         return {
             success: false,
             available: false,
@@ -582,10 +662,6 @@ export async function checkUsernameAction(
  * --------------------------------------------------
  * UPDATE PROFILE
  * --------------------------------------------------
- *
- * Authenticated users only.
- *
- * Client NEVER supplies UID.
  */
 
 export async function updateProfileAction(
@@ -611,15 +687,6 @@ export async function updateProfileAction(
         const user =
             await requireAuth();
 
-        /*
-         * --------------------------------------------------
-         * GET CURRENT PROFILE
-         * --------------------------------------------------
-         *
-         * Needed to correctly invalidate the old
-         * username cache when username changes.
-         */
-
         const currentProfile =
             await getProfileByUid(
                 user.uid
@@ -633,12 +700,6 @@ export async function updateProfileAction(
                     "Your profile could not be found.",
             };
         }
-
-        /*
-         * --------------------------------------------------
-         * VALIDATE CATEGORY
-         * --------------------------------------------------
-         */
 
         if (
             validation.data.categoryId
@@ -659,23 +720,11 @@ export async function updateProfileAction(
             }
         }
 
-        /*
-         * --------------------------------------------------
-         * UPDATE PROFILE
-         * --------------------------------------------------
-         */
-
         const profile =
             await updateProfileWithUsername(
                 user.uid,
                 validation.data
             );
-
-        /*
-         * --------------------------------------------------
-         * CACHE INVALIDATION
-         * --------------------------------------------------
-         */
 
         updateTag("profiles");
 
@@ -684,10 +733,6 @@ export async function updateProfileAction(
         );
 
         updateTag("categories");
-
-        /*
-         * Username may have changed.
-         */
 
         if (
             currentProfile.username
@@ -711,6 +756,11 @@ export async function updateProfileAction(
             error: null,
         };
     } catch (error) {
+        console.error(
+            "UPDATE PROFILE ERROR:",
+            error
+        );
+
         return {
             success: false,
             profile: null,
@@ -723,8 +773,6 @@ export async function updateProfileAction(
  * --------------------------------------------------
  * UPDATE USERNAME
  * --------------------------------------------------
- *
- * Authenticated users only.
  */
 
 export async function updateUsernameAction(
@@ -750,10 +798,6 @@ export async function updateUsernameAction(
         const user =
             await requireAuth();
 
-        /*
-         * Get old username before changing it.
-         */
-
         const currentProfile =
             await getProfileByUid(
                 user.uid
@@ -771,23 +815,11 @@ export async function updateUsernameAction(
         const oldUsername =
             currentProfile.username;
 
-        /*
-         * --------------------------------------------------
-         * UPDATE USERNAME
-         * --------------------------------------------------
-         */
-
         const profile =
             await updateUsername(
                 user.uid,
                 validation.data
             );
-
-        /*
-         * --------------------------------------------------
-         * CACHE INVALIDATION
-         * --------------------------------------------------
-         */
 
         updateTag("profiles");
 
@@ -812,6 +844,11 @@ export async function updateUsernameAction(
             error: null,
         };
     } catch (error) {
+        console.error(
+            "UPDATE USERNAME ERROR:",
+            error
+        );
+
         return {
             success: false,
             username: null,
@@ -824,19 +861,12 @@ export async function updateUsernameAction(
  * --------------------------------------------------
  * DELETE MY PROFILE
  * --------------------------------------------------
- *
- * Authenticated users only.
  */
 
 export async function deleteProfileAction() {
     try {
         const user =
             await requireAuth();
-
-        /*
-         * Get profile before deleting it so we
-         * know which username cache to invalidate.
-         */
 
         const profile =
             await getProfileByUid(
@@ -851,21 +881,9 @@ export async function deleteProfileAction() {
             };
         }
 
-        /*
-         * --------------------------------------------------
-         * DELETE
-         * --------------------------------------------------
-         */
-
         await deleteProfile(
             user.uid
         );
-
-        /*
-         * --------------------------------------------------
-         * CACHE INVALIDATION
-         * --------------------------------------------------
-         */
 
         updateTag("profiles");
 
@@ -886,6 +904,11 @@ export async function deleteProfileAction() {
             error: null,
         };
     } catch (error) {
+        console.error(
+            "DELETE PROFILE ERROR:",
+            error
+        );
+
         return {
             success: false,
             error:
