@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/auth";
 export const instant = false;
 
 export default async function Page() {
-  // await requireAuth();
+   await requireAuth();
 
   return <CompleteProfilePage />;
 }
