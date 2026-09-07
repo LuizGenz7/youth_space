@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
 
+  serverExternalPackages: [
+    "firebase-admin",
+    "jwks-rsa",
+    "jose",
+  ],
+
   allowedDevOrigins: ["192.168.45.178"],
 
   images: {
