@@ -16,6 +16,7 @@ import PopularCategoriesLoading from "@/components/home/PopularCategoriesLoading
 import LocalServicesLoading from "@/components/home/LocalServicesLoading";
 import FeaturedTalentsLoading from "@/components/home/FeaturedTalentsLoading";
 import LatestWorkLoading from "@/components/home/LatestWorkLoading";
+import CreatorCTALoading from "@/components/home/CreatorCTALoading";
 
 export default async function HomePage() {
   return (
@@ -44,7 +45,9 @@ export default async function HomePage() {
 
       <HowItWorks />
 
-      <CreatorCTA />
+      <Suspense fallback={<CreatorCTALoading />}>
+        <CreatorCTA />
+      </Suspense>
 
       <Footer />
     </main>
