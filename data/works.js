@@ -4,16 +4,12 @@ import {
 } from "next/cache";
 
 import {
-  FieldValue,
-  getFirestore,
-} from "firebase-admin/firestore";
+  works,
+} from "./works_data";
 
-import { adminApp } from "@/lib/firebase-admin";
-
-const db = getFirestore(adminApp);
-
-const WORKS_COLLECTION = "works";
-const TALENTS_COLLECTION = "talents";
+import {
+  talents,
+} from "./talents_data";
 
 const TRENDING_WORKS_LIMIT = 10;
 
@@ -30,7 +26,9 @@ const TRENDING_WORKS_CACHE_TAG =
   "trending-works";
 
 function workCacheTag(workId) {
-  return `work:${String(workId).trim()}`;
+  return `work:${String(
+    workId
+  ).trim()}`;
 }
 
 function talentWorksCacheTag(
@@ -186,62 +184,60 @@ function normalizeServices(
  * NORMALIZE WORK
  * --------------------------------------------------
  *
- * IMPORTANT:
+ * Only public fields are returned.
  *
- * We intentionally DO NOT spread:
- *
- * ...doc.data()
- *
- * Only fields explicitly listed below can
- * leave Firestore.
- *
- * createdAt / updatedAt are NOT returned.
+ * createdAt / updatedAt are used internally
+ * for test-data sorting but are NOT returned.
  * --------------------------------------------------
  */
 
-function normalizeWork(doc) {
-  if (!doc.exists) {
+function normalizeWork(
+  work
+) {
+  if (!work) {
     return null;
   }
 
-  const data = doc.data();
-
   return {
-    id: doc.id,
+    id:
+      typeof work.id === "string"
+        ? work.id
+        : "",
 
     talentId:
       normalizeString(
-        data.talentId
+        work.talentId
       ),
 
     title:
       normalizeString(
-        data.title
+        work.title
       ),
 
     categoryId:
       normalizeString(
-        data.categoryId
+        work.categoryId
       ),
 
     category:
       normalizeString(
-        data.category
+        work.category
       ),
 
     description:
       normalizeString(
-        data.description
+        work.description
       ),
 
     image:
-      typeof data.image === "string"
-        ? data.image
+      typeof work.image ===
+      "string"
+        ? work.image
         : "",
 
     likes:
       normalizeNumber(
-        data.likes
+        work.likes
       ),
   };
 }
@@ -266,95 +262,98 @@ function normalizeWork(doc) {
  * --------------------------------------------------
  */
 
-function normalizeTalent(doc) {
-  if (!doc.exists) {
+function normalizeTalent(
+  talent
+) {
+  if (!talent) {
     return null;
   }
 
-  const data = doc.data();
-
   return {
-    id: doc.id,
+    id:
+      typeof talent.id === "string"
+        ? talent.id
+        : "",
 
     uid:
-      typeof data.uid === "string"
-        ? data.uid
-        : doc.id,
+      typeof talent.uid === "string"
+        ? talent.uid
+        : talent.id || "",
 
     username:
       normalizeString(
-        data.username
+        talent.username
       ),
 
     displayName:
       normalizeString(
-        data.displayName
+        talent.displayName
       ),
 
     role:
       normalizeString(
-        data.role
+        talent.role
       ),
 
     categoryId:
       normalizeString(
-        data.categoryId
+        talent.categoryId
       ),
 
     category:
       normalizeString(
-        data.category
+        talent.category
       ),
 
     province:
       normalizeString(
-        data.province
+        talent.province
       ),
 
     district:
       normalizeString(
-        data.district
+        talent.district
       ),
 
     bio:
       normalizeString(
-        data.bio
+        talent.bio
       ),
 
     avatar:
-      typeof data.avatar ===
+      typeof talent.avatar ===
       "string"
-        ? data.avatar
+        ? talent.avatar
         : null,
 
     skills:
       normalizeStringArray(
-        data.skills
+        talent.skills
       ),
 
     services:
       normalizeServices(
-        data.services
+        talent.services
       ),
 
     likes:
       normalizeNumber(
-        data.likes
+        talent.likes
       ),
 
     workCount:
       normalizeNumber(
-        data.workCount
+        talent.workCount
       ),
 
     available:
       normalizeBoolean(
-        data.available
+        talent.available
       ),
 
     verified:
       normalizeBoolean(
-        data.verified
+        talent.verified
       ),
   };
 }
@@ -362,11 +361,6 @@ function normalizeTalent(doc) {
 /*
  * --------------------------------------------------
  * GET ALL WORKS
- * --------------------------------------------------
- *
- * createdAt is used only for sorting.
- *
- * It is NEVER returned to the app.
  * --------------------------------------------------
  */
 
@@ -379,18 +373,17 @@ export async function getWorks() {
     WORKS_CACHE_TAG
   );
 
-  const snapshot =
-    await db
-      .collection(
-        WORKS_COLLECTION
-      )
-      .orderBy(
-        "createdAt",
-        "desc"
-      )
-      .get();
-
-  return snapshot.docs
+  return [...works]
+    .sort(
+      (a, b) =>
+        String(
+          b.createdAt || ""
+        ).localeCompare(
+          String(
+            a.createdAt || ""
+          )
+        )
+    )
     .map(normalizeWork)
     .filter(Boolean);
 }
@@ -425,18 +418,15 @@ export async function getWorkById(
     )
   );
 
-  const snapshot =
-    await db
-      .collection(
-        WORKS_COLLECTION
-      )
-      .doc(
+  const work =
+    works.find(
+      (item) =>
+        item.id ===
         normalizedWorkId
-      )
-      .get();
+    );
 
   return normalizeWork(
-    snapshot
+    work
   );
 }
 
@@ -472,23 +462,24 @@ export async function getWorksByTalent(
     )
   );
 
-  const snapshot =
-    await db
-      .collection(
-        WORKS_COLLECTION
-      )
-      .where(
-        "talentId",
-        "==",
+  return [...works]
+    .filter(
+      (work) =>
+        normalizeString(
+          work.talentId
+        ) ===
         normalizedTalentId
-      )
-      .orderBy(
-        "createdAt",
-        "desc"
-      )
-      .get();
-
-  return snapshot.docs
+    )
+    .sort(
+      (a, b) =>
+        String(
+          b.createdAt || ""
+        ).localeCompare(
+          String(
+            a.createdAt || ""
+          )
+        )
+    )
     .map(normalizeWork)
     .filter(Boolean);
 }
@@ -520,86 +511,21 @@ export async function getTrendingWorks(
       TRENDING_WORKS_LIMIT
     );
 
-  const snapshot =
-    await db
-      .collection(
-        WORKS_COLLECTION
-      )
-      .orderBy(
-        "likes",
-        "desc"
-      )
-      .limit(
-        safeLimit
-      )
-      .get();
-
-  const works =
-    snapshot.docs
-      .map(normalizeWork)
-      .filter(Boolean);
-
-  /*
-   * ------------------------------------------------
-   * FIND TALENT IDS
-   * ------------------------------------------------
-   */
-
-  const talentIds = [
-    ...new Set(
-      works
-        .map(
-          (work) =>
-            work.talentId
-        )
-        .filter(Boolean)
-        .map(String)
-    ),
-  ];
-
-  if (!talentIds.length) {
-    return works;
-  }
-
-  /*
-   * ------------------------------------------------
-   * LOAD TALENTS
-   * ------------------------------------------------
-   */
-
-  const talentRefs =
-    talentIds.map(
-      (talentId) =>
-        db
-          .collection(
-            TALENTS_COLLECTION
+  const topWorks =
+    [...works]
+      .sort(
+        (a, b) =>
+          normalizeNumber(
+            b.likes
+          ) -
+          normalizeNumber(
+            a.likes
           )
-          .doc(talentId)
-    );
-
-  const talentDocs =
-    await db.getAll(
-      ...talentRefs
-    );
-
-  const talentMap =
-    new Map();
-
-  talentDocs.forEach(
-    (doc) => {
-      const talent =
-        normalizeTalent(doc);
-
-      if (!talent) {
-        return;
-      }
-
-      talentMap.set(
-        doc.id,
-        talent
+      )
+      .slice(
+        0,
+        safeLimit
       );
-    }
-  );
 
   /*
    * ------------------------------------------------
@@ -607,13 +533,23 @@ export async function getTrendingWorks(
    * ------------------------------------------------
    */
 
-  return works
+  return topWorks
     .map((work) => {
       const talent =
-        talentMap.get(
-          String(
-            work.talentId
-          )
+        talents.find(
+          (item) =>
+            String(
+              item.id
+            ) ===
+              String(
+                work.talentId
+              ) ||
+            String(
+              item.uid
+            ) ===
+              String(
+                work.talentId
+              )
         );
 
       if (!talent) {
@@ -621,8 +557,14 @@ export async function getTrendingWorks(
       }
 
       return {
-        ...work,
-        talent,
+        ...normalizeWork(
+          work
+        ),
+
+        talent:
+          normalizeTalent(
+            talent
+          ),
       };
     })
     .filter(Boolean);
@@ -631,6 +573,13 @@ export async function getTrendingWorks(
 /*
  * --------------------------------------------------
  * TOGGLE WORK LIKE
+ * --------------------------------------------------
+ *
+ * TEST DATA ONLY
+ *
+ * No Firebase.
+ *
+ * This mutates the in-memory test work.
  * --------------------------------------------------
  */
 
@@ -656,141 +605,103 @@ export async function toggleWorkLike({
     );
   }
 
-  const workRef =
-    db
-      .collection(
-        WORKS_COLLECTION
-      )
-      .doc(
+  const work =
+    works.find(
+      (item) =>
+        item.id ===
         normalizedWorkId
-      );
-
-  const likeRef =
-    workRef
-      .collection("likes")
-      .doc(
-        normalizedUserId
-      );
-
-  const result =
-    await db.runTransaction(
-      async (transaction) => {
-        const workSnapshot =
-          await transaction.get(
-            workRef
-          );
-
-        if (
-          !workSnapshot.exists
-        ) {
-          throw new Error(
-            "Work not found."
-          );
-        }
-
-        const likeSnapshot =
-          await transaction.get(
-            likeRef
-          );
-
-        const alreadyLiked =
-          likeSnapshot.exists;
-
-        const workData =
-          workSnapshot.data();
-
-        const currentLikes =
-          normalizeNumber(
-            workData?.likes
-          );
-
-        /*
-         * --------------------------------------------
-         * REMOVE LIKE
-         * --------------------------------------------
-         */
-
-        if (alreadyLiked) {
-          transaction.delete(
-            likeRef
-          );
-
-          const likes =
-            Math.max(
-              currentLikes - 1,
-              0
-            );
-
-          transaction.update(
-            workRef,
-            {
-              likes,
-
-              updatedAt:
-                FieldValue.serverTimestamp(),
-            }
-          );
-
-          return {
-            liked: false,
-            likes,
-          };
-        }
-
-        /*
-         * --------------------------------------------
-         * ADD LIKE
-         * --------------------------------------------
-         */
-
-        transaction.set(
-          likeRef,
-          {
-            userId:
-              normalizedUserId,
-
-            workId:
-              normalizedWorkId,
-
-            createdAt:
-              FieldValue.serverTimestamp(),
-          }
-        );
-
-        const likes =
-          currentLikes + 1;
-
-        transaction.update(
-          workRef,
-          {
-            likes,
-
-            updatedAt:
-              FieldValue.serverTimestamp(),
-          }
-        );
-
-        return {
-          liked: true,
-          likes,
-        };
-      }
     );
 
-  return {
-    liked:
-      result?.liked === true,
+  if (!work) {
+    throw new Error(
+      "Work not found."
+    );
+  }
 
-    likes:
-      normalizeNumber(
-        result?.likes
-      ),
+  /*
+   * ------------------------------------------------
+   * TEST LIKE STATE
+   * ------------------------------------------------
+   *
+   * Store liked user IDs directly on the
+   * test work object.
+   */
+
+  if (!Array.isArray(
+    work.likedBy
+  )) {
+    work.likedBy = [];
+  }
+
+  const alreadyLiked =
+    work.likedBy.includes(
+      normalizedUserId
+    );
+
+  const currentLikes =
+    normalizeNumber(
+      work.likes
+    );
+
+  /*
+   * ------------------------------------------------
+   * REMOVE LIKE
+   * ------------------------------------------------
+   */
+
+  if (alreadyLiked) {
+    work.likedBy =
+      work.likedBy.filter(
+        (id) =>
+          id !==
+          normalizedUserId
+      );
+
+    const likes =
+      Math.max(
+        currentLikes - 1,
+        0
+      );
+
+    work.likes =
+      likes;
+
+    return {
+      liked: false,
+      likes,
+    };
+  }
+
+  /*
+   * ------------------------------------------------
+   * ADD LIKE
+   * ------------------------------------------------
+   */
+
+  work.likedBy.push(
+    normalizedUserId
+  );
+
+  const likes =
+    currentLikes + 1;
+
+  work.likes =
+    likes;
+
+  return {
+    liked: true,
+    likes,
   };
 }
 
 /*
  * --------------------------------------------------
  * DELETE WORK
+ * --------------------------------------------------
+ *
+ * TEST DATA ONLY
+ *
+ * No Firebase.
  * --------------------------------------------------
  */
 
@@ -816,32 +727,21 @@ export async function deleteWork({
     );
   }
 
-  const workRef =
-    db
-      .collection(
-        WORKS_COLLECTION
-      )
-      .doc(
+  const workIndex =
+    works.findIndex(
+      (item) =>
+        item.id ===
         normalizedWorkId
-      );
+    );
 
-  /*
-   * ------------------------------------------------
-   * GET WORK
-   * ------------------------------------------------
-   */
-
-  const workSnapshot =
-    await workRef.get();
-
-  if (!workSnapshot.exists) {
+  if (workIndex === -1) {
     throw new Error(
       "Work not found."
     );
   }
 
   const work =
-    workSnapshot.data();
+    works[workIndex];
 
   /*
    * ------------------------------------------------
@@ -851,7 +751,7 @@ export async function deleteWork({
 
   const ownerId =
     normalizeString(
-      work?.talentId
+      work.talentId
     );
 
   if (
@@ -865,89 +765,46 @@ export async function deleteWork({
 
   /*
    * ------------------------------------------------
-   * TALENT REFERENCE
-   * ------------------------------------------------
-   */
-
-  const talentRef =
-    db
-      .collection(
-        TALENTS_COLLECTION
-      )
-      .doc(
-        normalizedUserId
-      );
-
-  /*
-   * ------------------------------------------------
-   * DELETE LIKES
-   * ------------------------------------------------
-   */
-
-  const likesSnapshot =
-    await workRef
-      .collection("likes")
-      .get();
-
-  const batch =
-    db.batch();
-
-  likesSnapshot.docs.forEach(
-    (likeDoc) => {
-      batch.delete(
-        likeDoc.ref
-      );
-    }
-  );
-
-  /*
-   * ------------------------------------------------
    * DELETE WORK
    * ------------------------------------------------
    */
 
-  batch.delete(
-    workRef
+  works.splice(
+    workIndex,
+    1
   );
 
   /*
    * ------------------------------------------------
    * UPDATE TALENT WORK COUNT
    * ------------------------------------------------
-   *
-   * Keep the denormalized workCount
-   * synchronized when possible.
-   * ------------------------------------------------
    */
 
-  const talentSnapshot =
-    await talentRef.get();
+  const talent =
+    talents.find(
+      (item) =>
+        String(
+          item.id
+        ) ===
+          normalizedUserId ||
+        String(
+          item.uid
+        ) ===
+          normalizedUserId
+    );
 
-  if (talentSnapshot.exists) {
-    const talentData =
-      talentSnapshot.data();
-
+  if (talent) {
     const currentWorkCount =
       normalizeNumber(
-        talentData?.workCount
+        talent.workCount
       );
 
-    batch.update(
-      talentRef,
-      {
-        workCount:
-          Math.max(
-            currentWorkCount - 1,
-            0
-          ),
-
-        updatedAt:
-          FieldValue.serverTimestamp(),
-      }
-    );
+    talent.workCount =
+      Math.max(
+        currentWorkCount - 1,
+        0
+      );
   }
-
-  await batch.commit();
 
   return {
     success: true,

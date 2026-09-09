@@ -9,7 +9,7 @@ import {
 export default function FilterButton({
   icon: Icon,
   options = [],
-  value,
+  value = "",
   full = false,
   placeholder = "Select option",
   onChange,
@@ -17,8 +17,9 @@ export default function FilterButton({
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
-  const selectedOption =
-    options.find((option) => option === value);
+  const selectedOption = options.find(
+    (option) => option === value,
+  );
 
   const displayValue =
     selectedOption || placeholder;
@@ -51,14 +52,16 @@ export default function FilterButton({
   }, []);
 
   function handleSelect(option) {
-    onChange(option);
+    onChange?.(option);
     setOpen(false);
   }
 
   return (
     <div
       ref={containerRef}
-      className={`relative ${full ? "w-full" : ""}`}
+      className={`relative ${
+        full ? "w-full" : ""
+      }`}
     >
       {/* Trigger */}
       <button
@@ -69,6 +72,10 @@ export default function FilterButton({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={`flex h-10 items-center gap-2 rounded-xl border bg-white px-3 text-xs font-bold outline-none transition ${
+          full
+            ? "w-full justify-between"
+            : ""
+        } ${
           open
             ? "border-slate-400 ring-4 ring-slate-100"
             : "border-slate-200 text-slate-700 hover:border-slate-300"
@@ -77,10 +84,11 @@ export default function FilterButton({
         <Icon
           size={14}
           className="shrink-0 text-slate-400"
+          aria-hidden="true"
         />
 
         <span
-          className={`max-w-32 truncate ${
+          className={`min-w-0 flex-1 truncate text-left ${
             hasValue
               ? "text-slate-700"
               : "text-slate-400"
@@ -94,14 +102,21 @@ export default function FilterButton({
           className={`shrink-0 text-slate-400 transition-transform ${
             open ? "rotate-180" : ""
           }`}
+          aria-hidden="true"
         />
       </button>
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-300/30">
+        <div
+          className={`absolute top-[calc(100%+8px)] z-50 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-300/30 ${
+            full
+              ? "left-0"
+              : "right-0"
+          }`}
+        >
           <div
-            className="max-h-64 overflow-y-auto"
+            className="max-h-72 overflow-y-auto"
             role="listbox"
             aria-label="Filter options"
           >
@@ -135,11 +150,12 @@ export default function FilterButton({
                       >
                         <Icon
                           size={14}
+                          aria-hidden="true"
                         />
                       </div>
 
                       <span
-                        className={`truncate text-xs font-bold ${
+                        className={`min-w-0 truncate text-xs font-bold ${
                           selected
                             ? "text-slate-950"
                             : "text-slate-700"
@@ -152,8 +168,9 @@ export default function FilterButton({
                     {selected && (
                       <Check
                         size={15}
-                        className="shrink-0 text-slate-950"
+                        className="ml-3 shrink-0 text-slate-950"
                         strokeWidth={2.7}
+                        aria-hidden="true"
                       />
                     )}
                   </button>

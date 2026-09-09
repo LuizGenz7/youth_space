@@ -3,14 +3,19 @@ import {
   cacheTag,
 } from "next/cache";
 
-import { getFirestore } from "firebase-admin/firestore";
+import {
+  categories,
+} from "./categories";
 
-import { adminApp } from "@/lib/firebase-admin";
+import {
+  talents,
+} from "./talents_data";
 
-const db = getFirestore(adminApp);
-
-const TALENTS_COLLECTION = "talents";
-const CATEGORIES_COLLECTION = "categories";
+/*
+ * --------------------------------------------------
+ * CONSTANTS
+ * --------------------------------------------------
+ */
 
 const INITIAL_CATEGORIES_LIMIT = 6;
 const TALENTS_PER_LOAD = 8;
@@ -38,8 +43,12 @@ export function usernameCacheTag(username) {
     .toLowerCase()}`;
 }
 
-export function categoryTalentsCacheTag(categoryId) {
-  return `category-talents:${String(categoryId).trim()}`;
+export function categoryTalentsCacheTag(
+  categoryId
+) {
+  return `category-talents:${String(
+    categoryId
+  ).trim()}`;
 }
 
 /*
@@ -63,6 +72,19 @@ function getSafeLimit(
     Math.max(Math.floor(value), 1),
     maximum
   );
+}
+
+function getSafeCursor(cursor) {
+  const value = Number(cursor);
+
+  if (
+    !Number.isFinite(value) ||
+    value < 0
+  ) {
+    return 0;
+  }
+
+  return Math.floor(value);
 }
 
 function emptyTalentResult() {
@@ -92,7 +114,10 @@ function normalizeStringArray(value) {
       (item) =>
         typeof item === "string"
     )
-    .map((item) => item.trim())
+    .map(
+      (item) =>
+        item.trim()
+    )
     .filter(Boolean);
 }
 
@@ -136,8 +161,7 @@ function normalizeServices(value) {
             : "",
 
         name:
-          typeof service.name ===
-            "string"
+          typeof service.name === "string"
             ? service.name.trim()
             : "",
 
@@ -149,13 +173,12 @@ function normalizeServices(value) {
 
         price:
           service.price !== undefined &&
-            service.price !== null
+          service.price !== null
             ? String(service.price)
             : "",
 
         image:
-          typeof service.image ===
-            "string"
+          typeof service.image === "string"
             ? service.image
             : "",
       };
@@ -171,113 +194,107 @@ function normalizeServices(value) {
  * --------------------------------------------------
  * PUBLIC TALENT SERIALIZER
  * --------------------------------------------------
- *
- * Phone and WhatsApp are intentionally public
- * on Youth Space talent profiles.
- *
- * We still explicitly select fields instead of
- * spreading Firestore data.
- * --------------------------------------------------
  */
 
-function serializeTalent(doc) {
-  if (!doc.exists) {
+function serializeTalent(talent) {
+  if (!talent) {
     return null;
   }
 
-  const data = doc.data();
-
   return {
-    id: doc.id,
+    id:
+      typeof talent.id === "string"
+        ? talent.id
+        : "",
 
     uid:
-      typeof data.uid === "string"
-        ? data.uid
-        : doc.id,
+      typeof talent.uid === "string"
+        ? talent.uid
+        : talent.id || "",
 
     username:
       normalizeString(
-        data.username
+        talent.username
       ),
 
     displayName:
       normalizeString(
-        data.displayName
+        talent.displayName
       ),
 
     role:
       normalizeString(
-        data.role
+        talent.role
       ),
 
     categoryId:
       normalizeString(
-        data.categoryId
+        talent.categoryId
       ),
 
     category:
       normalizeString(
-        data.category
+        talent.category
       ),
 
     province:
       normalizeString(
-        data.province
+        talent.province
       ),
 
     district:
       normalizeString(
-        data.district
+        talent.district
       ),
 
     bio:
       normalizeString(
-        data.bio
+        talent.bio
       ),
 
     phone:
       normalizeString(
-        data.phone
+        talent.phone
       ),
 
     whatsapp:
       normalizeString(
-        data.whatsapp
+        talent.whatsapp
       ),
 
     avatar:
-      typeof data.avatar === "string"
-        ? data.avatar
+      typeof talent.avatar === "string"
+        ? talent.avatar
         : null,
 
     skills:
       normalizeStringArray(
-        data.skills
+        talent.skills
       ),
 
     services:
       normalizeServices(
-        data.services
+        talent.services
       ),
 
     likes:
       normalizeNumber(
-        data.likes
+        talent.likes
       ),
 
     workCount:
       normalizeNumber(
-        data.workCount
+        talent.workCount
       ),
 
     available:
       normalizeBoolean(
-        data.available
+        talent.available
       ),
 
     verified:
       normalizeBoolean(
-        data.verified
+        talent.verified
       ),
   };
 }
@@ -292,8 +309,6 @@ function serializeTalent(doc) {
  * Get all categories.
  *
  * Cached.
- *
- * No Firestore timestamps are returned.
  */
 export async function getCategories() {
   "use cache";
@@ -304,47 +319,37 @@ export async function getCategories() {
     CATEGORIES_CACHE_TAG
   );
 
-  const snapshot =
-    await db
-      .collection(
-        CATEGORIES_COLLECTION
-      )
-      .get();
+  return categories
+    .map((category) => ({
+      id:
+        typeof category.id === "string"
+          ? category.id
+          : "",
 
-  return snapshot.docs
-    .map((doc) => {
-      if (!doc.exists) {
-        return null;
-      }
+      name:
+        normalizeString(
+          category.name
+        ),
 
-      const data = doc.data();
+      icon:
+        typeof category.icon === "string"
+          ? category.icon
+          : "circle",
 
-      return {
-        id: doc.id,
+      description:
+        normalizeString(
+          category.description
+        ),
 
-        name:
-          normalizeString(
-            data.name
-          ),
-
-        icon:
-          typeof data.icon ===
-            "string"
-            ? data.icon
-            : "circle",
-
-        description:
-          normalizeString(
-            data.description
-          ),
-
-        totalTalents:
-          normalizeNumber(
-            data.totalTalents
-          ),
-      };
-    })
-    .filter(Boolean);
+      totalTalents:
+        normalizeNumber(
+          category.totalTalents
+        ),
+    }))
+    .filter(
+      (category) =>
+        category.id
+    );
 }
 
 /*
@@ -354,10 +359,11 @@ export async function getCategories() {
  */
 
 /**
- * Get the initial categories and their
- * first batch of talents.
+ * Get the initial categories and
+ * their first batch of talents.
  *
- * Cached.
+ * The first six categories are loaded
+ * with eight talents each.
  */
 export async function getInitialTalentsData() {
   "use cache";
@@ -375,18 +381,26 @@ export async function getInitialTalentsData() {
   const allCategories =
     await getCategories();
 
+  /*
+   * Select the first six categories
+   * by total talent count.
+   */
   const initialCategories =
-    allCategories
+    [...allCategories]
       .sort(
         (a, b) =>
-          (b.totalTalents ?? 0) -
-          (a.totalTalents ?? 0)
+          b.totalTalents -
+          a.totalTalents
       )
       .slice(
         0,
         INITIAL_CATEGORIES_LIMIT
       );
 
+  /*
+   * Fetch the first eight talents
+   * for each initial category.
+   */
   const talentResults =
     await Promise.all(
       initialCategories.map(
@@ -401,15 +415,91 @@ export async function getInitialTalentsData() {
       )
     );
 
+  /*
+   * Create a lookup containing
+   * pagination information.
+   */
+  const paginationMap =
+    new Map(
+      initialCategories.map(
+        (category, index) => {
+          const result =
+            talentResults[index] ??
+            emptyTalentResult();
+
+          return [
+            category.id,
+            {
+              talents:
+                result.talents,
+
+              /*
+               * Offset cursor.
+               *
+               * After loading 8 talents,
+               * the next cursor is 8.
+               */
+              nextCursor:
+                result.nextCursor,
+
+              hasMore:
+                result.hasMore,
+
+              totalTalents:
+                result.totalTalents,
+            },
+          ];
+        }
+      )
+    );
+
+  /*
+   * Add the pagination information
+   * to the initial categories.
+   */
+  const enrichedCategories =
+    allCategories.map(
+      (category) => {
+        const pagination =
+          paginationMap.get(
+            category.id
+          );
+
+        if (!pagination) {
+          return category;
+        }
+
+        return {
+          ...category,
+
+          talents:
+            pagination.talents,
+
+          nextCursor:
+            pagination.nextCursor,
+
+          hasMore:
+            pagination.hasMore,
+
+          totalTalents:
+            pagination.totalTalents,
+        };
+      }
+    );
+
+  /*
+   * Keep a flat array because the
+   * browser/filtering layer uses it.
+   */
   const initialTalents =
     talentResults.flatMap(
       (result) =>
-        result.talents
+        result?.talents ?? []
     );
 
   return {
     categories:
-      allCategories,
+      enrichedCategories,
 
     talents:
       initialTalents,
@@ -426,29 +516,19 @@ export async function getInitialTalentsData() {
  * Get the first batch of talents
  * for a category.
  *
- * Cached.
+ * Cursor is an OFFSET.
+ *
+ * First page:
+ *
+ * cursor = 0
+ * results = 0 - 7
+ * nextCursor = 8
  */
 export async function getCategoryTalents({
   categoryId,
   limit = TALENTS_PER_LOAD,
 } = {}) {
   "use cache";
-
-  cacheLife("minutes");
-
-  cacheTag(
-    TALENTS_CACHE_TAG
-  );
-
-  cacheTag(
-    categoryTalentsCacheTag(
-      categoryId
-    )
-  );
-
-  if (!categoryId) {
-    return emptyTalentResult();
-  }
 
   const normalizedCategoryId =
     normalizeString(
@@ -459,6 +539,18 @@ export async function getCategoryTalents({
     return emptyTalentResult();
   }
 
+  cacheLife("minutes");
+
+  cacheTag(
+    TALENTS_CACHE_TAG
+  );
+
+  cacheTag(
+    categoryTalentsCacheTag(
+      normalizedCategoryId
+    )
+  );
+
   const safeLimit =
     getSafeLimit(
       limit,
@@ -466,60 +558,68 @@ export async function getCategoryTalents({
       TALENTS_PER_LOAD
     );
 
-  const snapshot =
-    await db
-      .collection(
-        TALENTS_COLLECTION
+  /*
+   * Get talents belonging to
+   * this category.
+   */
+  const categoryTalents =
+    talents
+      .filter(
+        (talent) =>
+          talent.categoryId ===
+          normalizedCategoryId
       )
-      .where(
-        "categoryId",
-        "==",
-        normalizedCategoryId
-      )
-      .orderBy(
-        "createdAt",
-        "desc"
-      )
-      .limit(
-        safeLimit + 1
-      )
-      .get();
+      .sort(
+        (a, b) =>
+          String(
+            b.createdAt || ""
+          ).localeCompare(
+            String(
+              a.createdAt || ""
+            )
+          )
+      );
 
-  const docs =
-    snapshot.docs;
-
-  const hasMore =
-    docs.length > safeLimit;
-
+  /*
+   * First page always starts
+   * from index 0.
+   */
   const results =
-    hasMore
-      ? docs.slice(0, safeLimit)
-      : docs;
+    categoryTalents.slice(
+      0,
+      safeLimit
+    );
 
-  const talents =
+  const normalizedTalents =
     results
       .map(
         serializeTalent
       )
       .filter(Boolean);
 
-  const lastDoc =
-    results[
-      results.length - 1
-    ];
+  const hasMore =
+    categoryTalents.length >
+    safeLimit;
+
+  /*
+   * The next cursor is simply
+   * the number of talents already loaded.
+   */
+  const nextCursor =
+    hasMore
+      ? safeLimit
+      : null;
 
   return {
-    talents,
+    talents:
+      normalizedTalents,
 
-    nextCursor:
-      hasMore && lastDoc
-        ? lastDoc.id
-        : null,
+    nextCursor,
 
     hasMore,
 
     totalTalents:
-      null,
+      categoryTalents.length,
   };
 }
 
@@ -530,34 +630,25 @@ export async function getCategoryTalents({
  */
 
 /**
- * Load more talents for a category.
+ * Load talents after an OFFSET cursor.
  *
- * The cursor is the document ID.
+ * Example:
  *
- * Cached by category + cursor.
+ * cursor = 8
+ *
+ * startIndex = 8
+ *
+ * fetch:
+ *   8, 9, 10, 11, 12, 13, 14, 15
+ *
+ * nextCursor = 16
  */
 async function getTalentsByCategory({
   categoryId,
   limit = TALENTS_PER_LOAD,
-  cursor = null,
+  cursor = 0,
 } = {}) {
   "use cache";
-
-  cacheLife("minutes");
-
-  cacheTag(
-    TALENTS_CACHE_TAG
-  );
-
-  cacheTag(
-    categoryTalentsCacheTag(
-      categoryId
-    )
-  );
-
-  if (!categoryId) {
-    return emptyTalentResult();
-  }
 
   const normalizedCategoryId =
     normalizeString(
@@ -568,6 +659,18 @@ async function getTalentsByCategory({
     return emptyTalentResult();
   }
 
+  cacheLife("minutes");
+
+  cacheTag(
+    TALENTS_CACHE_TAG
+  );
+
+  cacheTag(
+    categoryTalentsCacheTag(
+      normalizedCategoryId
+    )
+  );
+
   const safeLimit =
     getSafeLimit(
       limit,
@@ -575,103 +678,99 @@ async function getTalentsByCategory({
       TALENTS_PER_LOAD
     );
 
-  let query =
-    db
-      .collection(
-        TALENTS_COLLECTION
+  const safeCursor =
+    getSafeCursor(
+      cursor
+    );
+
+  /*
+   * ------------------------------------------------
+   * GET CATEGORY TALENTS
+   * ------------------------------------------------
+   */
+
+  const categoryTalents =
+    talents
+      .filter(
+        (talent) =>
+          talent.categoryId ===
+          normalizedCategoryId
       )
-      .where(
-        "categoryId",
-        "==",
-        normalizedCategoryId
-      )
-      .orderBy(
-        "createdAt",
-        "desc"
+      .sort(
+        (a, b) =>
+          String(
+            b.createdAt || ""
+          ).localeCompare(
+            String(
+              a.createdAt || ""
+            )
+          )
       );
 
   /*
    * ------------------------------------------------
-   * CURSOR
+   * PROTECT AGAINST INVALID OFFSET
    * ------------------------------------------------
    */
 
-  if (cursor) {
-    const normalizedCursor =
-      normalizeString(
-        cursor
-      );
-
-    if (!normalizedCursor) {
-      return emptyTalentResult();
-    }
-
-    const cursorDoc =
-      await db
-        .collection(
-          TALENTS_COLLECTION
-        )
-        .doc(normalizedCursor)
-        .get();
-
-    if (!cursorDoc.exists) {
-      return emptyTalentResult();
-    }
-
-    query =
-      query.startAfter(
-        cursorDoc
-      );
+  if (
+    safeCursor >=
+    categoryTalents.length
+  ) {
+    return {
+      talents: [],
+      nextCursor: null,
+      hasMore: false,
+      totalTalents:
+        categoryTalents.length,
+    };
   }
 
   /*
    * ------------------------------------------------
-   * FETCH
+   * FETCH NEXT PAGE
    * ------------------------------------------------
    */
 
-  const snapshot =
-    await query
-      .limit(
-        safeLimit + 1
-      )
-      .get();
-
-  const docs =
-    snapshot.docs;
-
-  const hasMore =
-    docs.length > safeLimit;
-
   const results =
-    hasMore
-      ? docs.slice(0, safeLimit)
-      : docs;
+    categoryTalents.slice(
+      safeCursor,
+      safeCursor +
+        safeLimit
+    );
 
-  const talents =
+  const normalizedTalents =
     results
       .map(
         serializeTalent
       )
       .filter(Boolean);
 
-  const lastDoc =
-    results[
-      results.length - 1
-    ];
+  /*
+   * Calculate how many talents
+   * have been loaded after this request.
+   */
+  const nextOffset =
+    safeCursor +
+    results.length;
+
+  const hasMore =
+    nextOffset <
+    categoryTalents.length;
 
   return {
-    talents,
+    talents:
+      normalizedTalents,
 
     nextCursor:
-      hasMore && lastDoc
-        ? lastDoc.id
+      hasMore
+        ? nextOffset
         : null,
 
     hasMore,
 
     totalTalents:
-      null,
+      categoryTalents.length,
   };
 }
 
@@ -683,16 +782,18 @@ async function getTalentsByCategory({
 
 /**
  * Load the next batch of talents
- * for a category.
+ * using an offset cursor.
  */
 export async function getMoreTalents({
   categoryId,
-  cursor = null,
+  cursor = 0,
 } = {}) {
   return getTalentsByCategory({
     categoryId,
+
     limit:
       TALENTS_PER_LOAD,
+
     cursor,
   });
 }
@@ -704,7 +805,7 @@ export async function getMoreTalents({
  */
 
 /**
- * Get top talents for Discover.
+ * Get top talents ordered by likes.
  *
  * Cached.
  */
@@ -726,21 +827,20 @@ export async function getTopTalents(
       DISCOVER_TALENTS_LIMIT
     );
 
-  const snapshot =
-    await db
-      .collection(
-        TALENTS_COLLECTION
-      )
-      .orderBy(
-        "likes",
-        "desc"
-      )
-      .limit(
-        safeLimit
-      )
-      .get();
-
-  return snapshot.docs
+  return [...talents]
+    .sort(
+      (a, b) =>
+        normalizeNumber(
+          b.likes
+        ) -
+        normalizeNumber(
+          a.likes
+        )
+    )
+    .slice(
+      0,
+      safeLimit
+    )
     .map(
       serializeTalent
     )
@@ -754,12 +854,10 @@ export async function getTopTalents(
  */
 
 /**
- * Get newest talents for Discover.
+ * Get newest talents.
  *
- * Cached.
- *
- * createdAt is used internally only
- * for sorting and is NOT returned.
+ * createdAt is used internally
+ * and is never returned.
  */
 export async function getNewTalents(
   limit = DISCOVER_TALENTS_LIMIT
@@ -779,21 +877,21 @@ export async function getNewTalents(
       DISCOVER_TALENTS_LIMIT
     );
 
-  const snapshot =
-    await db
-      .collection(
-        TALENTS_COLLECTION
-      )
-      .orderBy(
-        "createdAt",
-        "desc"
-      )
-      .limit(
-        safeLimit
-      )
-      .get();
-
-  return snapshot.docs
+  return [...talents]
+    .sort(
+      (a, b) =>
+        String(
+          b.createdAt || ""
+        ).localeCompare(
+          String(
+            a.createdAt || ""
+          )
+        )
+    )
+    .slice(
+      0,
+      safeLimit
+    )
     .map(
       serializeTalent
     )
@@ -807,7 +905,7 @@ export async function getNewTalents(
  */
 
 /**
- * Get a talent by Firebase UID.
+ * Get a talent by ID or UID.
  *
  * Cached.
  */
@@ -816,14 +914,14 @@ export async function getTalentById(
 ) {
   "use cache";
 
-  cacheLife("minutes");
-
   const normalizedId =
     normalizeString(id);
 
   if (!normalizedId) {
     return null;
   }
+
+  cacheLife("minutes");
 
   cacheTag(
     TALENTS_CACHE_TAG
@@ -835,16 +933,17 @@ export async function getTalentById(
     )
   );
 
-  const snapshot =
-    await db
-      .collection(
-        TALENTS_COLLECTION
-      )
-      .doc(normalizedId)
-      .get();
+  const talent =
+    talents.find(
+      (item) =>
+        item.id ===
+          normalizedId ||
+        item.uid ===
+          normalizedId
+    );
 
   return serializeTalent(
-    snapshot
+    talent
   );
 }
 
@@ -868,8 +967,6 @@ export async function getTalentByUsername(
 ) {
   "use cache";
 
-  cacheLife("minutes");
-
   const normalizedUsername =
     normalizeString(
       username
@@ -878,6 +975,8 @@ export async function getTalentByUsername(
   if (!normalizedUsername) {
     return null;
   }
+
+  cacheLife("minutes");
 
   cacheTag(
     TALENTS_CACHE_TAG
@@ -889,25 +988,17 @@ export async function getTalentByUsername(
     )
   );
 
-  const snapshot =
-    await db
-      .collection(
-        TALENTS_COLLECTION
-      )
-      .where(
-        "username",
-        "==",
+  const talent =
+    talents.find(
+      (item) =>
+        normalizeString(
+          item.username
+        ).toLowerCase() ===
         normalizedUsername
-      )
-      .limit(1)
-      .get();
-
-  if (snapshot.empty) {
-    return null;
-  }
+    );
 
   return serializeTalent(
-    snapshot.docs[0]
+    talent
   );
 }
 

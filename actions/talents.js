@@ -3,10 +3,10 @@
 import { z } from "zod";
 
 import {
-    getCategoryTalents,
-    getMoreTalents,
-    getTopTalents,
-    getNewTalents,
+  getCategoryTalents,
+  getMoreTalents,
+  getTopTalents,
+  getNewTalents,
 } from "@/data/talents";
 
 /* =========================================================
@@ -15,7 +15,6 @@ import {
 
 const INITIAL_CATEGORY_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
-
 const MAX_LOADED_COUNT = 1000;
 
 /* =========================================================
@@ -23,343 +22,324 @@ const MAX_LOADED_COUNT = 1000;
 ========================================================= */
 
 const categoryIdSchema = z
-    .string()
-    .trim()
-    .min(
-        1,
-        "Category ID is required."
-    )
-    .max(
-        100,
-        "Category ID is too long."
-    );
+  .string()
+  .trim()
+  .min(
+    1,
+    "Category ID is required.",
+  )
+  .max(
+    100,
+    "Category ID is too long.",
+  );
 
 const categoryLimitSchema = z
-    .number()
-    .int()
-    .min(1)
-    .max(INITIAL_CATEGORY_LOAD);
+  .number()
+  .int()
+  .min(1)
+  .max(INITIAL_CATEGORY_LOAD);
 
 const categoryTalentsSchema = z
-    .object({
-        categoryId:
-            categoryIdSchema,
+  .object({
+    categoryId:
+      categoryIdSchema,
 
-        limit:
-            categoryLimitSchema
-                .optional(),
-    })
-    .strict();
+    limit:
+      categoryLimitSchema
+        .optional(),
+  })
+  .strict();
 
 const loadMoreTalentsSchema = z
-    .object({
-        categoryId:
-            categoryIdSchema,
+  .object({
+    categoryId:
+      categoryIdSchema,
 
-        loadedCount: z
-            .number()
-            .int()
-            .min(0)
-            .max(MAX_LOADED_COUNT),
-    })
-    .strict();
+    loadedCount: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_LOADED_COUNT),
+  })
+  .strict();
 
 const discoverTalentsSchema = z
-    .object({
-        limit: z
-            .number()
-            .int()
-            .min(1)
-            .max(DISCOVER_TALENTS_LIMIT),
-    })
-    .strict();
+  .object({
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(DISCOVER_TALENTS_LIMIT),
+  })
+  .strict();
 
 /* =========================================================
    CATEGORY TALENTS
 ========================================================= */
 
-/**
- * Load the first batch of talents for a category.
- *
- * Public action.
- * No authentication required.
- *
- * Client sends only:
- *
- * {
- *     categoryId,
- *     limit
- * }
- */
-export async function loadCategoryTalentsAction(
-    input = {},
-) {
-    const validation =
-        categoryTalentsSchema.safeParse(
-            input,
-        );
+export async function loadCategoryTalentsAction({
+  categoryId,
+  limit = INITIAL_CATEGORY_LOAD,
+} = {}) {
+  const validation =
+    categoryTalentsSchema.safeParse({
+      categoryId,
+      limit,
+    });
 
-    if (!validation.success) {
-        return {
-            success: false,
-            talents: [],
-            nextCursor: null,
-            hasMore: false,
-            error: "Invalid request.",
-        };
-    }
+  if (!validation.success) {
+    return {
+      success: false,
+      talents: [],
+      nextCursor: null,
+      hasMore: false,
+      error: "Invalid request.",
+    };
+  }
 
-    const {
-        categoryId,
-        limit = INITIAL_CATEGORY_LOAD,
-    } = validation.data;
+  try {
+    const result =
+      await getCategoryTalents({
+        categoryId:
+          validation.data.categoryId,
 
-    try {
-        const result =
-            await getCategoryTalents({
-                categoryId,
-                limit,
-            });
+        limit:
+          validation.data.limit,
+      });
 
-        return {
-            success: true,
+    return {
+      success: true,
 
-            talents:
-                Array.isArray(
-                    result?.talents,
-                )
-                    ? result.talents
-                    : [],
+      talents:
+        Array.isArray(
+          result?.talents,
+        )
+          ? result.talents
+          : [],
 
-            nextCursor:
-                result?.nextCursor ??
-                null,
+      nextCursor:
+        result?.nextCursor ?? null,
 
-            hasMore:
-                Boolean(
-                    result?.hasMore,
-                ),
+      hasMore:
+        Boolean(
+          result?.hasMore,
+        ),
 
-            error: null,
-        };
-    } catch (error) {
-        console.error(
-            "loadCategoryTalentsAction:",
-            error,
-        );
+      error: null,
+    };
+  } catch (error) {
+    console.error(
+      "loadCategoryTalentsAction:",
+      error,
+    );
 
-        return {
-            success: false,
-            talents: [],
-            nextCursor: null,
-            hasMore: false,
-            error:
-                "Unable to load category talents.",
-        };
-    }
+    return {
+      success: false,
+      talents: [],
+      nextCursor: null,
+      hasMore: false,
+      error:
+        "Unable to load category talents.",
+    };
+  }
 }
 
 /* =========================================================
    LOAD MORE CATEGORY TALENTS
 ========================================================= */
 
-/**
- * Load the next batch of talents for a category.
- *
- * Public action.
- * No authentication required.
- *
- * Client sends only:
+/*
+ * Client passes:
  *
  * {
- *     categoryId,
- *     loadedCount
+ *   category
  * }
  *
- * Never accept the complete category object.
+ * The action extracts category here.
  */
-export async function loadMoreTalentsAction(
-    input = {},
-) {
-    const validation =
-        loadMoreTalentsSchema.safeParse(
-            input,
-        );
 
-    if (!validation.success) {
-        return {
-            success: false,
-            talents: [],
-            nextCursor: null,
-            hasMore: false,
-            error: "Invalid request.",
-        };
-    }
+export async function loadMoreTalentsAction({
+  category,
+} = {}) {
+  /*
+   * Extract only the values we actually need
+   * from the category object.
+   */
 
-    const {
-        categoryId,
-        loadedCount,
-    } = validation.data;
+  const categoryId =
+    category?.id;
 
-    try {
-        const result =
-            await getMoreTalents({
-                categoryId,
-                cursor: loadedCount,
-            });
+  const loadedCount =
+    Array.isArray(
+      category?.talents,
+    )
+      ? category.talents.length
+      : 0;
 
-        return {
-            success: true,
+  const validation =
+    loadMoreTalentsSchema.safeParse({
+      categoryId,
+      loadedCount,
+    });
 
-            talents:
-                Array.isArray(
-                    result?.talents,
-                )
-                    ? result.talents
-                    : [],
+    
 
-            nextCursor:
-                result?.nextCursor ??
-                null,
+  if (!validation.success) {
+    return {
+      success: false,
+      talents: [],
+      nextCursor: null,
+      hasMore: false,
+      error: "Invalid request.",
+    };
+  }
 
-            hasMore:
-                Boolean(
-                    result?.hasMore,
-                ),
+  try {
+    const result =
+      await getMoreTalents({
+        categoryId:
+          validation.data.categoryId,
 
-            error: null,
-        };
-    } catch (error) {
-        console.error(
-            "loadMoreTalentsAction:",
-            error,
-        );
+        cursor:
+          validation.data.loadedCount,
+      });
+console.log(result);
 
-        return {
-            success: false,
-            talents: [],
-            nextCursor: null,
-            hasMore: false,
-            error:
-                "Unable to load more talents.",
-        };
-    }
+    return {
+      success: true,
+
+      talents:
+        Array.isArray(
+          result?.talents,
+        )
+          ? result.talents
+          : [],
+
+      nextCursor:
+        result?.nextCursor ?? null,
+
+      hasMore:
+        Boolean(
+          result?.hasMore,
+        ),
+
+      error: null,
+    };
+  } catch (error) {
+    console.error(
+      "loadMoreTalentsAction:",
+      error,
+    );
+
+    return {
+      success: false,
+      talents: [],
+      nextCursor: null,
+      hasMore: false,
+      error:
+        "Unable to load more talents.",
+    };
+  }
 }
 
 /* =========================================================
    DISCOVER — TOP TALENTS
 ========================================================= */
 
-/**
- * Get top talents for the Discover page.
- *
- * Public action.
- * No authentication required.
- */
-export async function getTopTalentsAction(
-    input = {},
-) {
-    const validation =
-        discoverTalentsSchema.safeParse({
-            limit:
-                input?.limit ??
-                DISCOVER_TALENTS_LIMIT,
-        });
+export async function getTopTalentsAction({
+  limit = DISCOVER_TALENTS_LIMIT,
+} = {}) {
+  const validation =
+    discoverTalentsSchema.safeParse({
+      limit,
+    });
 
-    if (!validation.success) {
-        return {
-            success: false,
-            talents: [],
-            error: "Invalid request.",
-        };
-    }
+  if (!validation.success) {
+    return {
+      success: false,
+      talents: [],
+      error: "Invalid request.",
+    };
+  }
 
-    try {
-        const talents =
-            await getTopTalents(
-                validation.data.limit,
-            );
+  try {
+    const talents =
+      await getTopTalents(
+        validation.data.limit,
+      );
 
-        return {
-            success: true,
+    return {
+      success: true,
 
-            talents:
-                Array.isArray(talents)
-                    ? talents
-                    : [],
+      talents:
+        Array.isArray(talents)
+          ? talents
+          : [],
 
-            error: null,
-        };
-    } catch (error) {
-        console.error(
-            "getTopTalentsAction:",
-            error,
-        );
+      error: null,
+    };
+  } catch (error) {
+    console.error(
+      "getTopTalentsAction:",
+      error,
+    );
 
-        return {
-            success: false,
-            talents: [],
-            error:
-                "Unable to load top talents.",
-        };
-    }
+    return {
+      success: false,
+      talents: [],
+      error:
+        "Unable to load top talents.",
+    };
+  }
 }
 
 /* =========================================================
    DISCOVER — NEWEST TALENTS
 ========================================================= */
 
-/**
- * Get newest talents for the Discover page.
- *
- * Public action.
- * No authentication required.
- */
-export async function getNewTalentsAction(
-    input = {},
-) {
-    const validation =
-        discoverTalentsSchema.safeParse({
-            limit:
-                input?.limit ??
-                DISCOVER_TALENTS_LIMIT,
-        });
+export async function getNewTalentsAction({
+  limit = DISCOVER_TALENTS_LIMIT,
+} = {}) {
+  const validation =
+    discoverTalentsSchema.safeParse({
+      limit,
+    });
 
-    if (!validation.success) {
-        return {
-            success: false,
-            talents: [],
-            error: "Invalid request.",
-        };
-    }
+  if (!validation.success) {
+    return {
+      success: false,
+      talents: [],
+      error: "Invalid request.",
+    };
+  }
 
-    try {
-        const talents =
-            await getNewTalents(
-                validation.data.limit,
-            );
+  try {
+    const talents =
+      await getNewTalents(
+        validation.data.limit,
+      );
 
-        return {
-            success: true,
+    return {
+      success: true,
 
-            talents:
-                Array.isArray(talents)
-                    ? talents
-                    : [],
+      talents:
+        Array.isArray(talents)
+          ? talents
+          : [],
 
-            error: null,
-        };
-    } catch (error) {
-        console.error(
-            "getNewTalentsAction:",
-            error,
-        );
+      error: null,
+    };
+  } catch (error) {
+    console.error(
+      "getNewTalentsAction:",
+      error,
+    );
 
-        return {
-            success: false,
-            talents: [],
-            error:
-                "Unable to load newest talents.",
-        };
-    }
+    return {
+      success: false,
+      talents: [],
+      error:
+        "Unable to load newest talents.",
+    };
+  }
 }

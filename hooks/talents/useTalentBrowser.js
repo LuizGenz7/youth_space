@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import {
   usePathname,
   useRouter,
@@ -10,19 +11,6 @@ import {
 const INITIAL_CATEGORY_COUNT = 6;
 const CATEGORIES_PER_LOAD = 6;
 
-export const locations = [
-  "All locations",
-  "Central",
-  "Copperbelt",
-  "Eastern",
-  "Luapula",
-  "Lusaka",
-  "Muchinga",
-  "Northern",
-  "North-Western",
-  "Southern",
-  "Western",
-];
 export const sortOptions = [
   "Recommended",
   "Newest",
@@ -44,6 +32,194 @@ function normalize(value) {
 
 /*
  * =========================================================
+ * SEARCH MATCH
+ * =========================================================
+ */
+
+function matchesSearch(talent, search) {
+  const query = normalize(search);
+
+  if (!query) {
+    return true;
+  }
+
+  const searchableFields = [
+    talent.username,
+    talent.displayName,
+    talent.role,
+    talent.category,
+    talent.province,
+    talent.district,
+    talent.bio,
+
+    ...(Array.isArray(talent.skills)
+      ? talent.skills
+      : []),
+
+    ...(Array.isArray(talent.services)
+      ? talent.services.map(
+          (service) =>
+            typeof service === "string"
+              ? service
+              : service?.name,
+        )
+      : []),
+  ];
+
+  return searchableFields.some(
+    (value) =>
+      normalize(value).includes(query),
+  );
+}
+
+/*
+ * =========================================================
+ * PROVINCE MATCH
+ * =========================================================
+ */
+
+function matchesProvince(
+  talent,
+  province,
+) {
+  if (
+    !province ||
+    province === "All provinces"
+  ) {
+    return true;
+  }
+
+  return (
+    normalize(talent.province) ===
+    normalize(province)
+  );
+}
+
+/*
+ * =========================================================
+ * DISTRICT MATCH
+ * =========================================================
+ */
+
+function matchesDistrict(
+  talent,
+  district,
+) {
+  if (
+    !district ||
+    district === "All districts"
+  ) {
+    return true;
+  }
+
+  return (
+    normalize(talent.district) ===
+    normalize(district)
+  );
+}
+
+/*
+ * =========================================================
+ * SORT
+ * =========================================================
+ */
+
+function sortTalents(
+  talentList,
+  sort,
+) {
+  const result = [...talentList];
+
+  switch (sort) {
+    /*
+     * -------------------------------------------------------
+     * RECOMMENDED
+     * -------------------------------------------------------
+     */
+
+    case "Recommended":
+      return result.sort(
+        (a, b) =>
+          Number(b.likes || 0) -
+          Number(a.likes || 0),
+      );
+
+    /*
+     * -------------------------------------------------------
+     * NEWEST
+     * -------------------------------------------------------
+     */
+
+    case "Newest":
+      return result.sort((a, b) => {
+        const dateA = new Date(
+          a.createdAt || 0,
+        ).getTime();
+
+        const dateB = new Date(
+          b.createdAt || 0,
+        ).getTime();
+
+        return dateB - dateA;
+      });
+
+    /*
+     * -------------------------------------------------------
+     * A-Z
+     * -------------------------------------------------------
+     */
+
+    case "A-Z":
+      return result.sort((a, b) =>
+        normalize(
+          a.displayName,
+        ).localeCompare(
+          normalize(
+            b.displayName,
+          ),
+        ),
+      );
+
+    /*
+     * -------------------------------------------------------
+     * AVAILABLE NOW
+     * -------------------------------------------------------
+     */
+
+    case "Available now":
+      return result.sort((a, b) => {
+        if (
+          a.available !==
+          b.available
+        ) {
+          return a.available
+            ? -1
+            : 1;
+        }
+
+        return (
+          Number(b.likes || 0) -
+          Number(a.likes || 0)
+        );
+      });
+
+    /*
+     * -------------------------------------------------------
+     * DEFAULT
+     * -------------------------------------------------------
+     */
+
+    default:
+      return result.sort(
+        (a, b) =>
+          Number(b.likes || 0) -
+          Number(a.likes || 0),
+      );
+  }
+}
+
+/*
+ * =========================================================
  * HOOK
  * =========================================================
  */
@@ -53,199 +229,425 @@ export default function useTalentBrowser({
   categories = [],
 }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+
+  const pathname =
+    usePathname();
+
+  const searchParams =
+    useSearchParams();
 
   /*
-   * =========================================================
-   * CURRENT FILTER / SEARCH STATE
-   * =========================================================
+   * =======================================================
+   * URL FILTER STATE
+   * =======================================================
    *
-   * The URL is the source of truth.
+   * URL is the source of truth.
    *
    * Example:
    *
-   * /talents?search=john&category=Design&location=Lusaka&sort=Newest
-   *
-   * becomes:
-   *
-   * search   = "john"
-   * category = "Design"
-   * location = "Lusaka"
-   * sort     = "Newest"
+   * /talents?
+   * category=Hair+%26+Beauty
+   * &province=Central
+   * &district=Kabwe
    */
 
-  const search = searchParams.get("search") || "";
+  const search =
+    searchParams.get("search") || "";
 
   const categoryParam =
     searchParams.get("category") || "";
 
-  const location =
-    searchParams.get("location") ||
-    "All locations";
+  const province =
+    searchParams.get("province") ||
+    "All provinces";
+
+  const district =
+    searchParams.get("district") ||
+    "All districts";
 
   const sort =
     searchParams.get("sort") ||
     "Recommended";
 
   /*
-   * =========================================================
-   * CATEGORY PAGINATION STATE
-   * =========================================================
-   *
-   * Controls how many category sections are visible.
-   *
-   * This is completely separate from talent filtering.
+   * =======================================================
+   * CATEGORY PAGINATION
+   * =======================================================
    */
 
   const [
     visibleCategoryCount,
     setVisibleCategoryCount,
-  ] = useState(INITIAL_CATEGORY_COUNT);
+  ] = useState(
+    INITIAL_CATEGORY_COUNT,
+  );
 
   /*
-   * =========================================================
+   * =======================================================
    * AVAILABLE CATEGORIES
-   * =========================================================
-   *
-   * Only categories containing talents are displayed.
-   *
-   * We do NOT apply search/location/sort here.
-   *
-   * CategorySection needs the original category information
-   * so it can decide whether it needs to lazy-load talents.
+   * =======================================================
    */
 
-  const availableCategories = useMemo(() => {
-    return categories.filter(
-      (category) =>
-        Number(category.totalTalents || 0) > 0,
-    );
-  }, [categories]);
+  const availableCategories =
+    useMemo(() => {
+      return categories.filter(
+        (category) =>
+          Number(
+            category.totalTalents || 0,
+          ) > 0,
+      );
+    }, [categories]);
 
   /*
-   * =========================================================
-   * ACTIVE CATEGORY
-   * =========================================================
+   * =======================================================
+   * PROVINCES
+   * =======================================================
    *
-   * Converts the category value from the URL into the
-   * actual category object.
+   * Creates the province filter options
+   * directly from the talent data.
    */
 
-  const activeCategory = useMemo(() => {
-    if (!categoryParam) {
-      return null;
-    }
+  const provinces = useMemo(() => {
+    const values = talents
+      .map(
+        (talent) =>
+          talent?.province,
+      )
+      .filter(Boolean);
 
-    return (
-      availableCategories.find(
-        (category) =>
-          normalize(category.name) ===
-          normalize(categoryParam),
-      ) || null
+    return [
+      ...new Set(values),
+    ].sort((a, b) =>
+      String(a).localeCompare(
+        String(b),
+      ),
+    );
+  }, [talents]);
+
+  /*
+   * =======================================================
+   * DISTRICTS
+   * =======================================================
+   *
+   * If a province is selected:
+   *
+   *     show only districts
+   *     belonging to that province.
+   *
+   * If no province is selected:
+   *
+   *     show all districts.
+   */
+
+  const districts = useMemo(() => {
+    const sourceTalents =
+      province === "All provinces"
+        ? talents
+        : talents.filter(
+            (talent) =>
+              normalize(
+                talent?.province,
+              ) ===
+              normalize(province),
+          );
+
+    const values =
+      sourceTalents
+        .map(
+          (talent) =>
+            talent?.district,
+        )
+        .filter(Boolean);
+
+    return [
+      ...new Set(values),
+    ].sort((a, b) =>
+      String(a).localeCompare(
+        String(b),
+      ),
     );
   }, [
-    availableCategories,
-    categoryParam,
+    talents,
+    province,
   ]);
+
+  /*
+   * =======================================================
+   * ACTIVE CATEGORY
+   * =======================================================
+   *
+   * URL stores the category NAME.
+   *
+   * Example:
+   *
+   * ?category=Hair+%26+Beauty
+   *
+   * We resolve it to the category object,
+   * then use category.id for talent matching.
+   */
+
+  const activeCategory =
+    useMemo(() => {
+      if (!categoryParam) {
+        return null;
+      }
+
+      const normalizedParam =
+        normalize(categoryParam);
+
+      return (
+        availableCategories.find(
+          (category) =>
+            normalize(
+              category.name,
+            ) ===
+            normalizedParam,
+        ) || null
+      );
+    }, [
+      availableCategories,
+      categoryParam,
+    ]);
+
+  const activeCategoryId =
+    activeCategory?.id || "";
 
   const activeCategoryName =
     activeCategory?.name || "";
 
   /*
-   * =========================================================
+   * =======================================================
    * CATEGORY SECTIONS
-   * =========================================================
-   *
-   * Attach the talents that were already supplied by the
-   * server to their matching categories.
-   *
-   * IMPORTANT:
-   *
-   * DO NOT filter these talents using:
-   *
-   * - search
-   * - location
-   * - sort
-   *
-   * CategorySection handles those filters.
-   *
-   * This is important for lazy loading.
-   *
-   * Example:
-   *
-   * Category has 50 talents.
-   *
-   * Server initially gives us 8.
-   *
-   * If the user searches "John", we still keep those
-   * original 8 talents. We don't turn the category into
-   * an empty array and accidentally trigger a fetch.
+   * =======================================================
    */
 
-  const categorySections = useMemo(() => {
-    return availableCategories.map(
-      (category) => {
-        const categoryTalents =
-          talents.filter(
-            (talent) =>
-              normalize(talent.category) ===
-              normalize(category.name),
-          );
+  const categorySections =
+    useMemo(() => {
+      return availableCategories.map(
+        (category) => {
+          /*
+           * -------------------------------------------------
+           * CATEGORY
+           * -------------------------------------------------
+           */
 
-        return {
-          ...category,
-          talents: categoryTalents,
-        };
-      },
-    );
-  }, [
-    availableCategories,
-    talents,
-  ]);
+          const categoryTalents =
+            talents.filter(
+              (talent) =>
+                talent.categoryId ===
+                category.id,
+            );
+
+          /*
+           * -------------------------------------------------
+           * SEARCH
+           * -------------------------------------------------
+           */
+
+          const searchFiltered =
+            categoryTalents.filter(
+              (talent) =>
+                matchesSearch(
+                  talent,
+                  search,
+                ),
+            );
+
+          /*
+           * -------------------------------------------------
+           * PROVINCE
+           * -------------------------------------------------
+           */
+
+          const provinceFiltered =
+            searchFiltered.filter(
+              (talent) =>
+                matchesProvince(
+                  talent,
+                  province,
+                ),
+            );
+
+          /*
+           * -------------------------------------------------
+           * DISTRICT
+           * -------------------------------------------------
+           */
+
+          const districtFiltered =
+            provinceFiltered.filter(
+              (talent) =>
+                matchesDistrict(
+                  talent,
+                  district,
+                ),
+            );
+
+          /*
+           * -------------------------------------------------
+           * SORT
+           * -------------------------------------------------
+           */
+
+          const filteredTalents =
+            sortTalents(
+              districtFiltered,
+              sort,
+            );
+
+          return {
+            ...category,
+
+            /*
+             * All talents in category.
+             */
+            talents:
+              categoryTalents,
+
+            /*
+             * Filtered talents.
+             */
+            filteredTalents,
+
+            /*
+             * Number after filters.
+             */
+            filteredCount:
+              filteredTalents.length,
+          };
+        },
+      );
+    }, [
+      availableCategories,
+      talents,
+      search,
+      province,
+      district,
+      sort,
+    ]);
 
   /*
-   * =========================================================
-   * URL UPDATE
-   * =========================================================
+   * =======================================================
+   * GLOBAL FILTERED TALENTS
+   * =======================================================
    *
-   * All search/filter changes go through this function.
+   * Applies:
    *
-   * Example:
-   *
-   * updateParams({
-   *   search: "John"
-   * });
-   *
-   * produces:
-   *
-   * /talents?search=John
+   * category
+   * search
+   * province
+   * district
+   * sort
    */
 
-  function updateParams(updates = {}) {
-    const params = new URLSearchParams(
-      searchParams.toString(),
-    );
+  const filteredTalents =
+    useMemo(() => {
+      const result =
+        talents.filter((talent) => {
+          /*
+           * CATEGORY
+           */
 
-    Object.entries(updates).forEach(
+          const categoryMatches =
+            !activeCategoryId ||
+            talent.categoryId ===
+              activeCategoryId;
+
+          /*
+           * SEARCH
+           */
+
+          const searchMatches =
+            matchesSearch(
+              talent,
+              search,
+            );
+
+          /*
+           * PROVINCE
+           */
+
+          const provinceMatches =
+            matchesProvince(
+              talent,
+              province,
+            );
+
+          /*
+           * DISTRICT
+           */
+
+          const districtMatches =
+            matchesDistrict(
+              talent,
+              district,
+            );
+
+          return (
+            categoryMatches &&
+            searchMatches &&
+            provinceMatches &&
+            districtMatches
+          );
+        });
+
+      /*
+       * Sort after filtering.
+       */
+
+      return sortTalents(
+        result,
+        sort,
+      );
+    }, [
+      talents,
+      activeCategoryId,
+      search,
+      province,
+      district,
+      sort,
+    ]);
+
+  /*
+   * =======================================================
+   * URL UPDATE
+   * =======================================================
+   */
+
+  function updateParams(
+    updates = {},
+  ) {
+    const params =
+      new URLSearchParams(
+        searchParams.toString(),
+      );
+
+    Object.entries(
+      updates,
+    ).forEach(
       ([key, value]) => {
         const shouldRemove =
           value === null ||
           value === undefined ||
           value === "" ||
           value === "All" ||
-          value === "All locations" ||
+          value === "All provinces" ||
+          value === "All districts" ||
           value === "Recommended";
 
         if (shouldRemove) {
           params.delete(key);
         } else {
-          params.set(key, value);
+          params.set(
+            key,
+            String(value),
+          );
         }
       },
     );
 
-    const query = params.toString();
+    const query =
+      params.toString();
 
     router.replace(
       query
@@ -258,12 +660,9 @@ export default function useTalentBrowser({
   }
 
   /*
-   * =========================================================
-   * RESET CATEGORY PAGINATION
-   * =========================================================
-   *
-   * Whenever a filter changes, start category pagination
-   * from the beginning.
+   * =======================================================
+   * RESET PAGINATION
+   * =======================================================
    */
 
   function resetPagination() {
@@ -273,33 +672,34 @@ export default function useTalentBrowser({
   }
 
   /*
-   * =========================================================
+   * =======================================================
    * SEARCH
-   * =========================================================
-   *
-   * This updates the search value in the URL.
-   *
-   * The actual talent filtering happens inside
-   * CategorySection.
+   * =======================================================
    */
 
   function changeSearch(value) {
+    const nextValue =
+      String(value || "");
+
     updateParams({
-      search: value.trim()
-        ? value
-        : null,
+      search:
+        nextValue.trim()
+          ? nextValue
+          : null,
     });
 
     resetPagination();
   }
 
   /*
-   * =========================================================
-   * CATEGORY FILTER
-   * =========================================================
+   * =======================================================
+   * CATEGORY
+   * =======================================================
    */
 
-  function changeCategory(value) {
+  function changeCategory(
+    value,
+  ) {
     updateParams({
       category: value,
     });
@@ -308,23 +708,52 @@ export default function useTalentBrowser({
   }
 
   /*
-   * =========================================================
-   * LOCATION FILTER
-   * =========================================================
+   * =======================================================
+   * PROVINCE
+   * =======================================================
+   *
+   * Changing province clears district.
+   *
+   * Example:
+   *
+   * Central + Kabwe
+   *        ↓
+   * Lusaka
+   *        ↓
+   * Lusaka + All districts
    */
 
-  function changeLocation(value) {
+  function changeProvince(
+    value,
+  ) {
     updateParams({
-      location: value,
+      province: value,
+      district: null,
     });
 
     resetPagination();
   }
 
   /*
-   * =========================================================
+   * =======================================================
+   * DISTRICT
+   * =======================================================
+   */
+
+  function changeDistrict(
+    value,
+  ) {
+    updateParams({
+      district: value,
+    });
+
+    resetPagination();
+  }
+
+  /*
+   * =======================================================
    * SORT
-   * =========================================================
+   * =======================================================
    */
 
   function changeSort(value) {
@@ -336,83 +765,78 @@ export default function useTalentBrowser({
   }
 
   /*
-   * =========================================================
+   * =======================================================
    * CLEAR FILTERS
-   * =========================================================
-   *
-   * Removes all query parameters.
-   *
-   * Example:
-   *
-   * /talents?search=John&location=Lusaka
-   *
-   * becomes:
-   *
-   * /talents
+   * =======================================================
    */
 
   function clearFilters() {
-    router.replace(pathname, {
-      scroll: false,
-    });
+    router.replace(
+      pathname,
+      {
+        scroll: false,
+      },
+    );
 
     resetPagination();
   }
 
   /*
-   * =========================================================
+   * =======================================================
    * FILTER STATUS
-   * =========================================================
+   * =======================================================
    */
 
   const isSearching =
     Boolean(search.trim());
 
-  const hasActiveFilters =
-    isSearching ||
-    Boolean(activeCategoryName) ||
-    location !== "All locations" ||
+  const hasCategoryFilter =
+    Boolean(activeCategoryId);
+
+  const hasProvinceFilter =
+    province !== "All provinces";
+
+  const hasDistrictFilter =
+    district !== "All districts";
+
+  const hasSortFilter =
     sort !== "Recommended";
 
+  const hasActiveFilters =
+    isSearching ||
+    hasCategoryFilter ||
+    hasProvinceFilter ||
+    hasDistrictFilter ||
+    hasSortFilter;
+
   /*
-   * =========================================================
+   * =======================================================
    * VISIBLE CATEGORIES
-   * =========================================================
-   *
-   * Category filtering controls WHICH category sections
-   * are displayed.
-   *
-   * Talent filtering does NOT happen here.
-   *
-   * CategorySection handles:
-   *
-   * - search
-   * - location
-   * - sort
+   * =======================================================
    */
 
   const visibleCategories =
-    activeCategoryName
+    activeCategoryId
       ? categorySections.filter(
-        (category) =>
-          normalize(category.name) ===
-          normalize(activeCategoryName),
-      )
+          (category) =>
+            category.id ===
+            activeCategoryId,
+        )
       : categorySections.slice(
-        0,
-        visibleCategoryCount,
-      );
+          0,
+          visibleCategoryCount,
+        );
 
   /*
-   * =========================================================
+   * =======================================================
    * CATEGORY PAGINATION
-   * =========================================================
+   * =======================================================
    */
 
   const hasMoreCategories =
-    !activeCategoryName &&
+    !activeCategoryId &&
     visibleCategoryCount <
-    categorySections.length;
+      categorySections.length;
 
   function loadMoreCategories() {
     if (!hasMoreCategories) {
@@ -423,74 +847,120 @@ export default function useTalentBrowser({
       (currentCount) =>
         Math.min(
           currentCount +
-          CATEGORIES_PER_LOAD,
+            CATEGORIES_PER_LOAD,
           categorySections.length,
         ),
     );
   }
 
   /*
-   * =========================================================
+   * =======================================================
    * RESULTS
-   * =========================================================
-   *
-   * This is the number of talents supplied to this page.
-   *
-   * It is NOT the number of talents matching the current
-   * search/filter combination.
-   *
-   * CategorySection performs the actual filtering.
+   * =======================================================
    */
 
-  const totalResults = talents.length;
+  const totalResults =
+    filteredTalents.length;
+
+  const totalAvailableTalents =
+    talents.length;
 
   /*
-   * =========================================================
+   * =======================================================
    * RETURN
-   * =========================================================
+   * =======================================================
    */
 
   return {
     /*
-     * Current search / filters
+     * Current filters
      */
+
     search,
-    category: activeCategoryName,
-    location,
+
+    category:
+      activeCategoryName,
+
+    province,
+
+    district,
+
     sort,
 
     /*
-     * Available filter options
+     * Filter options
      */
-    locations,
+
+    provinces,
+
+    districts,
+
     sortOptions,
 
     /*
      * Categories
      */
+
     availableCategories,
+
     categorySections,
+
     visibleCategories,
 
-    /*
-     * Result information
-     */
-    totalResults,
-    hasActiveFilters,
+    activeCategory,
 
     /*
-     * Category pagination
+     * Filtered talents
      */
+
+    filteredTalents,
+
+    /*
+     * Results
+     */
+
+    totalResults,
+
+    totalAvailableTalents,
+
+    /*
+     * Filter status
+     */
+
+    hasActiveFilters,
+
+    isSearching,
+
+    hasCategoryFilter,
+
+    hasProvinceFilter,
+
+    hasDistrictFilter,
+
+    hasSortFilter,
+
+    /*
+     * Pagination
+     */
+
     hasMoreCategories,
+
     loadMoreCategories,
 
     /*
-     * Filter actions
+     * Actions
      */
+
     changeSearch,
+
     changeCategory,
-    changeLocation,
+
+    changeProvince,
+
+    changeDistrict,
+
     changeSort,
+
     clearFilters,
   };
 }

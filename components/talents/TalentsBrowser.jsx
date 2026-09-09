@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   ChevronDown,
@@ -23,9 +23,12 @@ export default function TalentsContent({
    * =========================================================
    * SERVER DATA
    * =========================================================
+   *
+   * Keep the initial server data stable for this component.
    */
 
-  const [talents] = useState(initialTalents);
+  const [talents] =
+    useState(initialTalents);
 
   /*
    * =========================================================
@@ -33,26 +36,33 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const [loadingCategories, setLoadingCategories] =
-    useState(false);
+  const [
+    loadingCategories,
+    setLoadingCategories,
+  ] = useState(false);
 
   /*
    * =========================================================
    * TALENT BROWSER
    * =========================================================
    *
-   * URL remains the source of truth for:
+   * The browser manages:
    *
    * - search
    * - category
-   * - location
+   * - province
+   * - district
    * - sort
+   * - URL state
+   * - province/district options
+   * - category pagination
    */
 
-  const browser = useTalentBrowser({
-    talents,
-    categories,
-  });
+  const browser =
+    useTalentBrowser({
+      talents,
+      categories,
+    });
 
   /*
    * =========================================================
@@ -60,35 +70,11 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const categoryResults = useTalentsStore(
-    (state) => state.categoryResults,
-  );
-
-  const setTalentsLoading = useTalentsStore(
-    (state) => state.setTalentsLoading,
-  );
-
-  /*
-   * =========================================================
-   * FILTER KEY
-   * =========================================================
-   *
-   * Every unique filter combination gets its own key.
-   */
-
-  const filtersKey = useMemo(() => {
-    return JSON.stringify({
-      search: browser.search.trim(),
-      category: browser.category || "",
-      location: browser.location || "",
-      sort: browser.sort || "",
-    });
-  }, [
-    browser.search,
-    browser.category,
-    browser.location,
-    browser.sort,
-  ]);
+  const setTalentsLoading =
+    useTalentsStore(
+      (state) =>
+        state.setTalentsLoading,
+    );
 
   /*
    * =========================================================
@@ -102,7 +88,9 @@ export default function TalentsContent({
     return () => {
       setTalentsLoading(true);
     };
-  }, [setTalentsLoading]);
+  }, [
+    setTalentsLoading,
+  ]);
 
   /*
    * =========================================================
@@ -138,132 +126,31 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const isSearching = Boolean(
-    browser.search?.trim(),
-  );
-
-  /*
-   * =========================================================
-   * VISIBLE CATEGORY IDS
-   * =========================================================
-   */
-
-  const visibleCategoryIds = useMemo(() => {
-    return browser.visibleCategories
-      .map((category) => category.id)
-      .filter(Boolean);
-  }, [browser.visibleCategories]);
-
-  /*
-   * =========================================================
-   * CURRENT FILTER RESULTS
-   * =========================================================
-   *
-   * Only results belonging to the current filtersKey
-   * are allowed to participate.
-   */
-
-  const currentCategoryResultEntries =
-    visibleCategoryIds.map((categoryId) => {
-      const result =
-        categoryResults[categoryId];
-
-      if (!result) {
-        return [
-          categoryId,
-          undefined,
-        ];
-      }
-
-      /*
-       * Ignore stale results from previous filters.
-       */
-
-      if (
-        result.filtersKey !== filtersKey
-      ) {
-        return [
-          categoryId,
-          undefined,
-        ];
-      }
-
-      return [
-        categoryId,
-        result.hasData,
-      ];
-    });
-
-  /*
-   * =========================================================
-   * RESULTS READY
-   * =========================================================
-   *
-   * Every visible category must have evaluated the
-   * CURRENT filtersKey.
-   */
-
-  const categoryResultsReady =
-    visibleCategoryIds.length > 0 &&
-    currentCategoryResultEntries.every(
-      ([, hasData]) =>
-        typeof hasData === "boolean",
+  const isSearching =
+    Boolean(
+      browser.search?.trim(),
     );
-
-  /*
-   * =========================================================
-   * ANY MATCHING RESULTS
-   * =========================================================
-   */
-
-  const hasAnyMatchingResults =
-    currentCategoryResultEntries.some(
-      ([, hasData]) =>
-        hasData === true,
-    );
-
-  /*
-   * =========================================================
-   * EXPLICIT EMPTY STATE
-   * =========================================================
-   *
-   * Show the empty state only when:
-   *
-   * 1. There are visible categories.
-   * 2. Every visible category has finished evaluating.
-   * 3. None of them contains matching talent.
-   *
-   * This prevents the empty state from flashing while
-   * CategorySection is still loading.
-   */
-
-  const shouldShowEmptyState =
-    categoryResultsReady &&
-    !hasAnyMatchingResults;
-
-  /*
-   * =========================================================
-   * CATEGORY STATE
-   * =========================================================
-   */
 
   const hasVisibleCategories =
-    browser.visibleCategories.length > 0;
+    browser.visibleCategories
+      .length > 0;
 
   const allCategoriesLoaded =
     !browser.hasMoreCategories;
 
   /*
-   * No categories exist at all.
-   *
-   * This is different from "no matching talents".
+   * =========================================================
+   * EMPTY STATES
+   * =========================================================
    */
 
   const shouldShowNoCategoriesState =
     !hasVisibleCategories &&
     allCategoriesLoaded;
 
-
+  const shouldShowEmptyState =
+    hasVisibleCategories &&
+    browser.totalResults === 0;
 
   /*
    * =========================================================
@@ -295,31 +182,92 @@ export default function TalentsContent({
         =================================================== */}
 
         <TalentFilters
+          /*
+           * -----------------------------------------------
+           * RESULTS
+           * -----------------------------------------------
+           */
+
           totalResults={
             browser.totalResults
           }
+
+          /*
+           * -----------------------------------------------
+           * CURRENT FILTERS
+           * -----------------------------------------------
+           */
+
           activeCategory={
             browser.category
           }
-          search={browser.search}
-          location={browser.location}
-          sort={browser.sort}
-          locations={browser.locations}
+
+          search={
+            browser.search
+          }
+
+          province={
+            browser.province
+          }
+
+          district={
+            browser.district
+          }
+
+          sort={
+            browser.sort
+          }
+
+          /*
+           * -----------------------------------------------
+           * PROVINCE / DISTRICT OPTIONS
+           * -----------------------------------------------
+           */
+
+          provinces={
+            browser.provinces
+          }
+
+          districts={
+            browser.districts
+          }
+
+          /*
+           * -----------------------------------------------
+           * SORT OPTIONS
+           * -----------------------------------------------
+           */
+
           sortOptions={
             browser.sortOptions
           }
-          onLocationChange={
-            browser.changeLocation
+
+          /*
+           * -----------------------------------------------
+           * ACTIONS
+           * -----------------------------------------------
+           */
+
+          onProvinceChange={
+            browser.changeProvince
           }
+
+          onDistrictChange={
+            browser.changeDistrict
+          }
+
           onSortChange={
             browser.changeSort
           }
+
           onSearchChange={
             browser.changeSearch
           }
+
           onCategoryChange={
             browser.changeCategory
           }
+
           onClear={
             browser.clearFilters
           }
@@ -368,18 +316,6 @@ export default function TalentsContent({
                 <CategorySection
                   key={category.id}
                   category={category}
-                  search={
-                    browser.search
-                  }
-                  location={
-                    browser.location
-                  }
-                  sort={
-                    browser.sort
-                  }
-                  filtersKey={
-                    filtersKey
-                  }
                 />
               ),
             )}
@@ -438,7 +374,7 @@ export default function TalentsContent({
 
             {!isSearching &&
               allCategoriesLoaded &&
-              hasAnyMatchingResults && (
+              browser.totalResults > 0 && (
                 <div className="flex justify-center pt-2">
                   <p className="mt-0.5 text-xs leading-5 text-slate-500">
                     You&apos;ve explored all

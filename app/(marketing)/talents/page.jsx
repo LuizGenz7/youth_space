@@ -30,5 +30,6 @@ export default function TalentsPage() {
 
 async function TalentsBrowserData() {
   const { talents, categories } = await getInitialTalentsData();
+  // console.log(talents)
   return <TalentsBrowser talents={talents} categories={categories} />;
 }

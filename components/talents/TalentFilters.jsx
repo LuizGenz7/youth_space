@@ -1,6 +1,10 @@
 "use client";
 
-import { ArrowDownAZ, MapPin } from "lucide-react";
+import {
+  ArrowDownAZ,
+  MapPin,
+  MapPinned,
+} from "lucide-react";
 
 import FilterButton from "@/components/talents/FilterButton";
 import FilterChip from "@/components/talents/FilterChip";
@@ -13,16 +17,33 @@ import FilterChip from "@/components/talents/FilterChip";
 
 export default function TalentFilters({
   totalResults = 0,
+
   activeCategory = "",
+
   search = "",
-  location = "All locations",
+
+  province = "All provinces",
+
+  district = "All districts",
+
+  provinces = [],
+
+  districts = [],
+
   sort = "Recommended",
-  locations = [],
+
   sortOptions = [],
-  onLocationChange,
+
+  onProvinceChange,
+
+  onDistrictChange,
+
   onSortChange,
+
   onSearchChange,
+
   onCategoryChange,
+
   onClear,
 }) {
   /*
@@ -31,9 +52,19 @@ export default function TalentFilters({
    * =======================================================
    */
 
-  const normalizedSearch = search?.trim() || "";
+  const normalizedSearch =
+    search?.trim() || "";
 
-  const normalizedCategory = activeCategory?.trim() || "";
+  const normalizedCategory =
+    activeCategory?.trim() || "";
+
+  const normalizedProvince =
+    province?.trim() ||
+    "All provinces";
+
+  const normalizedDistrict =
+    district?.trim() ||
+    "All districts";
 
   /*
    * =======================================================
@@ -41,25 +72,34 @@ export default function TalentFilters({
    * =======================================================
    */
 
-  const hasSearch = Boolean(normalizedSearch);
+  const hasSearch =
+    Boolean(normalizedSearch);
 
-  const hasCategory = Boolean(normalizedCategory);
+  const hasCategory =
+    Boolean(normalizedCategory);
 
-  const hasLocation = location !== "All locations";
+  const hasProvince =
+    normalizedProvince !==
+    "All provinces";
 
-  const hasSort = sort !== "Recommended";
+  const hasDistrict =
+    normalizedDistrict !==
+    "All districts";
 
-  const hasFilters = hasSearch || hasCategory || hasLocation || hasSort;
+  const hasSort =
+    sort !== "Recommended";
+
+  const hasFilters =
+    hasSearch ||
+    hasCategory ||
+    hasProvince ||
+    hasDistrict ||
+    hasSort;
 
   /*
    * =======================================================
    * DESCRIPTION
    * =======================================================
-   *
-   * One clear, catchy sentence for each state.
-   *
-   * Everything is deterministic, so there is no risk of
-   * server/client hydration mismatches.
    */
 
   let description =
@@ -67,52 +107,110 @@ export default function TalentFilters({
 
   /*
    * -------------------------------------------------------
-   * SEARCH + OTHER FILTERS
+   * SEARCH + PROVINCE / DISTRICT
    * -------------------------------------------------------
    */
 
-  if (hasSearch && (hasCategory || hasLocation)) {
-    description = `Explore talent matching "${normalizedSearch}" and your selected filters.`;
-  } else if (hasSearch) {
+  if (
+    hasSearch &&
+    (hasProvince || hasDistrict)
+  ) {
+    const locationText =
+      hasDistrict
+        ? `${normalizedDistrict}${
+            hasProvince
+              ? `, ${normalizedProvince}`
+              : ""
+          }`
+        : normalizedProvince;
+
+    description = `Explore talent matching "${normalizedSearch}" in ${locationText}.`;
+  }
 
   /*
    * -------------------------------------------------------
    * SEARCH
    * -------------------------------------------------------
    */
+
+  else if (hasSearch) {
     description = `Discover talented people whose skills match "${normalizedSearch}".`;
-  } else if (hasCategory && hasLocation) {
+  }
 
   /*
    * -------------------------------------------------------
-   * CATEGORY + LOCATION
+   * CATEGORY + PROVINCE / DISTRICT
    * -------------------------------------------------------
    */
-    description = `Discover ${normalizedCategory.toLowerCase()} talent from ${location}.`;
-  } else if (hasCategory) {
+
+  else if (
+    hasCategory &&
+    (hasProvince || hasDistrict)
+  ) {
+    const locationText =
+      hasDistrict
+        ? `${normalizedDistrict}${
+            hasProvince
+              ? `, ${normalizedProvince}`
+              : ""
+          }`
+        : normalizedProvince;
+
+    description = `Discover ${normalizedCategory.toLowerCase()} talent in ${locationText}.`;
+  }
 
   /*
    * -------------------------------------------------------
    * CATEGORY
    * -------------------------------------------------------
    */
+
+  else if (hasCategory) {
     description = `Discover talented people turning ${normalizedCategory.toLowerCase()} into skills, services, and opportunities.`;
-  } else if (hasLocation) {
+  }
 
   /*
    * -------------------------------------------------------
-   * LOCATION
+   * DISTRICT + PROVINCE
    * -------------------------------------------------------
    */
-    description = `Discover talented people in ${location} and see what they can create.`;
-  } else if (hasSort) {
+
+  else if (
+    hasDistrict &&
+    hasProvince
+  ) {
+    description = `Discover talented people in ${normalizedDistrict}, ${normalizedProvince} and see what they can create.`;
+  }
+
+  /*
+   * -------------------------------------------------------
+   * DISTRICT
+   * -------------------------------------------------------
+   */
+
+  else if (hasDistrict) {
+    description = `Discover talented people in ${normalizedDistrict} and see what they can create.`;
+  }
+
+  /*
+   * -------------------------------------------------------
+   * PROVINCE
+   * -------------------------------------------------------
+   */
+
+  else if (hasProvince) {
+    description = `Discover talented people in ${normalizedProvince} and see what they can create.`;
+  }
 
   /*
    * -------------------------------------------------------
    * SORT
    * -------------------------------------------------------
    */
-    description = `Explore talented people, sorted to help you find what you're looking for faster.`;
+
+  else if (hasSort) {
+    description =
+      "Explore talented people, sorted to help you find what you're looking for faster.";
   }
 
   /*
@@ -140,6 +238,14 @@ export default function TalentFilters({
           <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500">
             {description}
           </p>
+
+          <p className="mt-2 text-xs font-semibold text-slate-400">
+            {totalResults}{" "}
+            {totalResults === 1
+              ? "talent"
+              : "talents"}{" "}
+            found
+          </p>
         </div>
 
         {/* -------------------------------------------------
@@ -147,12 +253,41 @@ export default function TalentFilters({
             ------------------------------------------------- */}
 
         <div className="flex flex-wrap gap-2">
+          {/* -----------------------------------------------
+              PROVINCE
+              ----------------------------------------------- */}
+
           <FilterButton
             icon={MapPin}
-            options={locations}
-            value={location}
-            onChange={onLocationChange}
+            options={[
+              "All provinces",
+              ...provinces,
+            ]}
+            value={normalizedProvince}
+            onChange={
+              onProvinceChange
+            }
           />
+
+          {/* -----------------------------------------------
+              DISTRICT
+              ----------------------------------------------- */}
+
+          <FilterButton
+            icon={MapPinned}
+            options={[
+              "All districts",
+              ...districts,
+            ]}
+            value={normalizedDistrict}
+            onChange={
+              onDistrictChange
+            }
+          />
+
+          {/* -----------------------------------------------
+              SORT
+              ----------------------------------------------- */}
 
           <FilterButton
             icon={ArrowDownAZ}
@@ -180,7 +315,9 @@ export default function TalentFilters({
           {hasSearch && (
             <FilterChip
               label={`"${normalizedSearch}"`}
-              onRemove={() => onSearchChange("")}
+              onRemove={() =>
+                onSearchChange("")
+              }
             />
           )}
 
@@ -190,19 +327,59 @@ export default function TalentFilters({
 
           {hasCategory && (
             <FilterChip
-              label={normalizedCategory}
-              onRemove={() => onCategoryChange("All")}
+              label={
+                normalizedCategory
+              }
+              onRemove={() =>
+                onCategoryChange(
+                  "All",
+                )
+              }
             />
           )}
 
           {/* ------------------------------------------------
-              LOCATION
+              PROVINCE
               ------------------------------------------------ */}
 
-          {hasLocation && (
+          {hasProvince && (
             <FilterChip
-              label={location}
-              onRemove={() => onLocationChange("All locations")}
+              label={normalizedProvince}
+              onRemove={() =>
+                onProvinceChange(
+                  "All provinces",
+                )
+              }
+            />
+          )}
+
+          {/* ------------------------------------------------
+              DISTRICT
+              ------------------------------------------------ */}
+
+          {hasDistrict && (
+            <FilterChip
+              label={normalizedDistrict}
+              onRemove={() =>
+                onDistrictChange(
+                  "All districts",
+                )
+              }
+            />
+          )}
+
+          {/* ------------------------------------------------
+              SORT
+              ------------------------------------------------ */}
+
+          {hasSort && (
+            <FilterChip
+              label={sort}
+              onRemove={() =>
+                onSortChange(
+                  "Recommended",
+                )
+              }
             />
           )}
 

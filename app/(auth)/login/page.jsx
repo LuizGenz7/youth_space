@@ -18,7 +18,10 @@ import {
 } from "lucide-react";
 
 import {
+  browserLocalPersistence,
+  browserSessionPersistence,
   GoogleAuthProvider,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
@@ -45,6 +48,19 @@ export default function LoginPage() {
   const [imageError, setImageError] = useState(false);
 
   const isLoading = loading || googleLoading;
+
+  /*
+   * --------------------------------------------------
+   * SET FIREBASE AUTH PERSISTENCE
+   * --------------------------------------------------
+   */
+
+  async function configurePersistence() {
+    await setPersistence(
+      auth,
+      rememberMe ? browserLocalPersistence : browserSessionPersistence,
+    );
+  }
 
   /*
    * --------------------------------------------------
@@ -81,6 +97,14 @@ export default function LoginPage() {
     try {
       /*
        * --------------------------------------------------
+       * CONFIGURE AUTH PERSISTENCE
+       * --------------------------------------------------
+       */
+
+      await configurePersistence();
+
+      /*
+       * --------------------------------------------------
        * FIREBASE EMAIL LOGIN
        * --------------------------------------------------
        */
@@ -90,13 +114,6 @@ export default function LoginPage() {
         email,
         password,
       );
-
-      /*
-       * Firebase has authenticated the user.
-       *
-       * onAuthStateChanged() elsewhere in the app
-       * can now detect the signed-in user.
-       */
 
       if (!credential.user) {
         throw new Error("Unable to authenticate your account.");
@@ -133,6 +150,20 @@ export default function LoginPage() {
     setError("");
 
     try {
+      /*
+       * --------------------------------------------------
+       * CONFIGURE AUTH PERSISTENCE
+       * --------------------------------------------------
+       */
+
+      await configurePersistence();
+
+      /*
+       * --------------------------------------------------
+       * GOOGLE PROVIDER
+       * --------------------------------------------------
+       */
+
       const provider = new GoogleAuthProvider();
 
       provider.setCustomParameters({
@@ -171,8 +202,8 @@ export default function LoginPage() {
     <main className="min-h-screen bg-white text-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-[1920px]">
         {/* =====================================================
-                    LOGIN PANEL
-                ===================================================== */}
+            LOGIN PANEL
+        ===================================================== */}
 
         <section className="flex min-h-screen w-full flex-col lg:w-[54%] xl:w-[50%]">
           {/* Header */}
@@ -423,8 +454,8 @@ export default function LoginPage() {
         </section>
 
         {/* =====================================================
-                    VISUAL PANEL
-                ===================================================== */}
+            VISUAL PANEL
+        ===================================================== */}
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
           <div className="absolute inset-0 bg-slate-950" />
@@ -482,6 +513,8 @@ export default function LoginPage() {
           )}
 
           <div className="relative z-10 flex h-full flex-col p-8 xl:p-12 2xl:p-16">
+            {/* Top */}
+
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-lg backdrop-blur-xl">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
@@ -497,6 +530,8 @@ export default function LoginPage() {
                 Youth Space
               </span>
             </div>
+
+            {/* Main */}
 
             <div className="mt-16 max-w-2xl xl:mt-20 2xl:mt-24">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/45">
@@ -524,6 +559,8 @@ export default function LoginPage() {
                 <VisualFeature>Connect locally</VisualFeature>
               </div>
             </div>
+
+            {/* Bottom */}
 
             <div className="mt-auto pt-16">
               <div className="max-w-xl border-l border-white/20 pl-5">
