@@ -1,4 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import FirebaseAuthServiceWorker from
+  "@/components/FirebaseAuthServiceWorker";
 
 import "./globals.css";
 import Providers from "./providers";
@@ -73,7 +75,9 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col"><Providers>{children}</Providers></body>
+      <body className="flex min-h-full flex-col">
+        <FirebaseAuthServiceWorker />
+        <Providers>{children}</Providers></body>
     </html>
   );
 }

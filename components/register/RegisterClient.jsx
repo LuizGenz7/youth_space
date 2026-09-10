@@ -6,13 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  updateProfile,
-} from "firebase/auth";
-
-import {
   ArrowRight,
   AtSign,
   Briefcase,
@@ -32,9 +25,14 @@ import {
 import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 import FilterButton from "@/components/talents/FilterButton";
 
-import { auth } from "@/lib/firebase-auth";
+import {
+  signUpWithEmail,
+  signInWithGoogle,
+} from "@/lib/auth";
 
-import { createTalentProfile } from "@/data/talents-client";
+import {
+  completeProfileAction,
+} from "@/actions/profile";
 
 import { useSnackbarStore } from "@/stores/useSnackbarStore";
 
@@ -43,11 +41,26 @@ import {
   getDistrictsByProvince,
 } from "@/data/zambia-locations";
 
+/*
+ * --------------------------------------------------
+ * CONSTANTS
+ * --------------------------------------------------
+ */
+
 const REGISTER_IMAGE =
   "https://www.bbcchildreninneed.co.uk/wp-content/uploads/2025/09/wemove-main-image.png";
 
-const USERNAME_REGEX = /^[a-z0-9_]{3,30}$/;
-const PHONE_REGEX = /^[0-9+\-\s()]{7,20}$/;
+const USERNAME_REGEX =
+  /^[a-z0-9_]{3,30}$/;
+
+const PHONE_REGEX =
+  /^[0-9+\-\s()]{7,20}$/;
+
+/*
+ * --------------------------------------------------
+ * COMPONENT
+ * --------------------------------------------------
+ */
 
 export default function RegisterClient({
   categories = [],
@@ -55,31 +68,82 @@ export default function RegisterClient({
 }) {
   const router = useRouter();
 
-  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
+  const showSnackbar =
+    useSnackbarStore(
+      (state) => state.showSnackbar
+    );
 
-  const [showPassword, setShowPassword] = useState(false);
+  /*
+   * --------------------------------------------------
+   * STATE
+   * --------------------------------------------------
+   */
 
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
 
-  const [agree, setAgree] = useState(false);
+  const [
+    showConfirmPassword,
+    setShowConfirmPassword,
+  ] = useState(false);
 
-  const [available, setAvailable] = useState(true);
+  const [
+    agree,
+    setAgree,
+  ] = useState(false);
 
-  const [loading, setLoading] = useState(false);
+  const [
+    available,
+    setAvailable,
+  ] = useState(true);
 
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-  const [category, setCategory] = useState("");
+  const [
+    googleLoading,
+    setGoogleLoading,
+  ] = useState(false);
 
-  const [province, setProvince] = useState("");
+  const [
+    category,
+    setCategory,
+  ] = useState("");
 
-  const [district, setDistrict] = useState("");
+  const [
+    province,
+    setProvince,
+  ] = useState("");
 
-  const [imageError, setImageError] = useState(false);
+  const [
+    district,
+    setDistrict,
+  ] = useState("");
 
-  const [googleUser, setGoogleUser] = useState(null);
+  const [
+    imageError,
+    setImageError,
+  ] = useState(false);
 
-  const isLoading = loading || googleLoading;
+  /*
+   * This is only the Firebase Auth user
+   * returned after Google authentication.
+   *
+   * Profile data is NOT stored here.
+   */
+
+  const [
+    googleUser,
+    setGoogleUser,
+  ] = useState(null);
+
+  const isLoading =
+    loading ||
+    googleLoading;
 
   /*
    * --------------------------------------------------
@@ -87,15 +151,32 @@ export default function RegisterClient({
    * --------------------------------------------------
    */
 
-  const categoryOptions = useMemo(() => {
-    return categories
-      .filter((item) => item && item.id && item.name)
-      .map((item) => item.name);
-  }, [categories]);
+  const categoryOptions =
+    useMemo(() => {
+      return categories
+        .filter(
+          (item) =>
+            item &&
+            item.id &&
+            item.name
+        )
+        .map(
+          (item) =>
+            item.name
+        );
+    }, [categories]);
 
-  const selectedCategory = useMemo(() => {
-    return categories.find((item) => item.name === category);
-  }, [categories, category]);
+  const selectedCategory =
+    useMemo(() => {
+      return categories.find(
+        (item) =>
+          item.name ===
+          category
+      );
+    }, [
+      categories,
+      category,
+    ]);
 
   /*
    * --------------------------------------------------
@@ -103,13 +184,16 @@ export default function RegisterClient({
    * --------------------------------------------------
    */
 
-  const districts = useMemo(() => {
-    if (!province) {
-      return [];
-    }
+  const districts =
+    useMemo(() => {
+      if (!province) {
+        return [];
+      }
 
-    return getDistrictsByProvince(province);
-  }, [province]);
+      return getDistrictsByProvince(
+        province
+      );
+    }, [province]);
 
   /*
    * --------------------------------------------------
@@ -117,7 +201,9 @@ export default function RegisterClient({
    * --------------------------------------------------
    */
 
-  function showError(message) {
+  function showError(
+    message
+  ) {
     showSnackbar({
       type: "error",
       message,
@@ -130,7 +216,9 @@ export default function RegisterClient({
    * --------------------------------------------------
    */
 
-  function handleProvinceChange(value) {
+  function handleProvinceChange(
+    value
+  ) {
     setProvince(value);
     setDistrict("");
   }
@@ -139,106 +227,247 @@ export default function RegisterClient({
    * --------------------------------------------------
    * PROFILE DATA
    * --------------------------------------------------
+   *
+   * This only collects form data.
+   *
+   * IMPORTANT:
+   * Final validation also happens on the
+   * server inside completeProfileAction().
    */
 
-  function getProfileData(formData) {
-    const username = String(formData.get("username") || "")
-      .trim()
-      .toLowerCase();
+  function getProfileData(
+    formData
+  ) {
+    const username =
+      String(
+        formData.get(
+          "username"
+        ) || ""
+      )
+        .trim()
+        .toLowerCase();
 
-    const role = String(formData.get("role") || "").trim();
+    const role =
+      String(
+        formData.get(
+          "role"
+        ) || ""
+      ).trim();
 
-    const bio = String(formData.get("bio") || "").trim();
+    const bio =
+      String(
+        formData.get(
+          "bio"
+        ) || ""
+      ).trim();
 
-    const phone = String(formData.get("phone") || "").trim();
+    const phone =
+      String(
+        formData.get(
+          "phone"
+        ) || ""
+      ).trim();
 
-    const whatsapp = String(formData.get("whatsapp") || "").trim();
+    const whatsapp =
+      String(
+        formData.get(
+          "whatsapp"
+        ) || ""
+      ).trim();
+
+    /*
+     * Username
+     */
 
     if (!username) {
-      showError("Please choose a username.");
-
-      return null;
-    }
-
-    if (!USERNAME_REGEX.test(username)) {
       showError(
-        "Username must be 3–30 characters and use only lowercase letters, numbers and underscores.",
+        "Please choose a username."
       );
 
       return null;
     }
 
+    if (
+      !USERNAME_REGEX.test(
+        username
+      )
+    ) {
+      showError(
+        "Username must be 3–30 characters and use only lowercase letters, numbers and underscores."
+      );
+
+      return null;
+    }
+
+    /*
+     * Role
+     */
+
     if (!role) {
-      showError("Please enter what you do.");
+      showError(
+        "Please enter what you do."
+      );
 
       return null;
     }
 
-    if (role.length > 60) {
-      showError("Your role must be 60 characters or less.");
+    if (
+      role.length < 2
+    ) {
+      showError(
+        "Your role is too short."
+      );
 
       return null;
     }
 
-    if (categories.length === 0) {
-      showError(categoriesError || "Unable to load categories.");
+    if (
+      role.length > 60
+    ) {
+      showError(
+        "Your role must be 60 characters or less."
+      );
 
       return null;
     }
 
-    if (!selectedCategory) {
-      showError("Please select a valid category.");
+    /*
+     * Categories
+     */
+
+    if (
+      categories.length === 0
+    ) {
+      showError(
+        categoriesError ||
+          "Unable to load categories."
+      );
 
       return null;
     }
 
-    if (!province || !ZAMBIA_PROVINCES.includes(province)) {
-      showError("Please select a valid province.");
+    if (
+      !selectedCategory
+    ) {
+      showError(
+        "Please select a valid category."
+      );
 
       return null;
     }
 
-    if (!district || !districts.includes(district)) {
-      showError("Please select a valid district.");
+    /*
+     * Province
+     */
+
+    if (
+      !province ||
+      !ZAMBIA_PROVINCES.includes(
+        province
+      )
+    ) {
+      showError(
+        "Please select a valid province."
+      );
 
       return null;
     }
+
+    /*
+     * District
+     */
+
+    if (
+      !district ||
+      !districts.includes(
+        district
+      )
+    ) {
+      showError(
+        "Please select a valid district."
+      );
+
+      return null;
+    }
+
+    /*
+     * Bio
+     */
 
     if (!bio) {
-      showError("Please tell people a little about yourself.");
+      showError(
+        "Please tell people a little about yourself."
+      );
 
       return null;
     }
 
-    if (bio.length < 20) {
-      showError("Your bio should be at least 20 characters.");
+    if (
+      bio.length < 20
+    ) {
+      showError(
+        "Your bio should be at least 20 characters."
+      );
 
       return null;
     }
 
-    if (bio.length > 500) {
-      showError("Your bio must be 500 characters or less.");
+    if (
+      bio.length > 500
+    ) {
+      showError(
+        "Your bio must be 500 characters or less."
+      );
 
       return null;
     }
 
-    if (!phone || !PHONE_REGEX.test(phone)) {
-      showError("Please enter a valid phone number.");
+    /*
+     * Phone
+     */
+
+    if (
+      !phone ||
+      !PHONE_REGEX.test(
+        phone
+      )
+    ) {
+      showError(
+        "Please enter a valid phone number."
+      );
 
       return null;
     }
 
-    if (!whatsapp || !PHONE_REGEX.test(whatsapp)) {
-      showError("Please enter a valid WhatsApp number.");
+    /*
+     * WhatsApp
+     */
+
+    if (
+      !whatsapp ||
+      !PHONE_REGEX.test(
+        whatsapp
+      )
+    ) {
+      showError(
+        "Please enter a valid WhatsApp number."
+      );
 
       return null;
     }
+
+    /*
+     * Only profile fields are returned.
+     *
+     * uid/email/displayName are intentionally
+     * NOT accepted from the form.
+     */
 
     return {
       username,
       role,
-      categoryId: selectedCategory.id,
-      category: selectedCategory.name,
+      categoryId:
+        selectedCategory.id,
       province,
       district,
       bio,
@@ -254,27 +483,37 @@ export default function RegisterClient({
    * --------------------------------------------------
    */
 
-  async function finishRegistration(profile, user) {
-    if (!user?.uid) {
-      throw new Error("Authentication was not completed.");
+  async function finishRegistration(
+    profile
+  ) {
+    /*
+     * No uid is passed.
+     *
+     * The Server Action gets the authenticated
+     * Firebase user through requireAuth().
+     */
+
+    const result =
+      await completeProfileAction(
+        profile
+      );
+
+    if (!result?.success) {
+      throw new Error(
+        result?.error ||
+          "Unable to create your profile."
+      );
     }
 
-    try {
-      await createTalentProfile(user, profile);
+    showSnackbar({
+      type: "success",
+      message:
+        "Welcome to Youth Space. Your profile is ready.",
+    });
 
-      showSnackbar({
-        type: "success",
-        message: "Welcome to Youth Space. Your profile is ready.",
-      });
-
-      router.replace("/profile");
-    } catch (error) {
-      console.error("Profile creation error:", error);
-
-      showError(error?.message || "Unable to create your profile.");
-
-      throw error;
-    }
+    router.replace(
+      "/profile"
+    );
   }
 
   /*
@@ -283,63 +522,141 @@ export default function RegisterClient({
    * --------------------------------------------------
    */
 
-  async function handleSubmit(event) {
+  async function handleSubmit(
+    event
+  ) {
     event.preventDefault();
 
     if (isLoading) {
       return;
     }
 
+    /*
+     * Terms
+     */
+
     if (!agree) {
-      showError("You must agree to the Terms and Privacy Policy.");
+      showError(
+        "You must agree to the Terms and Privacy Policy."
+      );
 
       return;
     }
 
-    const formData = new FormData(event.currentTarget);
-
-    const name = String(formData.get("name") || "").trim();
-
-    const email = String(formData.get("email") || "")
-      .trim()
-      .toLowerCase();
-
-    const password = String(formData.get("password") || "");
-
-    const confirmPassword = String(formData.get("confirmPassword") || "");
+    const formData =
+      new FormData(
+        event.currentTarget
+      );
 
     /*
-     * Google user does not need
-     * email/password validation.
+     * ------------------------------------------------
+     * EMAIL ACCOUNT DATA
+     * ------------------------------------------------
+     */
+
+    const name =
+      String(
+        formData.get(
+          "name"
+        ) || ""
+      ).trim();
+
+    const email =
+      String(
+        formData.get(
+          "email"
+        ) || ""
+      )
+        .trim()
+        .toLowerCase();
+
+    const password =
+      String(
+        formData.get(
+          "password"
+        ) || ""
+      );
+
+    const confirmPassword =
+      String(
+        formData.get(
+          "confirmPassword"
+        ) || ""
+      );
+
+    /*
+     * Google users already have an
+     * authenticated Firebase account.
      */
 
     if (!googleUser) {
-      if (!name || name.length < 2) {
-        showError("Please enter your full name.");
+      /*
+       * Name
+       */
+
+      if (
+        !name ||
+        name.length < 2
+      ) {
+        showError(
+          "Please enter your full name."
+        );
 
         return;
       }
+
+      /*
+       * Email
+       */
 
       if (!email) {
-        showError("Please enter your email address.");
+        showError(
+          "Please enter your email address."
+        );
 
         return;
       }
 
-      if (password.length < 8) {
-        showError("Password must be at least 8 characters.");
+      /*
+       * Password
+       */
+
+      if (
+        password.length < 8
+      ) {
+        showError(
+          "Password must be at least 8 characters."
+        );
 
         return;
       }
 
-      if (password !== confirmPassword) {
-        showError("Passwords do not match.");
+      /*
+       * Confirm password
+       */
+
+      if (
+        password !==
+        confirmPassword
+      ) {
+        showError(
+          "Passwords do not match."
+        );
 
         return;
       }
     }
 
-    const profile = getProfileData(formData);
+    /*
+     * ------------------------------------------------
+     * PROFILE VALIDATION
+     * ------------------------------------------------
+     */
+
+    const profile =
+      getProfileData(
+        formData
+      );
 
     if (!profile) {
       return;
@@ -355,7 +672,9 @@ export default function RegisterClient({
        */
 
       if (googleUser) {
-        await finishRegistration(profile, googleUser);
+        await finishRegistration(
+          profile
+        );
 
         return;
       }
@@ -364,33 +683,41 @@ export default function RegisterClient({
        * ------------------------------------------------
        * EMAIL USER
        * ------------------------------------------------
+       *
+       * Firebase creates the authenticated user.
        */
 
-      const credential = await createUserWithEmailAndPassword(
-        auth,
+      await signUpWithEmail(
         email,
         password,
+        name
       );
 
-      const user = credential.user;
-
       /*
-       * Save display name
-       * to Firebase Auth.
+       * ------------------------------------------------
+       * CREATE FIRESTORE PROFILE
+       * ------------------------------------------------
+       *
+       * We do NOT pass the Firebase user.
+       *
+       * The server gets it securely through
+       * FirebaseServerApp.
        */
 
-      await updateProfile(user, {
-        displayName: name,
-      });
-
-      /*
-       * Create the Firestore
-       * talent document directly.
-       */
-
-      await finishRegistration(profile, user);
+      await finishRegistration(
+        profile
+      );
     } catch (error) {
-      showError(getFirebaseAuthError(error));
+      console.error(
+        "Registration error:",
+        error
+      );
+
+      showError(
+        getRegistrationError(
+          error
+        )
+      );
     } finally {
       setLoading(false);
     }
@@ -408,7 +735,9 @@ export default function RegisterClient({
     }
 
     if (!agree) {
-      showError("You must agree to the Terms and Privacy Policy.");
+      showError(
+        "You must agree to the Terms and Privacy Policy."
+      );
 
       return;
     }
@@ -416,42 +745,66 @@ export default function RegisterClient({
     setGoogleLoading(true);
 
     try {
-      const provider = new GoogleAuthProvider();
-
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-
-      const credential = await signInWithPopup(auth, provider);
-
-      const user = credential.user;
-
       /*
-       * Keep the Firebase user
-       * in component state.
+       * Firebase Auth handles Google authentication.
        */
 
-      setGoogleUser(user);
+      const user =
+        await signInWithGoogle();
+
+      /*
+       * Keep only the authenticated Firebase
+       * user in client state.
+       *
+       * The actual profile is created later
+       * through the Server Action.
+       */
+
+      setGoogleUser(
+        user
+      );
 
       showSnackbar({
         type: "success",
-        message: "Google account connected. Complete your profile below.",
+        message:
+          "Google account connected. Complete your profile below.",
       });
     } catch (error) {
-      console.error("Google registration error:", error);
+      console.error(
+        "Google registration error:",
+        error
+      );
 
-      showError(getFirebaseAuthError(error));
+      showError(
+        getRegistrationError(
+          error
+        )
+      );
     } finally {
-      setGoogleLoading(false);
+      setGoogleLoading(
+        false
+      );
     }
   }
+
+  /*
+   * --------------------------------------------------
+   * RENDER
+   * --------------------------------------------------
+   */
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-[1920px]">
+
         <section className="flex min-h-screen w-full flex-col lg:w-[58%] xl:w-[55%]">
+
           <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
-            <Link href="/" className="flex items-center gap-2.5">
+
+            <Link
+              href="/"
+              className="flex items-center gap-2.5"
+            >
               <YouthSpaceBrand />
             </Link>
 
@@ -461,11 +814,15 @@ export default function RegisterClient({
             >
               Sign in
             </Link>
+
           </header>
 
           <div className="flex flex-1 justify-center px-5 py-8 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
+
             <div className="w-full max-w-[560px]">
+
               <div className="mb-8">
+
                 <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 lg:hidden">
                   <Sparkles size={18} />
                 </div>
@@ -485,46 +842,66 @@ export default function RegisterClient({
                     ? "Your Google account is connected. Now tell people what you can do."
                     : "Create your account and tell people what you can do. Everything you need to start your Youth Space profile is right here."}
                 </p>
+
               </div>
 
-              {categoriesError && categories.length === 0 && (
-                <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-                  {categoriesError}
-                </div>
-              )}
+              {categoriesError &&
+                categories.length === 0 && (
+                  <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+                    {categoriesError}
+                  </div>
+                )}
 
               {googleUser && (
                 <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+
                   <div className="flex items-center gap-3">
+
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-black shadow-sm">
-                      {(googleUser.displayName || googleUser.email || "G")
+                      {(googleUser.displayName ||
+                        googleUser.email ||
+                        "G"
+                      )
                         .charAt(0)
                         .toUpperCase()}
                     </div>
 
                     <div className="min-w-0">
+
                       <p className="truncate text-sm font-bold text-slate-900">
-                        {googleUser.displayName || "Google account"}
+                        {googleUser.displayName ||
+                          "Google account"}
                       </p>
 
                       <p className="truncate text-xs text-slate-400">
                         {googleUser.email}
                       </p>
+
                     </div>
 
                     <span className="ml-auto shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-600">
                       Connected
                     </span>
+
                   </div>
+
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} noValidate className="space-y-6">
+              <form
+                onSubmit={
+                  handleSubmit
+                }
+                noValidate
+                className="space-y-6"
+              >
+
                 <FormSection
                   number="01"
                   title="Account"
                   description="Your basic account information."
                 >
+
                   {!googleUser && (
                     <>
                       <Input
@@ -549,31 +926,50 @@ export default function RegisterClient({
                       />
 
                       <div className="grid gap-5 sm:grid-cols-2">
+
                         <PasswordInput
                           id="password"
                           name="password"
                           label="Password"
-                          visible={showPassword}
-                          onToggle={() => setShowPassword((value) => !value)}
-                          disabled={isLoading}
+                          visible={
+                            showPassword
+                          }
+                          onToggle={() =>
+                            setShowPassword(
+                              (value) =>
+                                !value
+                            )
+                          }
+                          disabled={
+                            isLoading
+                          }
                         />
 
                         <PasswordInput
                           id="confirmPassword"
                           name="confirmPassword"
                           label="Confirm password"
-                          visible={showConfirmPassword}
-                          onToggle={() =>
-                            setShowConfirmPassword((value) => !value)
+                          visible={
+                            showConfirmPassword
                           }
-                          disabled={isLoading}
+                          onToggle={() =>
+                            setShowConfirmPassword(
+                              (value) =>
+                                !value
+                            )
+                          }
+                          disabled={
+                            isLoading
+                          }
                         />
+
                       </div>
                     </>
                   )}
 
                   {googleUser && (
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
+
                       <p className="text-xs font-bold text-slate-400">
                         Signed in with Google
                       </p>
@@ -581,8 +977,10 @@ export default function RegisterClient({
                       <p className="mt-1 text-sm font-bold text-slate-900">
                         {googleUser.email}
                       </p>
+
                     </div>
                   )}
+
                 </FormSection>
 
                 <FormSection
@@ -590,6 +988,7 @@ export default function RegisterClient({
                   title="Your identity"
                   description="How people will discover you."
                 >
+
                   <Input
                     id="username"
                     name="username"
@@ -615,6 +1014,7 @@ export default function RegisterClient({
                   />
 
                   <div>
+
                     <label className="mb-2 block text-sm font-bold text-slate-800">
                       Category
                     </label>
@@ -622,11 +1022,20 @@ export default function RegisterClient({
                     <FilterButton
                       full
                       icon={Briefcase}
-                      options={categoryOptions}
-                      value={category || "Select category"}
-                      onChange={setCategory}
+                      options={
+                        categoryOptions
+                      }
+                      value={
+                        category ||
+                        "Select category"
+                      }
+                      onChange={
+                        setCategory
+                      }
                     />
+
                   </div>
+
                 </FormSection>
 
                 <FormSection
@@ -634,8 +1043,11 @@ export default function RegisterClient({
                   title="Location"
                   description="Help people find talent in their area."
                 >
+
                   <div className="grid gap-5 sm:grid-cols-2">
+
                     <div>
+
                       <label className="mb-2 block text-xs font-bold text-slate-700">
                         Province
                       </label>
@@ -643,13 +1055,22 @@ export default function RegisterClient({
                       <FilterButton
                         full
                         icon={MapPin}
-                        options={ZAMBIA_PROVINCES}
-                        value={province || "Select province"}
-                        onChange={handleProvinceChange}
+                        options={
+                          ZAMBIA_PROVINCES
+                        }
+                        value={
+                          province ||
+                          "Select province"
+                        }
+                        onChange={
+                          handleProvinceChange
+                        }
                       />
+
                     </div>
 
                     <div>
+
                       <label className="mb-2 block text-xs font-bold text-slate-700">
                         District
                       </label>
@@ -657,12 +1078,22 @@ export default function RegisterClient({
                       <FilterButton
                         full
                         icon={MapPin}
-                        options={districts}
-                        value={district || "Select district"}
-                        onChange={setDistrict}
+                        options={
+                          districts
+                        }
+                        value={
+                          district ||
+                          "Select district"
+                        }
+                        onChange={
+                          setDistrict
+                        }
                       />
+
                     </div>
+
                   </div>
+
                 </FormSection>
 
                 <FormSection
@@ -670,7 +1101,9 @@ export default function RegisterClient({
                   title="About you"
                   description="Give people a reason to choose you."
                 >
+
                   <div className="relative">
+
                     <FileText
                       size={18}
                       className="pointer-events-none absolute left-4 top-4 text-slate-400"
@@ -686,11 +1119,13 @@ export default function RegisterClient({
                       disabled={isLoading}
                       className="w-full resize-none rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-4 text-sm font-medium leading-6 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04]"
                     />
+
                   </div>
 
                   <p className="text-[11px] text-slate-400">
                     20–500 characters.
                   </p>
+
                 </FormSection>
 
                 <FormSection
@@ -698,7 +1133,9 @@ export default function RegisterClient({
                   title="Contact"
                   description="Make it easy for people to reach you."
                 >
+
                   <div className="grid gap-5 sm:grid-cols-2">
+
                     <Input
                       id="phone"
                       name="phone"
@@ -721,17 +1158,28 @@ export default function RegisterClient({
                       placeholder="+260..."
                       disabled={isLoading}
                     />
+
                   </div>
+
                 </FormSection>
 
                 <button
                   type="button"
-                  onClick={() => setAvailable((value) => !value)}
+                  onClick={() =>
+                    setAvailable(
+                      (value) =>
+                        !value
+                    )
+                  }
                   disabled={isLoading}
-                  aria-pressed={available}
+                  aria-pressed={
+                    available
+                  }
                   className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50"
                 >
+
                   <div className="flex items-center gap-3">
+
                     <span
                       className={[
                         "flex h-9 w-9 items-center justify-center rounded-xl",
@@ -744,6 +1192,7 @@ export default function RegisterClient({
                     </span>
 
                     <span>
+
                       <span className="block text-sm font-bold">
                         Available for work
                       </span>
@@ -751,57 +1200,84 @@ export default function RegisterClient({
                       <span className="mt-0.5 block text-xs text-slate-400">
                         Let people know you are currently available.
                       </span>
+
                     </span>
+
                   </div>
 
                   <span
                     className={[
                       "relative h-6 w-11 rounded-full transition",
-                      available ? "bg-slate-950" : "bg-slate-200",
+                      available
+                        ? "bg-slate-950"
+                        : "bg-slate-200",
                     ].join(" ")}
                   >
                     <span
                       className={[
                         "absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition",
-                        available ? "left-6" : "left-1",
+                        available
+                          ? "left-6"
+                          : "left-1",
                       ].join(" ")}
                     />
                   </span>
+
                 </button>
 
                 <label className="flex cursor-pointer items-start gap-3">
+
                   <input
                     type="checkbox"
                     checked={agree}
-                    onChange={(event) => setAgree(event.target.checked)}
+                    onChange={(
+                      event
+                    ) =>
+                      setAgree(
+                        event.target
+                          .checked
+                      )
+                    }
                     disabled={isLoading}
                     className="mt-0.5 h-4 w-4 shrink-0 accent-slate-950"
                   />
 
                   <span className="text-xs leading-5 text-slate-500">
+
                     I agree to the{" "}
+
                     <Link
                       href="/terms"
                       className="font-bold text-slate-800 hover:underline"
                     >
                       Terms
-                    </Link>{" "}
-                    and{" "}
+                    </Link>
+
+                    {" "}and{" "}
+
                     <Link
                       href="/privacy"
                       className="font-bold text-slate-800 hover:underline"
                     >
                       Privacy Policy
                     </Link>
+
                     .
+
                   </span>
+
                 </label>
 
                 <button
                   type="submit"
-                  disabled={isLoading || !agree || categories.length === 0}
+                  disabled={
+                    isLoading ||
+                    !agree ||
+                    categories.length === 0
+                  }
                   className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
                 >
+
                   {loading ? (
                     <>
                       <LoadingSpinner />
@@ -819,12 +1295,15 @@ export default function RegisterClient({
                       />
                     </>
                   )}
+
                 </button>
+
               </form>
 
               {!googleUser && (
                 <>
                   <div className="my-7 flex items-center gap-4">
+
                     <div className="h-px flex-1 bg-slate-200" />
 
                     <span className="text-[10px] font-black text-slate-400">
@@ -832,48 +1311,75 @@ export default function RegisterClient({
                     </span>
 
                     <div className="h-px flex-1 bg-slate-200" />
+
                   </div>
 
                   <button
                     type="button"
-                    onClick={handleGoogleSignUp}
-                    disabled={isLoading}
+                    onClick={
+                      handleGoogleSignUp
+                    }
+                    disabled={
+                      isLoading
+                    }
                     className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                   >
-                    {googleLoading ? <LoadingSpinner /> : <GoogleIcon />}
+
+                    {googleLoading ? (
+                      <LoadingSpinner />
+                    ) : (
+                      <GoogleIcon />
+                    )}
+
                     Continue with Google
+
                   </button>
                 </>
               )}
 
               <p className="mt-8 text-center text-sm text-slate-500">
+
                 Already have an account?{" "}
+
                 <Link
                   href="/login"
                   className="font-black text-slate-950 hover:underline"
                 >
                   Sign in
                 </Link>
+
               </p>
+
             </div>
+
           </div>
 
           <footer className="px-5 pb-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
+
             <p className="text-[10px] font-medium text-slate-400">
               © 2026 Youth Space by TechGU
             </p>
+
           </footer>
+
         </section>
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
+
           {!imageError && (
             <Image
-              src={REGISTER_IMAGE}
+              src={
+                REGISTER_IMAGE
+              }
               alt=""
               fill
               priority
               sizes="(min-width: 1280px) 45vw, 42vw"
-              onError={() => setImageError(true)}
+              onError={() =>
+                setImageError(
+                  true
+                )
+              }
               className="object-cover"
             />
           )}
@@ -885,7 +1391,9 @@ export default function RegisterClient({
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/20" />
 
           <div className="relative z-10 flex min-h-screen flex-col justify-between p-8 xl:p-12 2xl:p-16">
+
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur-xl">
+
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
                 <Sparkles size={10} />
               </span>
@@ -893,36 +1401,54 @@ export default function RegisterClient({
               <span className="text-[10px] font-bold text-white/80">
                 Zambia&apos;s youth talent community
               </span>
+
             </div>
 
             <div className="max-w-2xl">
+
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/45">
                 Your opportunity starts here
               </p>
 
               <h2 className="mt-5 text-4xl font-black leading-[0.98] tracking-[-0.055em] text-white xl:text-5xl 2xl:text-6xl">
+
                 Put your talent
                 <br />
                 in the spotlight.
+
               </h2>
 
               <p className="mt-6 max-w-lg text-sm leading-7 text-white/65 xl:text-base xl:leading-8">
+
                 Build your identity, showcase what you can do and make it easier
                 for people to discover and contact you.
+
               </p>
 
               <div className="mt-9 space-y-3">
-                <VisualFeature>Build your talent profile</VisualFeature>
 
-                <VisualFeature>Showcase your work</VisualFeature>
+                <VisualFeature>
+                  Build your talent profile
+                </VisualFeature>
 
-                <VisualFeature>Get discovered</VisualFeature>
+                <VisualFeature>
+                  Showcase your work
+                </VisualFeature>
 
-                <VisualFeature>Connect with opportunities</VisualFeature>
+                <VisualFeature>
+                  Get discovered
+                </VisualFeature>
+
+                <VisualFeature>
+                  Connect with opportunities
+                </VisualFeature>
+
               </div>
+
             </div>
 
             <div className="border-t border-white/10 pt-6">
+
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
                 Youth Space by TechGU
               </p>
@@ -930,9 +1456,13 @@ export default function RegisterClient({
               <p className="mt-2 text-xs text-white/45">
                 Turning Talent Into Opportunity.
               </p>
+
             </div>
+
           </div>
+
         </section>
+
       </div>
     </main>
   );
@@ -944,22 +1474,39 @@ export default function RegisterClient({
  * --------------------------------------------------
  */
 
-function FormSection({ number, title, description, children }) {
+function FormSection({
+  number,
+  title,
+  description,
+  children,
+}) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-slate-50/40 p-5 sm:p-6">
+
       <div className="mb-5 flex gap-3">
+
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-[10px] font-black text-white">
           {number}
         </span>
 
         <div>
-          <h2 className="text-sm font-black text-slate-900">{title}</h2>
 
-          <p className="mt-1 text-xs text-slate-400">{description}</p>
+          <h2 className="text-sm font-black text-slate-900">
+            {title}
+          </h2>
+
+          <p className="mt-1 text-xs text-slate-400">
+            {description}
+          </p>
+
         </div>
+
       </div>
 
-      <div className="space-y-5">{children}</div>
+      <div className="space-y-5">
+        {children}
+      </div>
+
     </section>
   );
 }
@@ -970,9 +1517,17 @@ function FormSection({ number, title, description, children }) {
  * --------------------------------------------------
  */
 
-function Input({ id, name, label, icon: Icon, type = "text", ...props }) {
+function Input({
+  id,
+  name,
+  label,
+  icon: Icon,
+  type = "text",
+  ...props
+}) {
   return (
     <div>
+
       <label
         htmlFor={id}
         className="mb-2 block text-sm font-bold text-slate-800"
@@ -981,6 +1536,7 @@ function Input({ id, name, label, icon: Icon, type = "text", ...props }) {
       </label>
 
       <div className="relative">
+
         <Icon
           size={18}
           className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -994,7 +1550,9 @@ function Input({ id, name, label, icon: Icon, type = "text", ...props }) {
           {...props}
           className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50"
         />
+
       </div>
+
     </div>
   );
 }
@@ -1005,9 +1563,17 @@ function Input({ id, name, label, icon: Icon, type = "text", ...props }) {
  * --------------------------------------------------
  */
 
-function PasswordInput({ id, name, label, visible, onToggle, disabled }) {
+function PasswordInput({
+  id,
+  name,
+  label,
+  visible,
+  onToggle,
+  disabled,
+}) {
   return (
     <div>
+
       <label
         htmlFor={id}
         className="mb-2 block text-sm font-bold text-slate-800"
@@ -1016,6 +1582,7 @@ function PasswordInput({ id, name, label, visible, onToggle, disabled }) {
       </label>
 
       <div className="relative">
+
         <LockKeyhole
           size={18}
           className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -1024,7 +1591,11 @@ function PasswordInput({ id, name, label, visible, onToggle, disabled }) {
         <input
           id={id}
           name={name}
-          type={visible ? "text" : "password"}
+          type={
+            visible
+              ? "text"
+              : "password"
+          }
           autoComplete="new-password"
           required
           minLength={8}
@@ -1036,12 +1607,23 @@ function PasswordInput({ id, name, label, visible, onToggle, disabled }) {
         <button
           type="button"
           onClick={onToggle}
-          aria-label={visible ? "Hide password" : "Show password"}
-          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-950"
+          disabled={disabled}
+          aria-label={
+            visible
+              ? "Hide password"
+              : "Show password"
+          }
+          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-950 disabled:cursor-not-allowed"
         >
-          {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+          {visible ? (
+            <EyeOff size={18} />
+          ) : (
+            <Eye size={18} />
+          )}
         </button>
+
       </div>
+
     </div>
   );
 }
@@ -1064,14 +1646,18 @@ function LoadingSpinner() {
  * --------------------------------------------------
  */
 
-function VisualFeature({ children }) {
+function VisualFeature({
+  children,
+}) {
   return (
     <div className="flex items-center gap-2 text-xs font-bold text-white/70">
+
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15">
         <Check size={11} />
       </span>
 
       {children}
+
     </div>
   );
 }
@@ -1084,7 +1670,12 @@ function VisualFeature({ children }) {
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+
       <path
         fill="#4285F4"
         d="M21.35 12.23c0-.72-.06-1.41-.18-2.08H12v3.94h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.25Z"
@@ -1104,18 +1695,72 @@ function GoogleIcon() {
         fill="#EA4335"
         d="M12 6.38c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.83 3.48 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.71 5.38l3.24 2.53 2.3Z"
       />
+
     </svg>
   );
 }
 
 /*
  * --------------------------------------------------
- * FIREBASE AUTH ERRORS
+ * REGISTRATION ERRORS
  * --------------------------------------------------
  */
 
-function getFirebaseAuthError(error) {
-  switch (error?.code) {
+function getRegistrationError(
+  error
+) {
+  /*
+   * Server Action errors
+   */
+
+  if (
+    error?.message
+  ) {
+    const message =
+      error.message;
+
+    if (
+      message ===
+        "That username is already taken."
+    ) {
+      return message;
+    }
+
+    if (
+      message ===
+        "Please select a valid category."
+    ) {
+      return message;
+    }
+
+    if (
+      message.includes(
+        "Username must be"
+      )
+    ) {
+      return message;
+    }
+
+    /*
+     * Don't expose internal
+     * server/Firebase errors.
+     */
+
+    if (
+      message ===
+        "Unable to create your profile. Please try again."
+    ) {
+      return message;
+    }
+  }
+
+  /*
+   * Firebase Auth errors
+   */
+
+  switch (
+    error?.code
+  ) {
     case "auth/email-already-in-use":
       return "An account with this email already exists.";
 
@@ -1137,15 +1782,21 @@ function getFirebaseAuthError(error) {
     case "auth/popup-blocked":
       return "Google sign-up was blocked by your browser.";
 
+    case "auth/cancelled-popup-request":
+      return "Google sign-up was cancelled.";
+
     case "auth/account-exists-with-different-credential":
       return "An account already exists with this email using another sign-in method.";
 
-    case "permission-denied":
-      return "You do not have permission to create this profile.";
+    case "auth/operation-not-allowed":
+      return "This sign-in method is not currently enabled.";
+
+    case "auth/user-disabled":
+      return "This account has been disabled.";
 
     default:
       return (
-        error?.message || "Unable to create your account. Please try again."
+        "Unable to create your account. Please try again."
       );
   }
 }

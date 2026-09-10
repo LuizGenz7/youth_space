@@ -1,73 +1,42 @@
 import { z } from "zod";
 
 import {
+    cacheLife,
+    cacheTag,
+} from "next/cache";
+
+import {
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    serverTimestamp,
+} from "firebase/firestore";
+
+import {
+    getServerFirebase,
+} from "@/lib/server";
+
+import {
     categories,
 } from "./categories";
 
-import {
-    talents,
-    getTalentById,
-    getTalentByUsername,
-} from "./talents_data";
-
 /*
  * --------------------------------------------------
- * TEST PROFILE DATA
+ * CONSTANTS
  * --------------------------------------------------
- *
- * Firebase has been completely removed.
- *
- * Profiles are stored in the in-memory `talents`
- * array from talents_data.js.
- *
- * Categories come from categories.js.
- *
- * IMPORTANT:
- *
- * This is TEST DATA only.
- * Changes exist only while the development server
- * is running.
  */
 
-/*
- * --------------------------------------------------
- * TEST AUTH
- * --------------------------------------------------
- *
- * There is no Firebase Auth in test mode.
- *
- * The first generated talent acts as the currently
- * authenticated test user.
- *
- * You can change this later when we build the
- * real authentication layer.
- */
+const PROFILES_COLLECTION =
+    "profiles";
 
-const TEST_CURRENT_USER_ID =
-    talents[0]?.uid || "test-talent-1";
-
-function getCurrentUser() {
-    const user =
-        getTalentById(
-            TEST_CURRENT_USER_ID
-        );
-
-    if (!user) {
-        throw new Error(
-            "AUTH_REQUIRED"
-        );
-    }
-
-    return {
-        uid: user.uid,
-
-        displayName:
-            user.displayName,
-
-        email:
-            user.email,
-    };
-}
+const USERNAME_REGEX =
+    /^[a-z0-9_]{3,30}$/;
 
 /*
  * --------------------------------------------------
@@ -75,17 +44,15 @@ function getCurrentUser() {
  * --------------------------------------------------
  */
 
-const USERNAME_REGEX =
-    /^[a-z0-9_]{3,30}$/;
-
-const usernameSchema = z
-    .string()
-    .trim()
-    .toLowerCase()
-    .regex(
-        USERNAME_REGEX,
-        "Username must be 3-30 characters and contain only lowercase letters, numbers, and underscores."
-    );
+const usernameSchema =
+    z
+        .string()
+        .trim()
+        .toLowerCase()
+        .regex(
+            USERNAME_REGEX,
+            "Username must be 3-30 characters and contain only lowercase letters, numbers, and underscores."
+        );
 
 const profileUpdateSchema =
     z.object({
@@ -217,9 +184,7 @@ const profileUpdateSchema =
  * --------------------------------------------------
  */
 
-function normalizeString(
-    value
-) {
+function normalizeString(value) {
     if (
         typeof value !== "string"
     ) {
@@ -229,9 +194,7 @@ function normalizeString(
     return value.trim();
 }
 
-function normalizeStringArray(
-    value
-) {
+function normalizeStringArray(value) {
     if (!Array.isArray(value)) {
         return [];
     }
@@ -249,15 +212,11 @@ function normalizeStringArray(
         .filter(Boolean);
 }
 
-function normalizeBoolean(
-    value
-) {
+function normalizeBoolean(value) {
     return value === true;
 }
 
-function normalizeNumber(
-    value
-) {
+function normalizeNumber(value) {
     const number =
         Number(value);
 
@@ -266,9 +225,7 @@ function normalizeNumber(
         : 0;
 }
 
-function normalizeServices(
-    value
-) {
+function normalizeServices(value) {
     if (!Array.isArray(value)) {
         return [];
     }
@@ -333,9 +290,7 @@ function normalizeServices(
  * --------------------------------------------------
  */
 
-function getCategory(
-    categoryId
-) {
+function getCategory(categoryId) {
     const normalizedId =
         normalizeString(
             categoryId
@@ -368,13 +323,57 @@ function getCategory(
 
 /*
  * --------------------------------------------------
+ * AUTH
+ * --------------------------------------------------
+ */
+
+async function getCurrentUser() {
+    const {
+        auth,
+    } = await getServerFirebase();
+
+    await auth.authStateReady();
+
+    const user =
+        auth.currentUser;
+
+    if (!user) {
+        throw new Error(
+            "AUTH_REQUIRED"
+        );
+    }
+
+    return {
+        uid:
+            user.uid,
+
+        displayName:
+            normalizeString(
+                user.displayName
+            ),
+
+        email:
+            normalizeString(
+                user.email
+            ),
+
+        photoURL:
+            user.photoURL ||
+            null,
+
+        emailVerified:
+            user.emailVerified ===
+            true,
+    };
+}
+
+/*
+ * --------------------------------------------------
  * SERIALIZERS
  * --------------------------------------------------
  */
 
-function serializeProfile(
-    profile
-) {
+function serializeProfile(profile) {
     if (!profile) {
         return null;
     }
@@ -484,9 +483,7 @@ function serializeProfile(
     };
 }
 
-function serializePublicProfile(
-    profile
-) {
+function serializePublicProfile(profile) {
     if (!profile) {
         return null;
     }
@@ -591,9 +588,7 @@ function serializePublicProfile(
     };
 }
 
-function serializeUsernameRecord(
-    profile
-) {
+function serializeUsernameRecord(profile) {
     if (!profile) {
         return null;
     }
@@ -627,7 +622,7 @@ export async function createProfile(
     profileData
 ) {
     const user =
-        getCurrentUser();
+        await getCurrentUser();
 
     const username =
         usernameSchema.parse(
@@ -656,52 +651,66 @@ export async function createProfile(
         );
     }
 
-    const existingProfile =
-        getTalentById(
+    const {
+        db,
+    } = await getServerFirebase();
+
+    const profileRef =
+        doc(
+            db,
+            PROFILES_COLLECTION,
             user.uid
         );
 
-    /*
-     * Our test user already has a
-     * generated profile.
-     *
-     * This prevents accidentally
-     * creating a duplicate profile.
-     */
+    const existingProfile =
+        await getDoc(
+            profileRef
+        );
 
-    if (existingProfile) {
+    if (existingProfile.exists()) {
         throw new Error(
             "PROFILE_EXISTS"
         );
     }
 
-    const usernameExists =
-        getTalentByUsername(
-            username
+    const usernameQuery =
+        query(
+            collection(
+                db,
+                PROFILES_COLLECTION
+            ),
+            where(
+                "username",
+                "==",
+                username
+            )
         );
 
-    if (usernameExists) {
+    const usernameSnapshot =
+        await getDocs(
+            usernameQuery
+        );
+
+    if (!usernameSnapshot.empty) {
         throw new Error(
             "USERNAME_TAKEN"
         );
     }
 
     const newProfile = {
-        id: user.uid,
+        id:
+            user.uid,
 
-        uid: user.uid,
+        uid:
+            user.uid,
 
         username,
 
         displayName:
-            normalizeString(
-                user.displayName
-            ),
+            user.displayName,
 
         email:
-            normalizeString(
-                user.email
-            ),
+            user.email,
 
         role:
             normalizeString(
@@ -767,50 +776,75 @@ export async function createProfile(
         workCount: 0,
 
         createdAt:
-            new Date().toISOString(),
+            serverTimestamp(),
 
         updatedAt:
-            new Date().toISOString(),
+            serverTimestamp(),
     };
 
-    talents.push(
+    await setDoc(
+        profileRef,
         newProfile
     );
 
-    category.totalTalents =
-        normalizeNumber(
-            category.totalTalents
-        ) + 1;
+    return serializeProfile({
+        ...newProfile,
 
-    return serializeProfile(
-        newProfile
-    );
+        createdAt: null,
+        updatedAt: null,
+    });
 }
 
 /*
  * --------------------------------------------------
  * GET MY PROFILE
  * --------------------------------------------------
+ *
+ * Authenticated + request-specific.
+ * DO NOT CACHE.
  */
 
 export async function getMyProfile() {
     const user =
-        getCurrentUser();
+        await getCurrentUser();
 
-    const profile =
-        getTalentById(
+    const {
+        db,
+    } = await getServerFirebase();
+
+    const profileRef =
+        doc(
+            db,
+            PROFILES_COLLECTION,
             user.uid
         );
 
-    return serializeProfile(
-        profile
-    );
+    const profileSnapshot =
+        await getDoc(
+            profileRef
+        );
+
+    if (
+        !profileSnapshot.exists()
+    ) {
+        return null;
+    }
+
+    return serializeProfile({
+        id:
+            profileSnapshot.id,
+
+        ...profileSnapshot.data(),
+    });
 }
 
 /*
  * --------------------------------------------------
  * GET PROFILE BY UID
  * --------------------------------------------------
+ *
+ * Authenticated/private usage.
+ * DO NOT CACHE.
  */
 
 export async function getProfileByUid(
@@ -825,20 +859,42 @@ export async function getProfileByUid(
         return null;
     }
 
-    const profile =
-        getTalentById(
+    const {
+        db,
+    } = await getServerFirebase();
+
+    const profileRef =
+        doc(
+            db,
+            PROFILES_COLLECTION,
             normalizedUid
         );
 
-    return serializeProfile(
-        profile
-    );
+    const profileSnapshot =
+        await getDoc(
+            profileRef
+        );
+
+    if (
+        !profileSnapshot.exists()
+    ) {
+        return null;
+    }
+
+    return serializeProfile({
+        id:
+            profileSnapshot.id,
+
+        ...profileSnapshot.data(),
+    });
 }
 
 /*
  * --------------------------------------------------
  * GET PROFILE BY USERNAME
  * --------------------------------------------------
+ *
+ * Public + cacheable.
  */
 
 export async function getProfileByUsername(
@@ -849,20 +905,66 @@ export async function getProfileByUsername(
             username
         );
 
-    const profile =
-        getTalentByUsername(
-            normalizedUsername
+    return getCachedProfileByUsername(
+        normalizedUsername
+    );
+}
+
+async function getCachedProfileByUsername(
+    username
+) {
+    "use cache";
+
+    cacheLife("hours");
+
+    cacheTag(
+        "profiles",
+        `profile-username:${username}`
+    );
+
+    const {
+        db,
+    } = await getServerFirebase();
+
+    const profileQuery =
+        query(
+            collection(
+                db,
+                PROFILES_COLLECTION
+            ),
+            where(
+                "username",
+                "==",
+                username
+            )
         );
 
-    return serializePublicProfile(
-        profile
-    );
+    const snapshot =
+        await getDocs(
+            profileQuery
+        );
+
+    if (snapshot.empty) {
+        return null;
+    }
+
+    const profile =
+        snapshot.docs[0];
+
+    return serializePublicProfile({
+        id:
+            profile.id,
+
+        ...profile.data(),
+    });
 }
 
 /*
  * --------------------------------------------------
  * GET USERNAME RECORD
  * --------------------------------------------------
+ *
+ * Public + cacheable.
  */
 
 export async function getUsernameRecord(
@@ -873,20 +975,69 @@ export async function getUsernameRecord(
             username
         );
 
-    const profile =
-        getTalentByUsername(
-            normalizedUsername
+    return getCachedUsernameRecord(
+        normalizedUsername
+    );
+}
+
+async function getCachedUsernameRecord(
+    username
+) {
+    "use cache";
+
+    cacheLife("minutes");
+
+    cacheTag(
+        "profiles",
+        `username:${username}`
+    );
+
+    const {
+        db,
+    } = await getServerFirebase();
+
+    const profileQuery =
+        query(
+            collection(
+                db,
+                PROFILES_COLLECTION
+            ),
+            where(
+                "username",
+                "==",
+                username
+            )
         );
 
-    return serializeUsernameRecord(
-        profile
-    );
+    const snapshot =
+        await getDocs(
+            profileQuery
+        );
+
+    if (snapshot.empty) {
+        return null;
+    }
+
+    const profile =
+        snapshot.docs[0];
+
+    const data =
+        profile.data();
+
+    return serializeUsernameRecord({
+        id:
+            profile.id,
+
+        ...data,
+    });
 }
 
 /*
  * --------------------------------------------------
  * CHECK USERNAME
  * --------------------------------------------------
+ *
+ * Public + cacheable.
  */
 
 export async function isUsernameAvailable(
@@ -897,12 +1048,46 @@ export async function isUsernameAvailable(
             username
         );
 
-    const profile =
-        getTalentByUsername(
-            normalizedUsername
+    return checkCachedUsernameAvailability(
+        normalizedUsername
+    );
+}
+
+async function checkCachedUsernameAvailability(
+    username
+) {
+    "use cache";
+
+    cacheLife("seconds");
+
+    cacheTag(
+        "profiles",
+        `username-availability:${username}`
+    );
+
+    const {
+        db,
+    } = await getServerFirebase();
+
+    const profileQuery =
+        query(
+            collection(
+                db,
+                PROFILES_COLLECTION
+            ),
+            where(
+                "username",
+                "==",
+                username
+            )
         );
 
-    return !profile;
+    const snapshot =
+        await getDocs(
+            profileQuery
+        );
+
+    return snapshot.empty;
 }
 
 /*
@@ -1025,7 +1210,7 @@ function buildProfileUpdates(
     }
 
     clean.updatedAt =
-        new Date().toISOString();
+        serverTimestamp();
 
     return clean;
 }
@@ -1040,7 +1225,7 @@ export async function updateProfile(
     updates
 ) {
     const user =
-        getCurrentUser();
+        await getCurrentUser();
 
     const validation =
         profileUpdateSchema.safeParse(
@@ -1056,16 +1241,36 @@ export async function updateProfile(
     const data =
         validation.data;
 
-    const profile =
-        getTalentById(
+    const {
+        db,
+    } = await getServerFirebase();
+
+    const profileRef =
+        doc(
+            db,
+            PROFILES_COLLECTION,
             user.uid
         );
 
-    if (!profile) {
+    const profileSnapshot =
+        await getDoc(
+            profileRef
+        );
+
+    if (
+        !profileSnapshot.exists()
+    ) {
         throw new Error(
             "PROFILE_NOT_FOUND"
         );
     }
+
+    const profile = {
+        id:
+            profileSnapshot.id,
+
+        ...profileSnapshot.data(),
+    };
 
     const requestedUsername =
         data.username ??
@@ -1098,51 +1303,37 @@ export async function updateProfile(
         }
     }
 
-    /*
-     * Check username uniqueness.
-     */
-
     if (usernameChanged) {
-        const usernameOwner =
-            getTalentByUsername(
-                requestedUsername
+        const usernameQuery =
+            query(
+                collection(
+                    db,
+                    PROFILES_COLLECTION
+                ),
+                where(
+                    "username",
+                    "==",
+                    requestedUsername
+                )
             );
 
-        if (
-            usernameOwner &&
-            usernameOwner.uid !==
-                user.uid
-        ) {
+        const usernameSnapshot =
+            await getDocs(
+                usernameQuery
+            );
+
+        const usernameOwner =
+            usernameSnapshot.docs.find(
+                (document) =>
+                    document.id !==
+                    user.uid
+            );
+
+        if (usernameOwner) {
             throw new Error(
                 "USERNAME_TAKEN"
             );
         }
-    }
-
-    /*
-     * Update category counts.
-     */
-
-    if (categoryChanged) {
-        const oldCategory =
-            getCategory(
-                profile.categoryId
-            );
-
-        if (oldCategory) {
-            oldCategory.totalTalents =
-                Math.max(
-                    0,
-                    normalizeNumber(
-                        oldCategory.totalTalents
-                    ) - 1
-                );
-        }
-
-        newCategory.totalTalents =
-            normalizeNumber(
-                newCategory.totalTalents
-            ) + 1;
     }
 
     const cleanUpdates =
@@ -1153,19 +1344,27 @@ export async function updateProfile(
                 : null
         );
 
-    Object.assign(
-        profile,
-        cleanUpdates
-    );
-
     if (usernameChanged) {
-        profile.username =
+        cleanUpdates.username =
             requestedUsername;
     }
 
-    return serializeProfile(
-        profile
+    await updateDoc(
+        profileRef,
+        cleanUpdates
     );
+
+    const updatedSnapshot =
+        await getDoc(
+            profileRef
+        );
+
+    return serializeProfile({
+        id:
+            updatedSnapshot.id,
+
+        ...updatedSnapshot.data(),
+    });
 }
 
 /*
@@ -1204,52 +1403,34 @@ export async function updateProfileWithUsername(
 
 export async function deleteProfile() {
     const user =
-        getCurrentUser();
+        await getCurrentUser();
 
-    const profile =
-        getTalentById(
+    const {
+        db,
+    } = await getServerFirebase();
+
+    const profileRef =
+        doc(
+            db,
+            PROFILES_COLLECTION,
             user.uid
         );
 
-    if (!profile) {
-        throw new Error(
-            "PROFILE_NOT_FOUND"
-        );
-    }
-
-    const category =
-        getCategory(
-            profile.categoryId
-        );
-
-    if (category) {
-        category.totalTalents =
-            Math.max(
-                0,
-                normalizeNumber(
-                    category.totalTalents
-                ) - 1
-            );
-    }
-
-    const profileIndex =
-        talents.findIndex(
-            (talent) =>
-                talent.uid ===
-                user.uid
+    const profileSnapshot =
+        await getDoc(
+            profileRef
         );
 
     if (
-        profileIndex === -1
+        !profileSnapshot.exists()
     ) {
         throw new Error(
             "PROFILE_NOT_FOUND"
         );
     }
 
-    talents.splice(
-        profileIndex,
-        1
+    await deleteDoc(
+        profileRef
     );
 
     return {
