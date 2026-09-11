@@ -18,7 +18,6 @@ import {
 } from "@/data/categories";
 
 import {
-  getAuthUser,
   requireAuthAction,
 } from "@/lib/auth-server";
 
@@ -274,16 +273,7 @@ const updateProfileSchema = z
 async function validateCategory(
   categoryId
 ) {
-  console.log(
-    "[PROFILE] Validating category:",
-    categoryId
-  );
-
   if (!categoryId) {
-    console.log(
-      "[PROFILE] No category supplied."
-    );
-
     return {
       valid: true,
       category: null,
@@ -294,11 +284,6 @@ async function validateCategory(
     await getCategoryById(
       categoryId
     );
-
-  console.log(
-    "[PROFILE] Category result:",
-    category
-  );
 
   if (!category) {
     return {
@@ -322,46 +307,12 @@ async function validateCategory(
 export async function completeProfileAction(
   input = {}
 ) {
-  console.log(
-    "\n=================================================="
-  );
-
-  console.log(
-    "[PROFILE] COMPLETE PROFILE START"
-  );
-
-  console.log(
-    "[PROFILE] Raw input:",
-    input
-  );
-
-  /*
-   * --------------------------------------------------
-   * VALIDATE
-   * --------------------------------------------------
-   */
-
   const validation =
     completeProfileSchema.safeParse(
       input
     );
 
-  console.log(
-    "[PROFILE] Validation success:",
-    validation.success
-  );
-
   if (!validation.success) {
-    console.error(
-      "[PROFILE] VALIDATION ERRORS:",
-      validation.error.issues
-    );
-
-    console.error(
-      "[PROFILE] VALIDATION FORMAT:",
-      validation.error.format()
-    );
-
     return {
       success: false,
       alreadyExists: false,
@@ -374,107 +325,16 @@ export async function completeProfileAction(
     };
   }
 
-  console.log(
-    "[PROFILE] Validated data:",
-    validation.data
-  );
-
-  /*
-   * --------------------------------------------------
-   * AUTHENTICATION
-   * --------------------------------------------------
-   */
-
   try {
-    console.log(
-      "[PROFILE] Checking authentication..."
-    );
-
-    /*
-     * DEBUG:
-     * Check the raw authenticated user
-     * before requireAuthAction().
-     */
-
-    const authUser =
-      await getAuthUser();
-
-    console.log(
-      "[PROFILE] getAuthUser() result:",
-      authUser
-    );
-
-    if (!authUser) {
-      console.error(
-        "[PROFILE] ❌ NO AUTHENTICATED USER"
-      );
-
-      return {
-        success: false,
-        alreadyExists: false,
-        username: null,
-        error:
-          "You must be logged in.",
-      };
-    }
-
-    console.log(
-      "[PROFILE] ✅ Authenticated UID:",
-      authUser.uid
-    );
-
-    console.log(
-      "[PROFILE] Authenticated email:",
-      authUser.email
-    );
-
-    console.log(
-      "[PROFILE] Email verified:",
-      authUser.emailVerified
-    );
-
-    /*
-     * requireAuthAction() should return
-     * the exact same authenticated user.
-     */
-
     const user =
       await requireAuthAction();
-
-    console.log(
-      "[PROFILE] requireAuthAction() result:",
-      user
-    );
-
-    console.log(
-      "[PROFILE] ✅ Server authentication successful."
-    );
-
-    /*
-     * --------------------------------------------------
-     * EXISTING PROFILE
-     * --------------------------------------------------
-     */
-
-    console.log(
-      "[PROFILE] Checking existing profile..."
-    );
 
     const existingProfile =
       await getProfileByUid(
         user.uid
       );
 
-    console.log(
-      "[PROFILE] Existing profile:",
-      existingProfile
-    );
-
     if (existingProfile) {
-      console.log(
-        "[PROFILE] Profile already exists."
-      );
-
       return {
         success: true,
         alreadyExists: true,
@@ -484,12 +344,6 @@ export async function completeProfileAction(
       };
     }
 
-    /*
-     * --------------------------------------------------
-     * CATEGORY
-     * --------------------------------------------------
-     */
-
     const categoryResult =
       await validateCategory(
         validation.data
@@ -497,10 +351,6 @@ export async function completeProfileAction(
       );
 
     if (!categoryResult.valid) {
-      console.error(
-        "[PROFILE] ❌ Invalid category."
-      );
-
       return {
         success: false,
         alreadyExists: false,
@@ -510,19 +360,11 @@ export async function completeProfileAction(
       };
     }
 
-    console.log(
-      "[PROFILE] ✅ Category valid:",
-      categoryResult.category
-    );
-
-    /*
-     * --------------------------------------------------
-     * CREATE PROFILE
-     * --------------------------------------------------
-     */
-
     const profileInput = {
-      uid: user.uid,
+      ...validation.data,
+
+      uid:
+        user.uid,
 
       displayName:
         user.displayName ||
@@ -532,37 +374,20 @@ export async function completeProfileAction(
         user.email ||
         "",
 
-      ...validation.data,
-
       category:
         categoryResult
           .category.name,
     };
-
-    console.log(
-      "[PROFILE] Creating profile with:",
-      profileInput
-    );
 
     const profile =
       await createProfile(
         profileInput
       );
 
-    console.log(
-      "[PROFILE] ✅ Profile created:",
-      profile
-    );
-
     /*
-     * --------------------------------------------------
-     * CACHE INVALIDATION
-     * --------------------------------------------------
+     * Invalidate public profile
+     * and profile-related caches.
      */
-
-    console.log(
-      "[PROFILE] Updating cache tags..."
-    );
 
     updateTag("profiles");
 
@@ -574,21 +399,7 @@ export async function completeProfileAction(
       `profile-username:${profile.username}`
     );
 
-    updateTag(
-      "categories"
-    );
-
-    console.log(
-      "[PROFILE] Cache tags updated."
-    );
-
-    console.log(
-      "[PROFILE] ✅ COMPLETE PROFILE SUCCESS"
-    );
-
-    console.log(
-      "==================================================\n"
-    );
+    updateTag("categories");
 
     return {
       success: true,
@@ -598,22 +409,6 @@ export async function completeProfileAction(
       error: null,
     };
   } catch (error) {
-    console.error(
-      "\n=================================================="
-    );
-
-    console.error(
-      "[PROFILE] ❌ COMPLETE PROFILE FAILED"
-    );
-
-    logActualError(
-      error
-    );
-
-    console.error(
-      "==================================================\n"
-    );
-
     return handleProfileError(
       error
     );
@@ -627,28 +422,14 @@ export async function completeProfileAction(
  */
 
 export async function getMyProfileAction() {
-  console.log(
-    "[PROFILE] GET MY PROFILE START"
-  );
-
   try {
     const user =
       await requireAuthAction();
-
-    console.log(
-      "[PROFILE] Authenticated UID:",
-      user.uid
-    );
 
     const profile =
       await getProfileByUid(
         user.uid
       );
-
-    console.log(
-      "[PROFILE] Profile:",
-      profile
-    );
 
     if (!profile) {
       return {
@@ -665,20 +446,12 @@ export async function getMyProfileAction() {
       error: null,
     };
   } catch (error) {
-    console.error(
-      "[PROFILE] GET MY PROFILE FAILED"
-    );
-
-    logActualError(
-      error
-    );
-
     return {
       success: false,
       profile: null,
       error:
         error?.message ===
-        "AUTH_REQUIRED"
+          "AUTH_REQUIRED"
           ? "You must be logged in."
           : "Unable to load your profile.",
     };
@@ -694,22 +467,12 @@ export async function getMyProfileAction() {
 export async function getProfileAction(
   username
 ) {
-  console.log(
-    "[PROFILE] GET PUBLIC PROFILE:",
-    username
-  );
-
   const validation =
     usernameSchema.safeParse(
       username
     );
 
   if (!validation.success) {
-    console.error(
-      "[PROFILE] Invalid username:",
-      validation.error.issues
-    );
-
     return {
       success: false,
       profile: null,
@@ -738,15 +501,7 @@ export async function getProfileAction(
       profile,
       error: null,
     };
-  } catch (error) {
-    console.error(
-      "[PROFILE] GET PUBLIC PROFILE FAILED"
-    );
-
-    logActualError(
-      error
-    );
-
+  } catch {
     return {
       success: false,
       profile: null,
@@ -765,22 +520,12 @@ export async function getProfileAction(
 export async function checkUsernameAction(
   username
 ) {
-  console.log(
-    "[PROFILE] CHECK USERNAME:",
-    username
-  );
-
   const validation =
     usernameSchema.safeParse(
       username
     );
 
   if (!validation.success) {
-    console.error(
-      "[PROFILE] Username validation:",
-      validation.error.issues
-    );
-
     return {
       success: false,
       available: false,
@@ -798,25 +543,12 @@ export async function checkUsernameAction(
         validation.data
       );
 
-    console.log(
-      "[PROFILE] Username available:",
-      available
-    );
-
     return {
       success: true,
       available,
       error: null,
     };
-  } catch (error) {
-    console.error(
-      "[PROFILE] CHECK USERNAME FAILED"
-    );
-
-    logActualError(
-      error
-    );
-
+  } catch {
     return {
       success: false,
       available: false,
@@ -835,26 +567,12 @@ export async function checkUsernameAction(
 export async function updateProfileAction(
   input = {}
 ) {
-  console.log(
-    "[PROFILE] UPDATE PROFILE START"
-  );
-
-  console.log(
-    "[PROFILE] Input:",
-    input
-  );
-
   const validation =
     updateProfileSchema.safeParse(
       input
     );
 
   if (!validation.success) {
-    console.error(
-      "[PROFILE] UPDATE VALIDATION ERRORS:",
-      validation.error.issues
-    );
-
     return {
       success: false,
       profile: null,
@@ -869,11 +587,6 @@ export async function updateProfileAction(
   try {
     const user =
       await requireAuthAction();
-
-    console.log(
-      "[PROFILE] Authenticated UID:",
-      user.uid
-    );
 
     const currentProfile =
       await getProfileByUid(
@@ -910,14 +623,8 @@ export async function updateProfileAction(
 
     const profile =
       await updateProfileWithUsername(
-        user.uid,
         validation.data
       );
-
-    console.log(
-      "[PROFILE] Updated profile:",
-      profile
-    );
 
     updateTag("profiles");
 
@@ -949,14 +656,6 @@ export async function updateProfileAction(
       error: null,
     };
   } catch (error) {
-    console.error(
-      "[PROFILE] UPDATE PROFILE FAILED"
-    );
-
-    logActualError(
-      error
-    );
-
     return {
       success: false,
       profile: null,
@@ -976,22 +675,12 @@ export async function updateProfileAction(
 export async function updateUsernameAction(
   username
 ) {
-  console.log(
-    "[PROFILE] UPDATE USERNAME:",
-    username
-  );
-
   const validation =
     usernameSchema.safeParse(
       username
     );
 
   if (!validation.success) {
-    console.error(
-      "[PROFILE] Username validation:",
-      validation.error.issues
-    );
-
     return {
       success: false,
       username: null,
@@ -1006,11 +695,6 @@ export async function updateUsernameAction(
   try {
     const user =
       await requireAuthAction();
-
-    console.log(
-      "[PROFILE] Authenticated UID:",
-      user.uid
-    );
 
     const currentProfile =
       await getProfileByUid(
@@ -1031,14 +715,8 @@ export async function updateUsernameAction(
 
     const profile =
       await updateUsername(
-        user.uid,
         validation.data
       );
-
-    console.log(
-      "[PROFILE] Username updated:",
-      profile.username
-    );
 
     updateTag("profiles");
 
@@ -1063,14 +741,6 @@ export async function updateUsernameAction(
       error: null,
     };
   } catch (error) {
-    console.error(
-      "[PROFILE] UPDATE USERNAME FAILED"
-    );
-
-    logActualError(
-      error
-    );
-
     return {
       success: false,
       username: null,
@@ -1088,18 +758,9 @@ export async function updateUsernameAction(
  */
 
 export async function deleteProfileAction() {
-  console.log(
-    "[PROFILE] DELETE PROFILE START"
-  );
-
   try {
     const user =
       await requireAuthAction();
-
-    console.log(
-      "[PROFILE] Authenticated UID:",
-      user.uid
-    );
 
     const profile =
       await getProfileByUid(
@@ -1114,13 +775,7 @@ export async function deleteProfileAction() {
       };
     }
 
-    await deleteProfile(
-      user.uid
-    );
-
-    console.log(
-      "[PROFILE] Profile deleted."
-    );
+    await deleteProfile();
 
     updateTag("profiles");
 
@@ -1141,14 +796,6 @@ export async function deleteProfileAction() {
       error: null,
     };
   } catch (error) {
-    console.error(
-      "[PROFILE] DELETE PROFILE FAILED"
-    );
-
-    logActualError(
-      error
-    );
-
     if (
       error?.message ===
       "AUTH_REQUIRED"
@@ -1181,88 +828,6 @@ export async function deleteProfileAction() {
 
 /*
  * ==================================================
- * ACTUAL ERROR LOGGER
- * ==================================================
- */
-
-function logActualError(
-  error
-) {
-  console.error(
-    "[ACTUAL ERROR] Object:",
-    error
-  );
-
-  console.error(
-    "[ACTUAL ERROR] Name:",
-    error?.name
-  );
-
-  console.error(
-    "[ACTUAL ERROR] Message:",
-    error?.message
-  );
-
-  console.error(
-    "[ACTUAL ERROR] Code:",
-    error?.code
-  );
-
-  console.error(
-    "[ACTUAL ERROR] Cause:",
-    error?.cause
-  );
-
-  console.error(
-    "[ACTUAL ERROR] Stack:",
-    error?.stack
-  );
-
-  /*
-   * Firebase errors can contain
-   * additional properties.
-   */
-
-  if (
-    error &&
-    typeof error === "object"
-  ) {
-    console.error(
-      "[ACTUAL ERROR] Keys:",
-      Object.keys(error)
-    );
-
-    console.error(
-      "[ACTUAL ERROR] JSON:",
-      safeStringify(error)
-    );
-  }
-}
-
-/*
- * ==================================================
- * SAFE ERROR SERIALIZER
- * ==================================================
- */
-
-function safeStringify(
-  value
-) {
-  try {
-    return JSON.stringify(
-      value,
-      Object.getOwnPropertyNames(
-        value
-      ),
-      2
-    );
-  } catch {
-    return String(value);
-  }
-}
-
-/*
- * ==================================================
  * PROFILE ERROR HANDLER
  * ==================================================
  */
@@ -1271,7 +836,7 @@ function handleProfileError(
   error
 ) {
   switch (
-    error?.message
+  error?.message
   ) {
     case "AUTH_REQUIRED":
       return {
@@ -1328,20 +893,9 @@ function handleProfileError(
       };
 
     default:
-      /*
-       * We deliberately log the complete
-       * unknown error before returning a
-       * safe client message.
-       */
-
-      logActualError(
-        error
-      );
-
       return {
         success: false,
         error:
-          error?.message ||
           "Unable to update your profile. Please try again.",
       };
   }

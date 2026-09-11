@@ -27,7 +27,7 @@ import {
 } from "firebase/auth";
 
 import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
-import { auth } from "@/lib/firebase-auth";
+import { auth } from "@/lib/client";
 
 const LOGIN_IMAGE =
   "https://bongohive.co.zm/app/uploads/2024/12/462231872_1518820968810746_4996820145898586779_n.jpg";

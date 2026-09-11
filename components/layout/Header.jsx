@@ -13,7 +13,7 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 
 import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
-import { auth } from "@/lib/firebase-auth";
+import { auth } from "@/lib/client";
 
 export default function Header({ noChange = false }) {
   const pathname = usePathname();

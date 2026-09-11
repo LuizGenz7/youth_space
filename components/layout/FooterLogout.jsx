@@ -5,7 +5,7 @@ import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
 import { logoutAction } from "@/actions/auth";
-import { auth } from "@/lib/firebase-auth";
+import { auth } from "@/lib/client";
 
 export default function FooterLogout() {
     const router = useRouter();
