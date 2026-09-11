@@ -33,7 +33,7 @@ import {
  */
 
 const PROFILES_COLLECTION =
-    "profiles";
+    "talents";
 
 const USERNAME_REGEX =
     /^[a-z0-9_]{3,30}$/;
