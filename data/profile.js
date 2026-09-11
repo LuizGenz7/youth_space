@@ -15,6 +15,7 @@ import {
 
 import {
   getServerFirebase,
+  getPublicServerFirebase,
 } from "@/lib/server";
 
 import {
@@ -643,13 +644,10 @@ function serializeUsernameRecord(
  * CREATE PROFILE
  * --------------------------------------------------
  *
- * Creates both documents atomically:
+ * Creates atomically:
  *
  * talents/{uid}
  * usernames/{username}
- *
- * The username document is the unique
- * username registry/index.
  * --------------------------------------------------
  */
 
@@ -709,7 +707,7 @@ export async function createProfile(
       db,
       async (transaction) => {
         /*
-         * READS FIRST.
+         * ALL READS FIRST.
          */
 
         const profileSnapshot =
@@ -739,7 +737,7 @@ export async function createProfile(
         }
 
         /*
-         * DATA
+         * PROFILE
          */
 
         const newProfile = {
@@ -831,9 +829,7 @@ export async function createProfile(
         };
 
         /*
-         * USERNAME INDEX
-         *
-         * usernames/{username}
+         * USERNAME REGISTRY
          */
 
         const usernameRecord = {
@@ -870,15 +866,9 @@ export async function createProfile(
       }
     );
 
-  return serializeProfile({
-    ...profile,
-
-    createdAt:
-      null,
-
-    updatedAt:
-      null,
-  });
+  return serializeProfile(
+    profile
+  );
 }
 
 /*
@@ -887,7 +877,7 @@ export async function createProfile(
  * --------------------------------------------------
  *
  * Authenticated.
- * DO NOT CACHE.
+ * NOT CACHED.
  * --------------------------------------------------
  */
 
@@ -931,7 +921,7 @@ export async function getMyProfile() {
  * --------------------------------------------------
  *
  * Authenticated/private usage.
- * DO NOT CACHE.
+ * NOT CACHED.
  * --------------------------------------------------
  */
 
@@ -982,13 +972,22 @@ export async function getProfileByUid(
  * GET PROFILE BY USERNAME
  * --------------------------------------------------
  *
- * Public.
+ * Public + cached.
  *
  * usernames/{username}
- *          ↓
- *         uid
- *          ↓
+ *        ↓
+ *       uid
+ *        ↓
  * talents/{uid}
+ *
+ * IMPORTANT:
+ *
+ * This cached function uses
+ * getPublicServerFirebase().
+ *
+ * It MUST NOT use getServerFirebase()
+ * because getServerFirebase() reads
+ * request headers.
  * --------------------------------------------------
  */
 
@@ -1020,10 +1019,10 @@ async function getCachedProfileByUsername(
 
   const {
     db,
-  } = await getServerFirebase();
+  } = getPublicServerFirebase();
 
   /*
-   * First resolve username → uid.
+   * USERNAME → UID
    */
 
   const usernameRef =
@@ -1057,7 +1056,7 @@ async function getCachedProfileByUsername(
   }
 
   /*
-   * Then resolve uid → profile.
+   * UID → PROFILE
    */
 
   const profileRef =
@@ -1091,7 +1090,7 @@ async function getCachedProfileByUsername(
  * GET USERNAME RECORD
  * --------------------------------------------------
  *
- * Direct lookup:
+ * Public + cached.
  *
  * usernames/{username}
  * --------------------------------------------------
@@ -1124,7 +1123,7 @@ async function getCachedUsernameRecord(
 
   const {
     db,
-  } = await getServerFirebase();
+  } = getPublicServerFirebase();
 
   const usernameRef =
     doc(
@@ -1157,11 +1156,14 @@ async function getCachedUsernameRecord(
  * CHECK USERNAME AVAILABILITY
  * --------------------------------------------------
  *
+ * Public + cached.
+ *
  * Direct lookup:
  *
  * usernames/{username}
  *
- * No query against talents.
+ * No query.
+ * No authentication required.
  * --------------------------------------------------
  */
 
@@ -1193,7 +1195,7 @@ async function checkCachedUsernameAvailability(
 
   const {
     db,
-  } = await getServerFirebase();
+  } = getPublicServerFirebase();
 
   const usernameRef =
     doc(
@@ -1340,19 +1342,6 @@ function buildProfileUpdates(
  * --------------------------------------------------
  * UPDATE PROFILE
  * --------------------------------------------------
- *
- * Normal profile updates:
- *
- * talents/{uid}
- *
- * Username change:
- *
- * usernames/old
- * usernames/new
- * talents/{uid}
- *
- * All username changes happen atomically.
- * --------------------------------------------------
  */
 
 export async function updateProfile(
@@ -1445,9 +1434,9 @@ export async function updateProfile(
   }
 
   /*
-   * ----------------------------------------------
+   * ------------------------------------------------
    * NORMAL PROFILE UPDATE
-   * ----------------------------------------------
+   * ------------------------------------------------
    */
 
   if (!usernameChanged) {
@@ -1478,9 +1467,9 @@ export async function updateProfile(
   }
 
   /*
-   * ----------------------------------------------
+   * ------------------------------------------------
    * USERNAME CHANGE
-   * ----------------------------------------------
+   * ------------------------------------------------
    */
 
   const oldUsernameRef =
@@ -1503,7 +1492,7 @@ export async function updateProfile(
     db,
     async (transaction) => {
       /*
-       * READS FIRST.
+       * ALL READS FIRST.
        */
 
       const profileSnapshot =
@@ -1524,18 +1513,13 @@ export async function updateProfile(
           newUsernameRef
         );
 
-      /*
-       * Make sure the requested
-       * username isn't owned by
-       * another account.
-       */
-
       if (
         newUsernameSnapshot.exists()
       ) {
         const ownerUid =
           normalizeString(
-            newUsernameSnapshot.data()
+            newUsernameSnapshot
+              .data()
               ?.uid
           );
 
@@ -1549,11 +1533,6 @@ export async function updateProfile(
         }
       }
 
-      /*
-       * Read the old username record
-       * before performing any writes.
-       */
-
       let oldUsernameSnapshot =
         null;
 
@@ -1565,7 +1544,7 @@ export async function updateProfile(
       }
 
       /*
-       * BUILD PROFILE UPDATE
+       * BUILD UPDATE
        */
 
       const cleanUpdates =
@@ -1580,7 +1559,7 @@ export async function updateProfile(
         requestedUsername;
 
       /*
-       * WRITES
+       * PROFILE
        */
 
       transaction.update(
@@ -1589,9 +1568,7 @@ export async function updateProfile(
       );
 
       /*
-       * Create/update:
-       *
-       * usernames/{newUsername}
+       * NEW USERNAME
        */
 
       const usernameRecord = {
@@ -1608,17 +1585,12 @@ export async function updateProfile(
           serverTimestamp(),
       };
 
-      /*
-       * Preserve createdAt if the
-       * username document already
-       * belongs to this user.
-       */
-
       if (
         newUsernameSnapshot.exists()
       ) {
         const existingCreatedAt =
-          newUsernameSnapshot.data()
+          newUsernameSnapshot
+            .data()
             ?.createdAt;
 
         if (
@@ -1638,12 +1610,7 @@ export async function updateProfile(
       );
 
       /*
-       * Delete:
-       *
-       * usernames/{oldUsername}
-       *
-       * only if it belongs to
-       * the authenticated user.
+       * DELETE OLD USERNAME
        */
 
       if (
@@ -1652,7 +1619,8 @@ export async function updateProfile(
       ) {
         const oldOwnerUid =
           normalizeString(
-            oldUsernameSnapshot.data()
+            oldUsernameSnapshot
+              .data()
               ?.uid
           );
 
@@ -1667,10 +1635,6 @@ export async function updateProfile(
       }
     }
   );
-
-  /*
-   * Read the final profile.
-   */
 
   const updatedSnapshot =
     await getDoc(
@@ -1725,12 +1689,6 @@ export async function updateProfileWithUsername(
  * --------------------------------------------------
  * DELETE PROFILE
  * --------------------------------------------------
- *
- * Deletes atomically:
- *
- * talents/{uid}
- * usernames/{username}
- * --------------------------------------------------
  */
 
 export async function deleteProfile() {
@@ -1748,13 +1706,13 @@ export async function deleteProfile() {
       user.uid
     );
 
-  const usernameFromProfile =
+  const profileSnapshot =
     await getDoc(
       profileRef
     );
 
   if (
-    !usernameFromProfile.exists()
+    !profileSnapshot.exists()
   ) {
     throw new Error(
       "PROFILE_NOT_FOUND"
@@ -1762,7 +1720,7 @@ export async function deleteProfile() {
   }
 
   const profile =
-    usernameFromProfile.data();
+    profileSnapshot.data();
 
   const username =
     usernameSchema.safeParse(
@@ -1784,18 +1742,16 @@ export async function deleteProfile() {
     db,
     async (transaction) => {
       /*
-       * ------------------------------------------
-       * ALL READS FIRST
-       * ------------------------------------------
+       * ALL READS FIRST.
        */
 
-      const profileSnapshot =
+      const currentProfileSnapshot =
         await transaction.get(
           profileRef
         );
 
       if (
-        !profileSnapshot.exists()
+        !currentProfileSnapshot.exists()
       ) {
         throw new Error(
           "PROFILE_NOT_FOUND"
@@ -1813,9 +1769,7 @@ export async function deleteProfile() {
       }
 
       /*
-       * ------------------------------------------
-       * WRITES AFTER ALL READS
-       * ------------------------------------------
+       * WRITES
        */
 
       transaction.delete(
@@ -1828,14 +1782,10 @@ export async function deleteProfile() {
       ) {
         const ownerUid =
           normalizeString(
-            usernameSnapshot.data()
+            usernameSnapshot
+              .data()
               ?.uid
           );
-
-        /*
-         * Never delete another user's
-         * username reservation.
-         */
 
         if (
           ownerUid ===

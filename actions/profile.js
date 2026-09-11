@@ -32,7 +32,7 @@ const USERNAME_REGEX =
 
 /*
  * ==================================================
- * VALIDATION
+ * SCHEMAS
  * ==================================================
  */
 
@@ -142,6 +142,10 @@ const completeProfileSchema =
 const updateProfileSchema =
   z
     .object({
+      username:
+        usernameSchema
+          .optional(),
+
       role:
         z
           .string()
@@ -278,10 +282,6 @@ const updateProfileSchema =
             "You can have up to 20 services."
           )
           .optional(),
-
-      username:
-        usernameSchema
-          .optional(),
     })
     .strict();
 
@@ -295,10 +295,7 @@ async function validateCategory(
   categoryId
 ) {
   if (!categoryId) {
-    return {
-      valid: true,
-      category: null,
-    };
+    return null;
   }
 
   const category =
@@ -307,16 +304,12 @@ async function validateCategory(
     );
 
   if (!category) {
-    return {
-      valid: false,
-      category: null,
-    };
+    throw new Error(
+      "CATEGORY_NOT_FOUND"
+    );
   }
 
-  return {
-    valid: true,
-    category,
-  };
+  return category;
 }
 
 /*
@@ -332,35 +325,40 @@ function invalidateProfileCache({
 }) {
   updateTag("profiles");
 
-  updateTag(
-    `profile:${uid}`
-  );
+  if (uid) {
+    updateTag(
+      `profile:${uid}`
+    );
+  }
+
+  const usernames =
+    new Set();
 
   if (oldUsername) {
-    updateTag(
-      `profile-username:${oldUsername}`
-    );
-
-    updateTag(
-      `username:${oldUsername}`
-    );
-
-    updateTag(
-      `username-availability:${oldUsername}`
+    usernames.add(
+      oldUsername
     );
   }
 
   if (newUsername) {
+    usernames.add(
+      newUsername
+    );
+  }
+
+  for (
+    const username of usernames
+  ) {
     updateTag(
-      `profile-username:${newUsername}`
+      `profile-username:${username}`
     );
 
     updateTag(
-      `username:${newUsername}`
+      `username:${username}`
     );
 
     updateTag(
-      `username-availability:${newUsername}`
+      `username-availability:${username}`
     );
   }
 }
@@ -370,12 +368,12 @@ function invalidateProfileCache({
  * COMPLETE PROFILE
  * ==================================================
  *
- * data/profile.js is responsible for creating:
+ * Creates:
  *
  * talents/{uid}
  * usernames/{username}
  *
- * atomically.
+ * atomically inside data/profile.js.
  * ==================================================
  */
 
@@ -393,16 +391,23 @@ export async function completeProfileAction(
       alreadyExists: false,
       username: null,
       error:
-        validation.error
-          .issues[0]
-          ?.message ||
-        "Invalid profile information.",
+        getValidationError(
+          validation
+        ),
     };
   }
 
   try {
     const user =
       await requireAuthAction();
+
+    /*
+     * This check improves the UX.
+     *
+     * createProfile() still performs
+     * its own atomic check, so this
+     * is NOT the source of truth.
+     */
 
     const existingProfile =
       await getProfileByUid(
@@ -419,59 +424,25 @@ export async function completeProfileAction(
       };
     }
 
-    /*
-     * Validate the category before
-     * touching Firestore.
-     */
-
-    const categoryResult =
-      await validateCategory(
-        validation.data
-          .categoryId
-      );
-
-    if (!categoryResult.valid) {
-      return {
-        success: false,
-        alreadyExists: false,
-        username: null,
-        error:
-          "Please select a valid category.",
-      };
-    }
-
-    const profileInput = {
-      ...validation.data,
-
-      uid:
-        user.uid,
-
-      displayName:
-        user.displayName ||
-        "",
-
-      email:
-        user.email ||
-        "",
-
-      category:
-        categoryResult
-          .category.name,
-    };
-
-    /*
-     * createProfile() creates BOTH:
-     *
-     * talents/{uid}
-     * usernames/{username}
-     *
-     * in one Firestore transaction.
-     */
+    await validateCategory(
+      validation.data.categoryId
+    );
 
     const profile =
-      await createProfile(
-        profileInput
-      );
+      await createProfile({
+        ...validation.data,
+
+        uid:
+          user.uid,
+
+        displayName:
+          user.displayName ||
+          "",
+
+        email:
+          user.email ||
+          "",
+      });
 
     invalidateProfileCache({
       uid:
@@ -493,9 +464,15 @@ export async function completeProfileAction(
       error: null,
     };
   } catch (error) {
-    return handleProfileError(
-      error
-    );
+    return {
+      success: false,
+      alreadyExists: false,
+      username: null,
+      error:
+        getProfileErrorMessage(
+          error
+        ),
+    };
   }
 }
 
@@ -534,10 +511,9 @@ export async function getMyProfileAction() {
       success: false,
       profile: null,
       error:
-        error?.message ===
-        "AUTH_REQUIRED"
-          ? "You must be logged in."
-          : "Unable to load your profile.",
+        getProfileErrorMessage(
+          error
+        ),
     };
   }
 }
@@ -546,8 +522,6 @@ export async function getMyProfileAction() {
  * ==================================================
  * GET PUBLIC PROFILE
  * ==================================================
- *
- * Username resolution happens through:
  *
  * usernames/{username}
  *        ↓
@@ -609,11 +583,13 @@ export async function getProfileAction(
  * CHECK USERNAME
  * ==================================================
  *
- * Checks:
+ * Public.
  *
- * usernames/{username}
+ * This is only a UX availability
+ * check.
  *
- * directly.
+ * The final reservation is handled
+ * atomically by createProfile().
  * ==================================================
  */
 
@@ -630,10 +606,9 @@ export async function checkUsernameAction(
       success: false,
       available: false,
       error:
-        validation.error
-          .issues[0]
-          ?.message ||
-        "Invalid username.",
+        getValidationError(
+          validation
+        ),
     };
   }
 
@@ -648,12 +623,12 @@ export async function checkUsernameAction(
       available,
       error: null,
     };
-  } catch(e) {
+  } catch {
     return {
       success: false,
       available: false,
       error:
-        "Unable to check username." + e,
+        "Unable to check username.",
     };
   }
 }
@@ -677,10 +652,9 @@ export async function updateProfileAction(
       success: false,
       profile: null,
       error:
-        validation.error
-          .issues[0]
-          ?.message ||
-        "Invalid profile information.",
+        getValidationError(
+          validation
+        ),
     };
   }
 
@@ -702,54 +676,26 @@ export async function updateProfileAction(
       };
     }
 
-    /*
-     * Validate category before
-     * updating the profile.
-     */
-
     if (
-      validation.data
-        .categoryId
+      validation.data.categoryId
     ) {
-      const categoryResult =
-        await validateCategory(
-          validation.data
-            .categoryId
-        );
-
-      if (!categoryResult.valid) {
-        return {
-          success: false,
-          profile: null,
-          error:
-            "Please select a valid category.",
-        };
-      }
+      await validateCategory(
+        validation.data.categoryId
+      );
     }
 
     const oldUsername =
       currentProfile.username ||
       null;
 
-    const requestedUsername =
-      validation.data.username ||
-      oldUsername;
-
     const profile =
       await updateProfileWithUsername(
         validation.data
       );
 
-    /*
-     * updateProfileWithUsername()
-     * atomically handles:
-     *
-     * talents/{uid}
-     *
-     * usernames/{oldUsername}
-     *
-     * usernames/{newUsername}
-     */
+    const newUsername =
+      profile?.username ||
+      oldUsername;
 
     invalidateProfileCache({
       uid:
@@ -757,9 +703,7 @@ export async function updateProfileAction(
 
       oldUsername,
 
-      newUsername:
-        profile?.username ||
-        requestedUsername,
+      newUsername,
     });
 
     updateTag(
@@ -775,9 +719,10 @@ export async function updateProfileAction(
     return {
       success: false,
       profile: null,
-      ...handleProfileError(
-        error
-      ),
+      error:
+        getProfileErrorMessage(
+          error
+        ),
     };
   }
 }
@@ -801,10 +746,9 @@ export async function updateUsernameAction(
       success: false,
       username: null,
       error:
-        validation.error
-          .issues[0]
-          ?.message ||
-        "Invalid username.",
+        getValidationError(
+          validation
+        ),
     };
   }
 
@@ -829,6 +773,11 @@ export async function updateUsernameAction(
     const oldUsername =
       currentProfile.username ||
       null;
+
+    /*
+     * updateUsername() performs
+     * the atomic username change.
+     */
 
     const profile =
       await updateUsername(
@@ -855,9 +804,10 @@ export async function updateUsernameAction(
     return {
       success: false,
       username: null,
-      ...handleProfileError(
-        error
-      ),
+      error:
+        getProfileErrorMessage(
+          error
+        ),
     };
   }
 }
@@ -912,116 +862,123 @@ export async function deleteProfileAction() {
       error: null,
     };
   } catch (error) {
-    if (
-      error?.message ===
-      "AUTH_REQUIRED"
-    ) {
-      return {
-        success: false,
-        error:
-          "You must be logged in.",
-      };
-    }
-
-    if (
-      error?.message ===
-      "PROFILE_NOT_FOUND"
-    ) {
-      return {
-        success: false,
-        error:
-          "Profile not found.",
-      };
-    }
-
     return {
       success: false,
       error:
-        "Unable to delete your profile.",
+        getDeleteProfileError(
+          error
+        ),
     };
   }
 }
 
 /*
  * ==================================================
- * PROFILE ERROR HANDLER
+ * VALIDATION ERROR
  * ==================================================
  */
 
-function handleProfileError(
+function getValidationError(
+  validation
+) {
+  return (
+    validation.error
+      ?.issues?.[0]
+      ?.message ||
+    "Invalid profile information."
+  );
+}
+
+/*
+ * ==================================================
+ * PROFILE ERROR
+ * ==================================================
+ */
+
+function getProfileErrorMessage(
   error
 ) {
   switch (
     error?.message
   ) {
     case "AUTH_REQUIRED":
-      return {
-        success: false,
-        alreadyExists: false,
-        username: null,
-        error:
-          "You must be logged in.",
-      };
+      return (
+        "You must be logged in."
+      );
 
     case "PROFILE_EXISTS":
-      return {
-        success: false,
-        alreadyExists: true,
-        username: null,
-        error:
-          "Your profile has already been created.",
-      };
+      return (
+        "Your profile has already been created."
+      );
 
     case "PROFILE_NOT_FOUND":
-      return {
-        success: false,
-        profile: null,
-        error:
-          "Your profile could not be found.",
-      };
+      return (
+        "Your profile could not be found."
+      );
 
     case "USERNAME_TAKEN":
-      return {
-        success: false,
-        alreadyExists: false,
-        username: null,
-        error:
-          "That username is already taken.",
-      };
+      return (
+        "That username is already taken."
+      );
+
+    case "CATEGORY_NOT_FOUND":
+      return (
+        "Please select a valid category."
+      );
 
     case "UID_REQUIRED":
-      return {
-        success: false,
-        error:
-          "Authentication is required.",
-      };
+      return (
+        "Authentication is required."
+      );
 
     case "USERNAME_REQUIRED":
-      return {
-        success: false,
-        error:
-          "Username is required.",
-      };
+      return (
+        "Username is required."
+      );
 
     case "PROFILE_CHANGED":
-      return {
-        success: false,
-        error:
-          "Your profile changed while it was being updated. Please try again.",
-      };
+      return (
+        "Your profile changed while it was being updated. Please try again."
+      );
 
     case "INVALID_PROFILE_DATA":
-      return {
-        success: false,
-        error:
-          "Invalid profile information.",
-      };
+      return (
+        "Invalid profile information."
+      );
 
     default:
-      return {
-        success: false,
-        error:
-          "Unable to update your profile. Please try again.",
-      };
+      return (
+        "Unable to update your profile. Please try again."
+      );
   }
 }
+
+/*
+ * ==================================================
+ * DELETE ERROR
+ * ==================================================
+ */
+
+function getDeleteProfileError(
+  error
+) {
+  switch (
+    error?.message
+  ) {
+    case "AUTH_REQUIRED":
+      return (
+        "You must be logged in."
+      );
+
+    case "PROFILE_NOT_FOUND":
+      return (
+        "Profile not found."
+      );
+
+    default:
+      return (
+        "Unable to delete your profile."
+      );
+  }
+}
+
