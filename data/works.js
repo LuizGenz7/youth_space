@@ -4,12 +4,29 @@ import {
 } from "next/cache";
 
 import {
-  works,
-} from "./works_data";
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  limit as firestoreLimit,
+  orderBy,
+  query,
+  runTransaction,
+  where,
+} from "firebase/firestore";
 
 import {
-  talents,
-} from "./talents_data";
+  getPublicServerFirebase,
+  getServerFirebase,
+} from "@/lib/server";
+
+const WORKS_COLLECTION =
+  "works";
+
+const TALENTS_COLLECTION =
+  "talents";
 
 const TRENDING_WORKS_LIMIT = 10;
 
@@ -142,32 +159,32 @@ function normalizeServices(
       return {
         id:
           typeof service.id ===
-          "string"
+            "string"
             ? service.id
             : "",
 
         name:
           typeof service.name ===
-          "string"
+            "string"
             ? service.name.trim()
             : "",
 
         description:
           typeof service.description ===
-          "string"
+            "string"
             ? service.description.trim()
             : "",
 
         price:
           service.price !==
             undefined &&
-          service.price !== null
+            service.price !== null
             ? String(service.price)
             : "",
 
         image:
           typeof service.image ===
-          "string"
+            "string"
             ? service.image
             : "",
       };
@@ -182,12 +199,6 @@ function normalizeServices(
 /*
  * --------------------------------------------------
  * NORMALIZE WORK
- * --------------------------------------------------
- *
- * Only public fields are returned.
- *
- * createdAt / updatedAt are used internally
- * for test-data sorting but are NOT returned.
  * --------------------------------------------------
  */
 
@@ -231,7 +242,7 @@ function normalizeWork(
 
     image:
       typeof work.image ===
-      "string"
+        "string"
         ? work.image
         : "",
 
@@ -245,20 +256,6 @@ function normalizeWork(
 /*
  * --------------------------------------------------
  * NORMALIZE TALENT
- * --------------------------------------------------
- *
- * Used when trending works include
- * their owner.
- *
- * Public fields only.
- *
- * No:
- *
- * email
- * phone
- * whatsapp
- * createdAt
- * updatedAt
  * --------------------------------------------------
  */
 
@@ -322,7 +319,7 @@ function normalizeTalent(
 
     avatar:
       typeof talent.avatar ===
-      "string"
+        "string"
         ? talent.avatar
         : null,
 
@@ -360,6 +357,25 @@ function normalizeTalent(
 
 /*
  * --------------------------------------------------
+ * SERIALIZE FIRESTORE WORK
+ * --------------------------------------------------
+ */
+
+function serializeWorkDocument(
+  document
+) {
+  if (!document.exists()) {
+    return null;
+  }
+
+  return normalizeWork({
+    id: document.id,
+    ...document.data(),
+  });
+}
+
+/*
+ * --------------------------------------------------
  * GET ALL WORKS
  * --------------------------------------------------
  */
@@ -373,18 +389,32 @@ export async function getWorks() {
     WORKS_CACHE_TAG
   );
 
-  return [...works]
-    .sort(
-      (a, b) =>
-        String(
-          b.createdAt || ""
-        ).localeCompare(
-          String(
-            a.createdAt || ""
-          )
-        )
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const worksQuery =
+    query(
+      collection(
+        db,
+        WORKS_COLLECTION
+      ),
+      orderBy(
+        "createdAt",
+        "desc"
+      )
+    );
+
+  const snapshot =
+    await getDocs(
+      worksQuery
+    );
+
+  return snapshot.docs
+    .map(
+      serializeWorkDocument
     )
-    .map(normalizeWork)
     .filter(Boolean);
 }
 
@@ -418,15 +448,25 @@ export async function getWorkById(
     )
   );
 
-  const work =
-    works.find(
-      (item) =>
-        item.id ===
-        normalizedWorkId
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const workRef =
+    doc(
+      db,
+      WORKS_COLLECTION,
+      normalizedWorkId
     );
 
-  return normalizeWork(
-    work
+  const snapshot =
+    await getDoc(
+      workRef
+    );
+
+  return serializeWorkDocument(
+    snapshot
   );
 }
 
@@ -462,25 +502,37 @@ export async function getWorksByTalent(
     )
   );
 
-  return [...works]
-    .filter(
-      (work) =>
-        normalizeString(
-          work.talentId
-        ) ===
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const worksQuery =
+    query(
+      collection(
+        db,
+        WORKS_COLLECTION
+      ),
+      where(
+        "talentId",
+        "==",
         normalizedTalentId
+      ),
+      orderBy(
+        "createdAt",
+        "desc"
+      )
+    );
+
+  const snapshot =
+    await getDocs(
+      worksQuery
+    );
+
+  return snapshot.docs
+    .map(
+      serializeWorkDocument
     )
-    .sort(
-      (a, b) =>
-        String(
-          b.createdAt || ""
-        ).localeCompare(
-          String(
-            a.createdAt || ""
-          )
-        )
-    )
-    .map(normalizeWork)
     .filter(Boolean);
 }
 
@@ -511,63 +563,100 @@ export async function getTrendingWorks(
       TRENDING_WORKS_LIMIT
     );
 
-  const topWorks =
-    [...works]
-      .sort(
-        (a, b) =>
-          normalizeNumber(
-            b.likes
-          ) -
-          normalizeNumber(
-            a.likes
-          )
-      )
-      .slice(
-        0,
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const worksQuery =
+    query(
+      collection(
+        db,
+        WORKS_COLLECTION
+      ),
+      orderBy(
+        "likes",
+        "desc"
+      ),
+      firestoreLimit(
         safeLimit
+      )
+    );
+
+  const snapshot =
+    await getDocs(
+      worksQuery
+    );
+
+  const works =
+    snapshot.docs
+      .map(
+        (document) => ({
+          id: document.id,
+          ...document.data(),
+        })
       );
 
   /*
    * ------------------------------------------------
-   * COMBINE WORK + TALENT
+   * GET TALENTS
    * ------------------------------------------------
+   *
+   * The work stores talentId.
+   * We then fetch the corresponding
+   * talents/{uid} document.
    */
 
-  return topWorks
-    .map((work) => {
-      const talent =
-        talents.find(
-          (item) =>
-            String(
-              item.id
-            ) ===
-              String(
-                work.talentId
-              ) ||
-            String(
-              item.uid
-            ) ===
-              String(
-                work.talentId
-              )
-        );
+  const talentResults =
+    await Promise.all(
+      works.map(
+        async (work) => {
+          const talentId =
+            normalizeString(
+              work.talentId
+            );
 
-      if (!talent) {
-        return null;
-      }
+          if (!talentId) {
+            return null;
+          }
 
-      return {
-        ...normalizeWork(
-          work
-        ),
+          const talentRef =
+            doc(
+              db,
+              TALENTS_COLLECTION,
+              talentId
+            );
 
-        talent:
-          normalizeTalent(
-            talent
-          ),
-      };
-    })
-    .filter(Boolean);
+          const talentSnapshot =
+            await getDoc(
+              talentRef
+            );
+
+          if (
+            !talentSnapshot.exists()
+          ) {
+            return null;
+          }
+
+          return {
+            ...normalizeWork(
+              work
+            ),
+
+            talent:
+              normalizeTalent({
+                id:
+                  talentSnapshot.id,
+                ...talentSnapshot.data(),
+              }),
+          };
+        }
+      )
+    );
+
+  return talentResults.filter(
+    Boolean
+  );
 }
 
 /*
@@ -575,11 +664,10 @@ export async function getTrendingWorks(
  * TOGGLE WORK LIKE
  * --------------------------------------------------
  *
- * TEST DATA ONLY
+ * Firebase transaction.
  *
- * No Firebase.
- *
- * This mutates the in-memory test work.
+ * The caller must already be authenticated
+ * through the actions layer.
  * --------------------------------------------------
  */
 
@@ -605,93 +693,109 @@ export async function toggleWorkLike({
     );
   }
 
-  const work =
-    works.find(
-      (item) =>
-        item.id ===
-        normalizedWorkId
+  const {
+    db,
+  } =
+    await getServerFirebase();
+
+  const workRef =
+    doc(
+      db,
+      WORKS_COLLECTION,
+      normalizedWorkId
     );
 
-  if (!work) {
-    throw new Error(
-      "Work not found."
-    );
-  }
-
-  /*
-   * ------------------------------------------------
-   * TEST LIKE STATE
-   * ------------------------------------------------
-   *
-   * Store liked user IDs directly on the
-   * test work object.
-   */
-
-  if (!Array.isArray(
-    work.likedBy
-  )) {
-    work.likedBy = [];
-  }
-
-  const alreadyLiked =
-    work.likedBy.includes(
+  const likeRef =
+    doc(
+      db,
+      WORKS_COLLECTION,
+      normalizedWorkId,
+      "likes",
       normalizedUserId
     );
 
-  const currentLikes =
-    normalizeNumber(
-      work.likes
-    );
+  return runTransaction(
+    db,
+    async (transaction) => {
+      const [
+        workSnapshot,
+        likeSnapshot,
+      ] =
+        await Promise.all([
+          transaction.get(
+            workRef
+          ),
+          transaction.get(
+            likeRef
+          ),
+        ]);
 
-  /*
-   * ------------------------------------------------
-   * REMOVE LIKE
-   * ------------------------------------------------
-   */
+      if (
+        !workSnapshot.exists()
+      ) {
+        throw new Error(
+          "Work not found."
+        );
+      }
 
-  if (alreadyLiked) {
-    work.likedBy =
-      work.likedBy.filter(
-        (id) =>
-          id !==
-          normalizedUserId
+      const currentLikes =
+        normalizeNumber(
+          workSnapshot.data()
+            ?.likes
+        );
+
+      if (
+        likeSnapshot.exists()
+      ) {
+        const likes =
+          Math.max(
+            currentLikes - 1,
+            0
+          );
+
+        transaction.delete(
+          likeRef
+        );
+
+        transaction.update(
+          workRef,
+          {
+            likes,
+          }
+        );
+
+        return {
+          liked: false,
+          likes,
+        };
+      }
+
+      const likes =
+        currentLikes + 1;
+
+      transaction.set(
+        likeRef,
+        {
+          userId:
+            normalizedUserId,
+          createdAt:
+            new Date(),
+        }
       );
 
-    const likes =
-      Math.max(
-        currentLikes - 1,
-        0
+      transaction.update(
+        workRef,
+        {
+          likes,
+        }
       );
 
-    work.likes =
-      likes;
-
-    return {
-      liked: false,
-      likes,
-    };
-  }
-
-  /*
-   * ------------------------------------------------
-   * ADD LIKE
-   * ------------------------------------------------
-   */
-
-  work.likedBy.push(
-    normalizedUserId
+      return {
+        liked: true,
+        likes,
+      };
+    }
   );
-
-  const likes =
-    currentLikes + 1;
-
-  work.likes =
-    likes;
-
-  return {
-    liked: true,
-    likes,
-  };
 }
 
 /*
@@ -699,9 +803,7 @@ export async function toggleWorkLike({
  * DELETE WORK
  * --------------------------------------------------
  *
- * TEST DATA ONLY
- *
- * No Firebase.
+ * Ownership is verified inside the transaction.
  * --------------------------------------------------
  */
 
@@ -727,84 +829,92 @@ export async function deleteWork({
     );
   }
 
-  const workIndex =
-    works.findIndex(
-      (item) =>
-        item.id ===
-        normalizedWorkId
+  const {
+    db,
+  } =
+    await getServerFirebase();
+
+  const workRef =
+    doc(
+      db,
+      WORKS_COLLECTION,
+      normalizedWorkId
     );
 
-  if (workIndex === -1) {
-    throw new Error(
-      "Work not found."
-    );
-  }
-
-  const work =
-    works[workIndex];
-
-  /*
-   * ------------------------------------------------
-   * OWNERSHIP
-   * ------------------------------------------------
-   */
-
-  const ownerId =
-    normalizeString(
-      work.talentId
+  const talentRef =
+    doc(
+      db,
+      TALENTS_COLLECTION,
+      normalizedUserId
     );
 
-  if (
-    ownerId !==
-    normalizedUserId
-  ) {
-    throw new Error(
-      "You do not own this work."
-    );
-  }
+  await runTransaction(
+    db,
+    async (transaction) => {
+      const [
+        workSnapshot,
+        talentSnapshot,
+      ] =
+        await Promise.all([
+          transaction.get(
+            workRef
+          ),
+          transaction.get(
+            talentRef
+          ),
+        ]);
 
-  /*
-   * ------------------------------------------------
-   * DELETE WORK
-   * ------------------------------------------------
-   */
+      if (
+        !workSnapshot.exists()
+      ) {
+        throw new Error(
+          "Work not found."
+        );
+      }
 
-  works.splice(
-    workIndex,
-    1
+      const work =
+        workSnapshot.data();
+
+      const ownerId =
+        normalizeString(
+          work?.talentId
+        );
+
+      if (
+        ownerId !==
+        normalizedUserId
+      ) {
+        throw new Error(
+          "You do not own this work."
+        );
+      }
+
+      transaction.delete(
+        workRef
+      );
+
+      if (
+        talentSnapshot.exists()
+      ) {
+        const currentWorkCount =
+          normalizeNumber(
+            talentSnapshot.data()
+              ?.workCount
+          );
+
+        transaction.update(
+          talentRef,
+          {
+            workCount:
+              Math.max(
+                currentWorkCount - 1,
+                0
+              ),
+          }
+        );
+      }
+    }
   );
-
-  /*
-   * ------------------------------------------------
-   * UPDATE TALENT WORK COUNT
-   * ------------------------------------------------
-   */
-
-  const talent =
-    talents.find(
-      (item) =>
-        String(
-          item.id
-        ) ===
-          normalizedUserId ||
-        String(
-          item.uid
-        ) ===
-          normalizedUserId
-    );
-
-  if (talent) {
-    const currentWorkCount =
-      normalizeNumber(
-        talent.workCount
-      );
-
-    talent.workCount =
-      Math.max(
-        currentWorkCount - 1,
-        0
-      );
-  }
 
   return {
     success: true,
@@ -818,6 +928,7 @@ export async function deleteWork({
  */
 
 export {
+  WORKS_COLLECTION,
   TRENDING_WORKS_LIMIT,
   WORKS_CACHE_TAG,
   TRENDING_WORKS_CACHE_TAG,

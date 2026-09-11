@@ -20,14 +20,19 @@ import {
 import {
   browserLocalPersistence,
   browserSessionPersistence,
-  GoogleAuthProvider,
   setPersistence,
-  signInWithEmailAndPassword,
-  signInWithPopup,
 } from "firebase/auth";
 
 import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
-import { auth } from "@/lib/client";
+
+import {
+  signInWithEmail,
+  signInWithGoogle,
+} from "@/lib/auth";
+
+import { auth } from "@/lib/client"; 
+
+import { useSnackbarStore } from "@/stores/useSnackbarStore";
 
 const LOGIN_IMAGE =
   "https://bongohive.co.zm/app/uploads/2024/12/462231872_1518820968810746_4996820145898586779_n.jpg";
@@ -35,30 +40,71 @@ const LOGIN_IMAGE =
 export default function LoginPage() {
   const router = useRouter();
 
-  const [showPassword, setShowPassword] = useState(false);
-
-  const [rememberMe, setRememberMe] = useState(false);
-
-  const [loading, setLoading] = useState(false);
-
-  const [googleLoading, setGoogleLoading] = useState(false);
-
-  const [error, setError] = useState("");
-
-  const [imageError, setImageError] = useState(false);
-
-  const isLoading = loading || googleLoading;
+  const showSnackbar =
+    useSnackbarStore(
+      (state) => state.showSnackbar,
+    );
 
   /*
    * --------------------------------------------------
-   * SET FIREBASE AUTH PERSISTENCE
+   * STATE
+   * --------------------------------------------------
+   */
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+
+  const [
+    rememberMe,
+    setRememberMe,
+  ] = useState(false);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  const [
+    googleLoading,
+    setGoogleLoading,
+  ] = useState(false);
+
+  const [
+    imageError,
+    setImageError,
+  ] = useState(false);
+
+  const isLoading =
+    loading ||
+    googleLoading;
+
+  /*
+   * --------------------------------------------------
+   * ERROR
+   * --------------------------------------------------
+   */
+
+  function showError(message) {
+    showSnackbar({
+      type: "error",
+      message,
+    });
+  }
+
+  /*
+   * --------------------------------------------------
+   * FIREBASE AUTH PERSISTENCE
    * --------------------------------------------------
    */
 
   async function configurePersistence() {
     await setPersistence(
       auth,
-      rememberMe ? browserLocalPersistence : browserSessionPersistence,
+      rememberMe
+        ? browserLocalPersistence
+        : browserSessionPersistence,
     );
   }
 
@@ -76,60 +122,89 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    setError("");
 
-    const form = event.currentTarget;
-    const formData = new FormData(form);
+    const form =
+      event.currentTarget;
 
-    const email = String(formData.get("email") || "")
-      .trim()
-      .toLowerCase();
+    const formData =
+      new FormData(form);
 
-    const password = String(formData.get("password") || "");
+    const email =
+      String(
+        formData.get("email") || "",
+      )
+        .trim()
+        .toLowerCase();
+
+    const password =
+      String(
+        formData.get("password") || "",
+      );
+
+    /*
+     * ------------------------------------------------
+     * BASIC VALIDATION
+     * ------------------------------------------------
+     */
 
     if (!email || !password) {
-      setError("Please enter your email and password.");
+      showError(
+        "Please enter your email and password.",
+      );
 
       setLoading(false);
+
       return;
     }
 
     try {
       /*
-       * --------------------------------------------------
-       * CONFIGURE AUTH PERSISTENCE
-       * --------------------------------------------------
+       * ------------------------------------------------
+       * AUTH PERSISTENCE
+       * ------------------------------------------------
        */
 
       await configurePersistence();
 
       /*
-       * --------------------------------------------------
-       * FIREBASE EMAIL LOGIN
-       * --------------------------------------------------
+       * ------------------------------------------------
+       * FIREBASE LOGIN
+       * ------------------------------------------------
        */
 
-      const credential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
+      const user =
+        await signInWithEmail(
+          email,
+          password,
+        );
 
-      if (!credential.user) {
-        throw new Error("Unable to authenticate your account.");
+      if (!user) {
+        throw new Error(
+          "Unable to authenticate your account.",
+        );
       }
 
       /*
-       * --------------------------------------------------
+       * ------------------------------------------------
        * SUCCESS
-       * --------------------------------------------------
+       * ------------------------------------------------
        */
 
-      router.replace("/discover");
-    } catch (error) {
-      console.error("Email login error:", error);
+      showSnackbar({
+        type: "success",
+        message:
+          "Welcome back. You are now signed in.",
+      });
 
-      setError(getFirebaseAuthError(error));
+      router.replace(
+        "/discover",
+      );
+    } catch (error) {
+      showError(
+        getFirebaseAuthError(
+          error,
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -147,69 +222,80 @@ export default function LoginPage() {
     }
 
     setGoogleLoading(true);
-    setError("");
 
     try {
       /*
-       * --------------------------------------------------
-       * CONFIGURE AUTH PERSISTENCE
-       * --------------------------------------------------
+       * ------------------------------------------------
+       * AUTH PERSISTENCE
+       * ------------------------------------------------
        */
 
       await configurePersistence();
 
       /*
-       * --------------------------------------------------
-       * GOOGLE PROVIDER
-       * --------------------------------------------------
+       * ------------------------------------------------
+       * GOOGLE LOGIN
+       * ------------------------------------------------
        */
 
-      const provider = new GoogleAuthProvider();
+      const user =
+        await signInWithGoogle();
 
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-
-      /*
-       * --------------------------------------------------
-       * FIREBASE GOOGLE LOGIN
-       * --------------------------------------------------
-       */
-
-      const credential = await signInWithPopup(auth, provider);
-
-      if (!credential.user) {
-        throw new Error("Unable to authenticate with Google.");
+      if (!user) {
+        throw new Error(
+          "Unable to authenticate with Google.",
+        );
       }
 
       /*
-       * --------------------------------------------------
+       * ------------------------------------------------
        * SUCCESS
-       * --------------------------------------------------
+       * ------------------------------------------------
        */
 
-      router.replace("/discover");
-    } catch (error) {
-      console.error("Google login error:", error);
+      showSnackbar({
+        type: "success",
+        message:
+          "Welcome back. You are now signed in.",
+      });
 
-      setError(getFirebaseAuthError(error));
+      router.replace(
+        "/discover",
+      );
+    } catch (error) {
+      showError(
+        getFirebaseAuthError(
+          error,
+        ),
+      );
     } finally {
       setGoogleLoading(false);
     }
   }
 
+  /*
+   * --------------------------------------------------
+   * RENDER
+   * --------------------------------------------------
+   */
+
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-[1920px]">
+
         {/* =====================================================
             LOGIN PANEL
         ===================================================== */}
 
         <section className="flex min-h-screen w-full flex-col lg:w-[54%] xl:w-[50%]">
+
           {/* Header */}
 
           <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
-            <Link href="/" className="group flex items-center gap-2.5">
+            <Link
+              href="/"
+              className="group flex items-center gap-2.5"
+            >
               <YouthSpaceBrand />
             </Link>
 
@@ -225,6 +311,7 @@ export default function LoginPage() {
 
           <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
             <div className="w-full max-w-[440px]">
+
               {/* Heading */}
 
               <div>
@@ -246,25 +333,16 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              {/* Error */}
-
-              {error && (
-                <div
-                  role="alert"
-                  aria-live="polite"
-                  className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium leading-5 text-red-700"
-                >
-                  {error}
-                </div>
-              )}
-
               {/* Form */}
 
               <form
-                onSubmit={handleSubmit}
+                onSubmit={
+                  handleSubmit
+                }
                 noValidate
                 className="mt-8 space-y-5"
               >
+
                 {/* Email */}
 
                 <div>
@@ -289,7 +367,9 @@ export default function LoginPage() {
                       inputMode="email"
                       placeholder="you@example.com"
                       required
-                      disabled={isLoading}
+                      disabled={
+                        isLoading
+                      }
                       className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
                     />
                   </div>
@@ -323,24 +403,43 @@ export default function LoginPage() {
                     <input
                       id="password"
                       name="password"
-                      type={showPassword ? "text" : "password"}
+                      type={
+                        showPassword
+                          ? "text"
+                          : "password"
+                      }
                       autoComplete="current-password"
                       placeholder="Enter your password"
                       required
-                      disabled={isLoading}
+                      disabled={
+                        isLoading
+                      }
                       className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-12 text-sm font-medium outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
                     />
 
                     <button
                       type="button"
-                      onClick={() => setShowPassword((value) => !value)}
-                      disabled={isLoading}
+                      onClick={() =>
+                        setShowPassword(
+                          (value) =>
+                            !value,
+                        )
+                      }
+                      disabled={
+                        isLoading
+                      }
                       aria-label={
-                        showPassword ? "Hide password" : "Show password"
+                        showPassword
+                          ? "Hide password"
+                          : "Show password"
                       }
                       className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -350,9 +449,20 @@ export default function LoginPage() {
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
                     type="checkbox"
-                    checked={rememberMe}
-                    onChange={(event) => setRememberMe(event.target.checked)}
-                    disabled={isLoading}
+                    checked={
+                      rememberMe
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      setRememberMe(
+                        event.target
+                          .checked,
+                      )
+                    }
+                    disabled={
+                      isLoading
+                    }
                     className="h-4 w-4 rounded border-slate-300 accent-slate-950"
                   />
 
@@ -365,7 +475,9 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={
+                    isLoading
+                  }
                   className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                 >
                   {loading ? (
@@ -376,6 +488,7 @@ export default function LoginPage() {
                   ) : (
                     <>
                       Sign in
+
                       <ArrowRight
                         size={16}
                         className="transition-transform group-hover:translate-x-1"
@@ -401,19 +514,30 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={handleGoogleSignIn}
-                disabled={isLoading}
+                onClick={
+                  handleGoogleSignIn
+                }
+                disabled={
+                  isLoading
+                }
                 className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
-                {googleLoading ? <LoadingSpinner /> : <GoogleIcon />}
+                {googleLoading ? (
+                  <LoadingSpinner />
+                ) : (
+                  <GoogleIcon />
+                )}
 
-                {googleLoading ? "Connecting..." : "Continue with Google"}
+                {googleLoading
+                  ? "Connecting..."
+                  : "Continue with Google"}
               </button>
 
               {/* Register */}
 
               <p className="mt-8 text-center text-sm text-slate-500">
                 Don't have an account?{" "}
+
                 <Link
                   href="/register"
                   className="font-black text-slate-950 hover:underline"
@@ -426,6 +550,7 @@ export default function LoginPage() {
 
               <p className="mx-auto mt-7 max-w-sm text-center text-[10px] leading-5 text-slate-400">
                 By continuing, you agree to Youth Space's{" "}
+
                 <Link
                   href="/terms"
                   className="font-bold text-slate-600 hover:text-slate-950"
@@ -433,6 +558,7 @@ export default function LoginPage() {
                   Terms
                 </Link>{" "}
                 and{" "}
+
                 <Link
                   href="/privacy"
                   className="font-bold text-slate-600 hover:text-slate-950"
@@ -441,6 +567,7 @@ export default function LoginPage() {
                 </Link>
                 .
               </p>
+
             </div>
           </div>
 
@@ -451,6 +578,7 @@ export default function LoginPage() {
               © 2026 Youth Space by TechGU
             </p>
           </footer>
+
         </section>
 
         {/* =====================================================
@@ -458,6 +586,7 @@ export default function LoginPage() {
         ===================================================== */}
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
+
           <div className="absolute inset-0 bg-slate-950" />
 
           {!imageError && (
@@ -467,7 +596,11 @@ export default function LoginPage() {
               fill
               priority
               sizes="(min-width: 1280px) 50vw, 46vw"
-              onError={() => setImageError(true)}
+              onError={() =>
+                setImageError(
+                  true,
+                )
+              }
               className="object-cover"
             />
           )}
@@ -485,8 +618,10 @@ export default function LoginPage() {
             style={{
               backgroundImage:
                 "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
-              backgroundSize: "64px 64px",
-              maskImage: "linear-gradient(to bottom, black, transparent 80%)",
+              backgroundSize:
+                "64px 64px",
+              maskImage:
+                "linear-gradient(to bottom, black, transparent 80%)",
               WebkitMaskImage:
                 "linear-gradient(to bottom, black, transparent 80%)",
             }}
@@ -498,6 +633,7 @@ export default function LoginPage() {
 
           {imageError && (
             <div className="absolute inset-0 flex items-center justify-center">
+
               <div className="absolute h-[500px] w-[500px] rounded-full border border-white/5" />
 
               <div className="absolute h-[350px] w-[350px] rounded-full border border-white/5" />
@@ -509,14 +645,18 @@ export default function LoginPage() {
                   className="text-white/50"
                 />
               </div>
+
             </div>
           )}
 
           <div className="relative z-10 flex h-full flex-col p-8 xl:p-12 2xl:p-16">
+
             {/* Top */}
 
             <div className="flex items-center justify-between">
+
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-lg backdrop-blur-xl">
+
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
                   <Sparkles size={10} />
                 </span>
@@ -524,16 +664,19 @@ export default function LoginPage() {
                 <span className="text-[10px] font-bold text-white/80">
                   Zambia's youth talent platform
                 </span>
+
               </div>
 
               <span className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-white/40 xl:block">
                 Youth Space
               </span>
+
             </div>
 
             {/* Main */}
 
             <div className="mt-16 max-w-2xl xl:mt-20 2xl:mt-24">
+
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/45">
                 Discover what is possible
               </p>
@@ -552,18 +695,27 @@ export default function LoginPage() {
               </p>
 
               <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
-                <VisualFeature>Discover young talent</VisualFeature>
+                <VisualFeature>
+                  Discover young talent
+                </VisualFeature>
 
-                <VisualFeature>Showcase your skills</VisualFeature>
+                <VisualFeature>
+                  Showcase your skills
+                </VisualFeature>
 
-                <VisualFeature>Connect locally</VisualFeature>
+                <VisualFeature>
+                  Connect locally
+                </VisualFeature>
               </div>
+
             </div>
 
             {/* Bottom */}
 
             <div className="mt-auto pt-16">
+
               <div className="max-w-xl border-l border-white/20 pl-5">
+
                 <p className="text-sm font-medium leading-6 text-white/55">
                   "Your skills can open doors. Youth Space helps people find
                   them."
@@ -572,8 +724,11 @@ export default function LoginPage() {
                 <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
                   Youth Space by TechGU
                 </p>
+
               </div>
+
             </div>
+
           </div>
         </section>
       </div>
@@ -641,7 +796,7 @@ function getFirebaseAuthError(error) {
       return "This sign-in method is currently unavailable.";
 
     default:
-      return error?.message || "Unable to sign you in. Please try again.";
+      return "Unable to sign you in. Please try again.";
   }
 }
 
@@ -671,7 +826,11 @@ function VisualFeature({ children }) {
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
       <path
         fill="#4285F4"
         d="M21.35 12.23c0-.72-.06-1.41-.18-2.08H12v3.94h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.25Z"
@@ -684,12 +843,12 @@ function GoogleIcon() {
 
       <path
         fill="#FBBC05"
-        d="M6.53 13.59A5.86 5.86 0 0 1 6.22 12c0-.55.1-1.09.31-1.59V7.88H3.29A9.48 9.48 0 0 0 2.25 12c0 1.53.37 2.98 1.04 4.12l3.24-2.53Z"
+        d="M6.53 13.59A5.86 5.86 0 0 1 6.22 12c0-.55.1-1.09.31-1.59V7.88H3.29A9.48 9.48 0 0 0 2.25 12c0 1.53.37 2.98 1.04 4.12l3.24-2.53 2.3Z"
       />
 
       <path
         fill="#EA4335"
-        d="M12 6.38c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.83 3.48 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.71 5.38l3.24 2.53C7.3 8.1 9.46 6.38 12 6.38Z"
+        d="M12 6.38c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.83 3.48 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.71 5.38l3.24 2.53 2.3Z"
       />
     </svg>
   );

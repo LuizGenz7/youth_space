@@ -12,15 +12,13 @@ export const instant = false;
 export default async function TalentPage({ params }) {
   const { username } = await params;
 
-  const profile =
-    await getProfileByUsername(username);
+  const profile = await getProfileByUsername(username);
 
   if (!profile) {
     notFound();
   }
 
-  const works =
-    await getWorksByTalent(profile.uid);
+  const works = await getWorksByTalent(profile.uid);
 
   return (
     <main className="min-h-screen bg-white text-slate-950">

@@ -19,8 +19,8 @@ import {
 } from "@/lib/server";
 
 import {
-  categories,
-} from "./categories";
+  getCategoryById,
+} from "@/data/categories";
 
 /*
  * --------------------------------------------------
@@ -185,9 +185,7 @@ const profileUpdateSchema =
  * --------------------------------------------------
  */
 
-function normalizeString(
-  value
-) {
+function normalizeString(value) {
   if (
     typeof value !==
     "string"
@@ -306,9 +304,14 @@ function normalizeServices(
  * --------------------------------------------------
  * CATEGORY
  * --------------------------------------------------
+ *
+ * Categories now come from Firestore.
+ *
+ * categories/{categoryId}
+ * --------------------------------------------------
  */
 
-function getCategory(
+async function getCategory(
   categoryId
 ) {
   const normalizedId =
@@ -321,10 +324,8 @@ function getCategory(
   }
 
   const category =
-    categories.find(
-      (item) =>
-        item.id ===
-        normalizedId
+    await getCategoryById(
+      normalizedId
     );
 
   if (!category) {
@@ -333,7 +334,9 @@ function getCategory(
 
   return {
     id:
-      category.id,
+      normalizeString(
+        category.id
+      ),
 
     name:
       normalizeString(
@@ -351,7 +354,8 @@ function getCategory(
 async function getCurrentUser() {
   const {
     auth,
-  } = await getServerFirebase();
+  } =
+    await getServerFirebase();
 
   await auth.authStateReady();
 
@@ -674,7 +678,7 @@ export async function createProfile(
   }
 
   const category =
-    getCategory(
+    await getCategory(
       categoryId
     );
 
@@ -686,7 +690,8 @@ export async function createProfile(
 
   const {
     db,
-  } = await getServerFirebase();
+  } =
+    await getServerFirebase();
 
   const profileRef =
     doc(
@@ -887,7 +892,8 @@ export async function getMyProfile() {
 
   const {
     db,
-  } = await getServerFirebase();
+  } =
+    await getServerFirebase();
 
   const profileRef =
     doc(
@@ -939,7 +945,8 @@ export async function getProfileByUid(
 
   const {
     db,
-  } = await getServerFirebase();
+  } =
+    await getServerFirebase();
 
   const profileRef =
     doc(
@@ -979,15 +986,6 @@ export async function getProfileByUid(
  *       uid
  *        ↓
  * talents/{uid}
- *
- * IMPORTANT:
- *
- * This cached function uses
- * getPublicServerFirebase().
- *
- * It MUST NOT use getServerFirebase()
- * because getServerFirebase() reads
- * request headers.
  * --------------------------------------------------
  */
 
@@ -1019,7 +1017,8 @@ async function getCachedProfileByUsername(
 
   const {
     db,
-  } = getPublicServerFirebase();
+  } =
+    getPublicServerFirebase();
 
   /*
    * USERNAME → UID
@@ -1089,11 +1088,6 @@ async function getCachedProfileByUsername(
  * --------------------------------------------------
  * GET USERNAME RECORD
  * --------------------------------------------------
- *
- * Public + cached.
- *
- * usernames/{username}
- * --------------------------------------------------
  */
 
 export async function getUsernameRecord(
@@ -1123,7 +1117,8 @@ async function getCachedUsernameRecord(
 
   const {
     db,
-  } = getPublicServerFirebase();
+  } =
+    getPublicServerFirebase();
 
   const usernameRef =
     doc(
@@ -1155,16 +1150,6 @@ async function getCachedUsernameRecord(
  * --------------------------------------------------
  * CHECK USERNAME AVAILABILITY
  * --------------------------------------------------
- *
- * Public + cached.
- *
- * Direct lookup:
- *
- * usernames/{username}
- *
- * No query.
- * No authentication required.
- * --------------------------------------------------
  */
 
 export async function isUsernameAvailable(
@@ -1195,7 +1180,8 @@ async function checkCachedUsernameAvailability(
 
   const {
     db,
-  } = getPublicServerFirebase();
+  } =
+    getPublicServerFirebase();
 
   const usernameRef =
     doc(
@@ -1366,7 +1352,8 @@ export async function updateProfile(
 
   const {
     db,
-  } = await getServerFirebase();
+  } =
+    await getServerFirebase();
 
   const profileRef =
     doc(
@@ -1422,7 +1409,7 @@ export async function updateProfile(
 
   if (categoryChanged) {
     newCategory =
-      getCategory(
+      await getCategory(
         requestedCategoryId
       );
 
@@ -1697,7 +1684,8 @@ export async function deleteProfile() {
 
   const {
     db,
-  } = await getServerFirebase();
+  } =
+    await getServerFirebase();
 
   const profileRef =
     doc(

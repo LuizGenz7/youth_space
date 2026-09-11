@@ -27,41 +27,80 @@ const TRENDING_WORKS_LIMIT = 10;
  * ==================================================
  */
 
-const workIdSchema = z
-  .string()
-  .trim()
-  .min(
-    1,
-    "Work ID is required."
-  )
-  .max(
-    100,
-    "Work ID is too long."
-  );
+const workIdSchema =
+  z
+    .string()
+    .trim()
+    .min(
+      1,
+      "Work ID is required."
+    )
+    .max(
+      100,
+      "Work ID is too long."
+    );
 
-const trendingWorksSchema = z
-  .object({
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(
-        TRENDING_WORKS_LIMIT
-      ),
-  })
-  .strict();
+const trendingWorksSchema =
+  z
+    .object({
+      limit:
+        z
+          .number()
+          .int()
+          .min(1)
+          .max(
+            TRENDING_WORKS_LIMIT
+          ),
+    })
+    .strict();
 
-const toggleLikeSchema = z
-  .object({
-    workId: workIdSchema,
-  })
-  .strict();
+const toggleLikeSchema =
+  z
+    .object({
+      workId:
+        workIdSchema,
+    })
+    .strict();
 
-const deleteWorkSchema = z
-  .object({
-    workId: workIdSchema,
-  })
-  .strict();
+const deleteWorkSchema =
+  z
+    .object({
+      workId:
+        workIdSchema,
+    })
+    .strict();
+
+/*
+ * ==================================================
+ * HELPERS
+ * ==================================================
+ */
+
+function normalizeInput(input) {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    Array.isArray(input)
+  ) {
+    return {};
+  }
+
+  return input;
+}
+
+function getErrorMessage(
+  error,
+  fallback
+) {
+  if (
+    error instanceof Error &&
+    error.message
+  ) {
+    return error.message;
+  }
+
+  return fallback;
+}
 
 /*
  * ==================================================
@@ -71,21 +110,19 @@ const deleteWorkSchema = z
  * PUBLIC
  *
  * No authentication required.
+ * ==================================================
  */
 
 export async function getTrendingWorksAction(
   input = {}
 ) {
-  /*
-   * --------------------------------------------------
-   * VALIDATE
-   * --------------------------------------------------
-   */
+  const safeInput =
+    normalizeInput(input);
 
   const validation =
     trendingWorksSchema.safeParse({
       limit:
-        input?.limit ??
+        safeInput.limit ??
         TRENDING_WORKS_LIMIT,
     });
 
@@ -93,16 +130,9 @@ export async function getTrendingWorksAction(
     return {
       success: false,
       works: [],
-      error:
-        "Invalid request.",
+      error: "Invalid request.",
     };
   }
-
-  /*
-   * --------------------------------------------------
-   * LOAD DATA
-   * --------------------------------------------------
-   */
 
   try {
     const works =
@@ -121,16 +151,14 @@ export async function getTrendingWorksAction(
       error: null,
     };
   } catch (error) {
-    console.error(
-      "[getTrendingWorksAction]",
-      error
-    );
-
     return {
       success: false,
       works: [],
       error:
-        "Unable to load trending works.",
+        getErrorMessage(
+          error,
+          "Unable to load trending works."
+        ),
     };
   }
 }
@@ -149,20 +177,18 @@ export async function getTrendingWorksAction(
  * }
  *
  * UID comes from FirebaseServerApp.
+ * ==================================================
  */
 
 export async function toggleLikeAction(
   input = {}
 ) {
-  /*
-   * --------------------------------------------------
-   * VALIDATE INPUT
-   * --------------------------------------------------
-   */
+  const safeInput =
+    normalizeInput(input);
 
   const validation =
     toggleLikeSchema.safeParse(
-      input
+      safeInput
     );
 
   if (!validation.success) {
@@ -170,14 +196,13 @@ export async function toggleLikeAction(
       success: false,
       liked: false,
       likes: 0,
-      error:
-        "Invalid request.",
+      error: "Invalid request.",
     };
   }
 
   /*
    * --------------------------------------------------
-   * AUTHENTICATE USER
+   * AUTHENTICATE
    * --------------------------------------------------
    */
 
@@ -187,31 +212,25 @@ export async function toggleLikeAction(
     user =
       await requireAuthAction();
   } catch (error) {
-    /*
-     * requireAuthAction() redirects when
-     * authentication is missing.
-     *
-     * If the Server Action needs to
-     * return an error instead, our
-     * requireAuthAction helper should not
-     * redirect.
-     *
-     * We handle the error here so
-     * the action never exposes an
-     * internal authentication error.
-     */
-
-    console.error(
-      "[toggleLikeAction] Authentication error:",
-      error
-    );
+    if (
+      error?.code ===
+      "AUTH_REQUIRED"
+    ) {
+      return {
+        success: false,
+        liked: false,
+        likes: 0,
+        error:
+          "You must be logged in.",
+      };
+    }
 
     return {
       success: false,
       liked: false,
       likes: 0,
       error:
-        "You must be logged in.",
+        "Authentication failed.",
     };
   }
 
@@ -237,7 +256,9 @@ export async function toggleLikeAction(
      * --------------------------------------------------
      */
 
-    updateTag("works");
+    updateTag(
+      "works"
+    );
 
     updateTag(
       "trending-works"
@@ -263,17 +284,6 @@ export async function toggleLikeAction(
       error: null,
     };
   } catch (error) {
-    console.error(
-      "[toggleLikeAction]",
-      error
-    );
-
-    /*
-     * --------------------------------------------------
-     * KNOWN ERRORS
-     * --------------------------------------------------
-     */
-
     if (
       error?.message ===
       "Work not found."
@@ -310,36 +320,33 @@ export async function toggleLikeAction(
  *   workId
  * }
  *
- * The server gets the UID from
- * FirebaseServerApp and verifies
- * ownership inside data/works.js.
+ * UID comes from FirebaseServerApp.
+ *
+ * Ownership is verified by data/works.js.
+ * ==================================================
  */
 
 export async function deleteWorkAction(
   input = {}
 ) {
-  /*
-   * --------------------------------------------------
-   * VALIDATE INPUT
-   * --------------------------------------------------
-   */
+  const safeInput =
+    normalizeInput(input);
 
   const validation =
     deleteWorkSchema.safeParse(
-      input
+      safeInput
     );
 
   if (!validation.success) {
     return {
       success: false,
-      error:
-        "Invalid request.",
+      error: "Invalid request.",
     };
   }
 
   /*
    * --------------------------------------------------
-   * AUTHENTICATE USER
+   * AUTHENTICATE
    * --------------------------------------------------
    */
 
@@ -349,15 +356,21 @@ export async function deleteWorkAction(
     user =
       await requireAuthAction();
   } catch (error) {
-    console.error(
-      "[deleteWorkAction] Authentication error:",
-      error
-    );
+    if (
+      error?.code ===
+      "AUTH_REQUIRED"
+    ) {
+      return {
+        success: false,
+        error:
+          "You must be logged in.",
+      };
+    }
 
     return {
       success: false,
       error:
-        "You must be logged in.",
+        "Authentication failed.",
     };
   }
 
@@ -366,7 +379,7 @@ export async function deleteWorkAction(
 
   /*
    * --------------------------------------------------
-   * DELETE WORK
+   * DELETE
    * --------------------------------------------------
    */
 
@@ -382,31 +395,36 @@ export async function deleteWorkAction(
      * --------------------------------------------------
      */
 
-    // All work lists
-    updateTag("works");
+    updateTag(
+      "works"
+    );
 
-    // Trending works
     updateTag(
       "trending-works"
     );
 
-    // Individual work
     updateTag(
       `work:${workId}`
     );
 
-    // User's works
     updateTag(
       `talent-works:${user.uid}`
     );
 
-    // User/talent data
     updateTag(
       `talent:${user.uid}`
     );
 
-    // Profile data
-    updateTag("profiles");
+    /*
+     * Profile cache tags.
+     *
+     * Keep these only if your profile
+     * data functions use these tags.
+     */
+
+    updateTag(
+      "profiles"
+    );
 
     updateTag(
       `profile:${user.uid}`
@@ -417,17 +435,6 @@ export async function deleteWorkAction(
       error: null,
     };
   } catch (error) {
-    console.error(
-      "[deleteWorkAction]",
-      error
-    );
-
-    /*
-     * --------------------------------------------------
-     * KNOWN ERRORS
-     * --------------------------------------------------
-     */
-
     if (
       error?.message ===
       "Work not found."

@@ -9,82 +9,147 @@ import {
   getNewTalents,
 } from "@/data/talents";
 
-/* =========================================================
-   CONFIG
-========================================================= */
+/*
+ * =========================================================
+ * CONFIG
+ * =========================================================
+ */
 
 const INITIAL_CATEGORY_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
 const MAX_LOADED_COUNT = 1000;
 
-/* =========================================================
-   SCHEMAS
-========================================================= */
+/*
+ * =========================================================
+ * SCHEMAS
+ * =========================================================
+ */
 
-const categoryIdSchema = z
-  .string()
-  .trim()
-  .min(
-    1,
-    "Category ID is required.",
-  )
-  .max(
-    100,
-    "Category ID is too long.",
-  );
+const categoryIdSchema =
+  z
+    .string()
+    .trim()
+    .min(
+      1,
+      "Category ID is required."
+    )
+    .max(
+      100,
+      "Category ID is too long."
+    );
 
-const categoryLimitSchema = z
-  .number()
-  .int()
-  .min(1)
-  .max(INITIAL_CATEGORY_LOAD);
+const categoryLimitSchema =
+  z
+    .number()
+    .int()
+    .min(1)
+    .max(
+      INITIAL_CATEGORY_LOAD
+    );
 
-const categoryTalentsSchema = z
-  .object({
-    categoryId:
-      categoryIdSchema,
+const categoryTalentsSchema =
+  z
+    .object({
+      categoryId:
+        categoryIdSchema,
 
-    limit:
-      categoryLimitSchema
-        .optional(),
-  })
-  .strict();
+      limit:
+        categoryLimitSchema
+          .optional(),
+    })
+    .strict();
 
-const loadMoreTalentsSchema = z
-  .object({
-    categoryId:
-      categoryIdSchema,
+const loadMoreTalentsSchema =
+  z
+    .object({
+      categoryId:
+        categoryIdSchema,
 
-    loadedCount: z
-      .number()
-      .int()
-      .min(0)
-      .max(MAX_LOADED_COUNT),
-  })
-  .strict();
+      loadedCount:
+        z
+          .number()
+          .int()
+          .min(0)
+          .max(
+            MAX_LOADED_COUNT
+          ),
+    })
+    .strict();
 
-const discoverTalentsSchema = z
-  .object({
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(DISCOVER_TALENTS_LIMIT),
-  })
-  .strict();
+const discoverTalentsSchema =
+  z
+    .object({
+      limit:
+        z
+          .number()
+          .int()
+          .min(1)
+          .max(
+            DISCOVER_TALENTS_LIMIT
+          ),
+    })
+    .strict();
 
-/* =========================================================
-   CATEGORY TALENTS
-========================================================= */
+/*
+ * =========================================================
+ * HELPERS
+ * =========================================================
+ */
 
-export async function loadCategoryTalentsAction({
-  categoryId,
-  limit = INITIAL_CATEGORY_LOAD,
-} = {}) {
+function normalizeInput(input) {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    Array.isArray(input)
+  ) {
+    return {};
+  }
+
+  return input;
+}
+
+function getErrorMessage(
+  error,
+  fallback
+) {
+  if (
+    error instanceof Error &&
+    error.message
+  ) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+function normalizeTalents(
+  talents
+) {
+  return Array.isArray(talents)
+    ? talents
+    : [];
+}
+
+/*
+ * =========================================================
+ * CATEGORY TALENTS
+ * =========================================================
+ */
+
+export async function loadCategoryTalentsAction(
+  input = {}
+) {
+  const safeInput =
+    normalizeInput(input);
+
   const validation =
     categoryTalentsSchema.safeParse({
-      categoryId,
-      limit,
+      categoryId:
+        safeInput.categoryId,
+
+      limit:
+        safeInput.limit ??
+        INITIAL_CATEGORY_LOAD,
     });
 
   if (!validation.success) {
@@ -111,69 +176,79 @@ export async function loadCategoryTalentsAction({
       success: true,
 
       talents:
-        Array.isArray(
-          result?.talents,
-        )
-          ? result.talents
-          : [],
+        normalizeTalents(
+          result?.talents
+        ),
 
       nextCursor:
-        result?.nextCursor ?? null,
+        result?.nextCursor ??
+        null,
 
       hasMore:
         Boolean(
-          result?.hasMore,
+          result?.hasMore
         ),
 
       error: null,
     };
   } catch (error) {
-    console.error(
-      "loadCategoryTalentsAction:",
-      error,
-    );
-
     return {
       success: false,
       talents: [],
       nextCursor: null,
       hasMore: false,
       error:
-        "Unable to load category talents.",
+        getErrorMessage(
+          error,
+          "Unable to load category talents."
+        ),
     };
   }
 }
 
-/* =========================================================
-   LOAD MORE CATEGORY TALENTS
-========================================================= */
-
 /*
- * Client passes:
+ * =========================================================
+ * LOAD MORE CATEGORY TALENTS
+ * =========================================================
+ *
+ * Client sends:
  *
  * {
- *   category
+ *   category: {
+ *     id,
+ *     talents
+ *   }
  * }
  *
- * The action extracts category here.
+ * The action extracts only the information
+ * required by the data layer.
+ * =========================================================
  */
 
-export async function loadMoreTalentsAction({
-  category,
-} = {}) {
-  /*
-   * Extract only the values we actually need
-   * from the category object.
-   */
+export async function loadMoreTalentsAction(
+  input = {}
+) {
+  const safeInput =
+    normalizeInput(input);
+
+  const category =
+    safeInput.category;
+
+  const safeCategory =
+    category &&
+    typeof category === "object" &&
+    !Array.isArray(category)
+      ? category
+      : {};
 
   const categoryId =
-    category?.id;
+    safeCategory.id;
 
   const loadedCount =
     Array.isArray(
-      category?.talents,
+      safeCategory.talents
     )
-      ? category.talents.length
+      ? safeCategory.talents.length
       : 0;
 
   const validation =
@@ -181,8 +256,6 @@ export async function loadMoreTalentsAction({
       categoryId,
       loadedCount,
     });
-
-    
 
   if (!validation.success) {
     return {
@@ -203,55 +276,58 @@ export async function loadMoreTalentsAction({
         cursor:
           validation.data.loadedCount,
       });
-console.log(result);
 
     return {
       success: true,
 
       talents:
-        Array.isArray(
-          result?.talents,
-        )
-          ? result.talents
-          : [],
+        normalizeTalents(
+          result?.talents
+        ),
 
       nextCursor:
-        result?.nextCursor ?? null,
+        result?.nextCursor ??
+        null,
 
       hasMore:
         Boolean(
-          result?.hasMore,
+          result?.hasMore
         ),
 
       error: null,
     };
   } catch (error) {
-    console.error(
-      "loadMoreTalentsAction:",
-      error,
-    );
-
     return {
       success: false,
       talents: [],
       nextCursor: null,
       hasMore: false,
       error:
-        "Unable to load more talents.",
+        getErrorMessage(
+          error,
+          "Unable to load more talents."
+        ),
     };
   }
 }
 
-/* =========================================================
-   DISCOVER — TOP TALENTS
-========================================================= */
+/*
+ * =========================================================
+ * DISCOVER — TOP TALENTS
+ * =========================================================
+ */
 
-export async function getTopTalentsAction({
-  limit = DISCOVER_TALENTS_LIMIT,
-} = {}) {
+export async function getTopTalentsAction(
+  input = {}
+) {
+  const safeInput =
+    normalizeInput(input);
+
   const validation =
     discoverTalentsSchema.safeParse({
-      limit,
+      limit:
+        safeInput.limit ??
+        DISCOVER_TALENTS_LIMIT,
     });
 
   if (!validation.success) {
@@ -265,44 +341,49 @@ export async function getTopTalentsAction({
   try {
     const talents =
       await getTopTalents(
-        validation.data.limit,
+        validation.data.limit
       );
 
     return {
       success: true,
 
       talents:
-        Array.isArray(talents)
-          ? talents
-          : [],
+        normalizeTalents(
+          talents
+        ),
 
       error: null,
     };
   } catch (error) {
-    console.error(
-      "getTopTalentsAction:",
-      error,
-    );
-
     return {
       success: false,
       talents: [],
       error:
-        "Unable to load top talents.",
+        getErrorMessage(
+          error,
+          "Unable to load top talents."
+        ),
     };
   }
 }
 
-/* =========================================================
-   DISCOVER — NEWEST TALENTS
-========================================================= */
+/*
+ * =========================================================
+ * DISCOVER — NEWEST TALENTS
+ * =========================================================
+ */
 
-export async function getNewTalentsAction({
-  limit = DISCOVER_TALENTS_LIMIT,
-} = {}) {
+export async function getNewTalentsAction(
+  input = {}
+) {
+  const safeInput =
+    normalizeInput(input);
+
   const validation =
     discoverTalentsSchema.safeParse({
-      limit,
+      limit:
+        safeInput.limit ??
+        DISCOVER_TALENTS_LIMIT,
     });
 
   if (!validation.success) {
@@ -316,30 +397,28 @@ export async function getNewTalentsAction({
   try {
     const talents =
       await getNewTalents(
-        validation.data.limit,
+        validation.data.limit
       );
 
     return {
       success: true,
 
       talents:
-        Array.isArray(talents)
-          ? talents
-          : [],
+        normalizeTalents(
+          talents
+        ),
 
       error: null,
     };
   } catch (error) {
-    console.error(
-      "getNewTalentsAction:",
-      error,
-    );
-
     return {
       success: false,
       talents: [],
       error:
-        "Unable to load newest talents.",
+        getErrorMessage(
+          error,
+          "Unable to load newest talents."
+        ),
     };
   }
 }

@@ -4,18 +4,32 @@ import {
 } from "next/cache";
 
 import {
-  categories,
-} from "./categories";
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit as firestoreLimit,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 
 import {
-  talents,
-} from "./talents_data";
+  getPublicServerFirebase,
+} from "@/lib/server";
+
+import {
+  getCategories,
+} from "@/data/categories";
 
 /*
  * --------------------------------------------------
  * CONSTANTS
  * --------------------------------------------------
  */
+
+const TALENTS_COLLECTION =
+  "talents";
 
 const INITIAL_CATEGORIES_LIMIT = 6;
 const TALENTS_PER_LOAD = 8;
@@ -38,7 +52,9 @@ export function talentCacheTag(uid) {
 }
 
 export function usernameCacheTag(username) {
-  return `talent-username:${String(username)
+  return `talent-username:${String(
+    username
+  )
     .trim()
     .toLowerCase()}`;
 }
@@ -69,7 +85,10 @@ function getSafeLimit(
   }
 
   return Math.min(
-    Math.max(Math.floor(value), 1),
+    Math.max(
+      Math.floor(value),
+      1
+    ),
     maximum
   );
 }
@@ -299,57 +318,21 @@ function serializeTalent(talent) {
   };
 }
 
-/*
- * --------------------------------------------------
- * CATEGORIES
- * --------------------------------------------------
- */
-
 /**
- * Get all categories.
- *
- * Cached.
+ * Convert a Firestore talent document
+ * into the public talent shape.
  */
-export async function getCategories() {
-  "use cache";
+function serializeTalentDocument(
+  document
+) {
+  if (!document?.exists()) {
+    return null;
+  }
 
-  cacheLife("hours");
-
-  cacheTag(
-    CATEGORIES_CACHE_TAG
-  );
-
-  return categories
-    .map((category) => ({
-      id:
-        typeof category.id === "string"
-          ? category.id
-          : "",
-
-      name:
-        normalizeString(
-          category.name
-        ),
-
-      icon:
-        typeof category.icon === "string"
-          ? category.icon
-          : "circle",
-
-      description:
-        normalizeString(
-          category.description
-        ),
-
-      totalTalents:
-        normalizeNumber(
-          category.totalTalents
-        ),
-    }))
-    .filter(
-      (category) =>
-        category.id
-    );
+  return serializeTalent({
+    id: document.id,
+    ...document.data(),
+  });
 }
 
 /*
@@ -433,12 +416,6 @@ export async function getInitialTalentsData() {
               talents:
                 result.talents,
 
-              /*
-               * Offset cursor.
-               *
-               * After loading 8 talents,
-               * the next cursor is 8.
-               */
               nextCursor:
                 result.nextCursor,
 
@@ -454,8 +431,8 @@ export async function getInitialTalentsData() {
     );
 
   /*
-   * Add the pagination information
-   * to the initial categories.
+   * Add pagination information
+   * to the categories.
    */
   const enrichedCategories =
     allCategories.map(
@@ -517,12 +494,6 @@ export async function getInitialTalentsData() {
  * for a category.
  *
  * Cursor is an OFFSET.
- *
- * First page:
- *
- * cursor = 0
- * results = 0 - 7
- * nextCursor = 8
  */
 export async function getCategoryTalents({
   categoryId,
@@ -558,53 +529,83 @@ export async function getCategoryTalents({
       TALENTS_PER_LOAD
     );
 
-  /*
-   * Get talents belonging to
-   * this category.
-   */
-  const categoryTalents =
-    talents
-      .filter(
-        (talent) =>
-          talent.categoryId ===
-          normalizedCategoryId
-      )
-      .sort(
-        (a, b) =>
-          String(
-            b.createdAt || ""
-          ).localeCompare(
-            String(
-              a.createdAt || ""
-            )
-          )
-      );
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
 
   /*
-   * First page always starts
-   * from index 0.
+   * Query talents belonging to
+   * this category.
    */
-  const results =
-    categoryTalents.slice(
-      0,
-      safeLimit
+  const talentsRef =
+    collection(
+      db,
+      TALENTS_COLLECTION
+    );
+
+  const talentsQuery =
+    query(
+      talentsRef,
+
+      where(
+        "categoryId",
+        "==",
+        normalizedCategoryId
+      ),
+
+      orderBy(
+        "createdAt",
+        "desc"
+      ),
+
+      firestoreLimit(
+        safeLimit
+      )
+    );
+
+  const snapshot =
+    await getDocs(
+      talentsQuery
     );
 
   const normalizedTalents =
-    results
+    snapshot.docs
       .map(
-        serializeTalent
+        serializeTalentDocument
       )
       .filter(Boolean);
 
+  /*
+   * Firestore only returned the
+   * requested batch.
+   *
+   * We need the category count
+   * separately for pagination.
+   */
+  const countQuery =
+    query(
+      talentsRef,
+
+      where(
+        "categoryId",
+        "==",
+        normalizedCategoryId
+      )
+    );
+
+  const countSnapshot =
+    await getDocs(
+      countQuery
+    );
+
+  const totalTalents =
+    countSnapshot.size;
+
   const hasMore =
-    categoryTalents.length >
+    totalTalents >
     safeLimit;
 
-  /*
-   * The next cursor is simply
-   * the number of talents already loaded.
-   */
   const nextCursor =
     hasMore
       ? safeLimit
@@ -618,8 +619,7 @@ export async function getCategoryTalents({
 
     hasMore,
 
-    totalTalents:
-      categoryTalents.length,
+    totalTalents,
   };
 }
 
@@ -632,16 +632,10 @@ export async function getCategoryTalents({
 /**
  * Load talents after an OFFSET cursor.
  *
- * Example:
+ * NOTE:
  *
- * cursor = 8
- *
- * startIndex = 8
- *
- * fetch:
- *   8, 9, 10, 11, 12, 13, 14, 15
- *
- * nextCursor = 16
+ * This keeps the existing application
+ * cursor contract.
  */
 async function getTalentsByCategory({
   categoryId,
@@ -683,36 +677,55 @@ async function getTalentsByCategory({
       cursor
     );
 
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const talentsRef =
+    collection(
+      db,
+      TALENTS_COLLECTION
+    );
+
   /*
-   * ------------------------------------------------
-   * GET CATEGORY TALENTS
-   * ------------------------------------------------
+   * Get all category talents ordered
+   * newest first.
+   *
+   * The offset is applied in memory
+   * to preserve the existing cursor API.
    */
+  const talentsQuery =
+    query(
+      talentsRef,
+
+      where(
+        "categoryId",
+        "==",
+        normalizedCategoryId
+      ),
+
+      orderBy(
+        "createdAt",
+        "desc"
+      )
+    );
+
+  const snapshot =
+    await getDocs(
+      talentsQuery
+    );
 
   const categoryTalents =
-    talents
-      .filter(
-        (talent) =>
-          talent.categoryId ===
-          normalizedCategoryId
+    snapshot.docs
+      .map(
+        serializeTalentDocument
       )
-      .sort(
-        (a, b) =>
-          String(
-            b.createdAt || ""
-          ).localeCompare(
-            String(
-              a.createdAt || ""
-            )
-          )
-      );
+      .filter(Boolean);
 
   /*
-   * ------------------------------------------------
-   * PROTECT AGAINST INVALID OFFSET
-   * ------------------------------------------------
+   * Protect against an invalid cursor.
    */
-
   if (
     safeCursor >=
     categoryTalents.length
@@ -727,11 +740,8 @@ async function getTalentsByCategory({
   }
 
   /*
-   * ------------------------------------------------
-   * FETCH NEXT PAGE
-   * ------------------------------------------------
+   * Fetch the next page.
    */
-
   const results =
     categoryTalents.slice(
       safeCursor,
@@ -739,17 +749,6 @@ async function getTalentsByCategory({
         safeLimit
     );
 
-  const normalizedTalents =
-    results
-      .map(
-        serializeTalent
-      )
-      .filter(Boolean);
-
-  /*
-   * Calculate how many talents
-   * have been loaded after this request.
-   */
   const nextOffset =
     safeCursor +
     results.length;
@@ -760,7 +759,7 @@ async function getTalentsByCategory({
 
   return {
     talents:
-      normalizedTalents,
+      results,
 
     nextCursor:
       hasMore
@@ -827,22 +826,39 @@ export async function getTopTalents(
       DISCOVER_TALENTS_LIMIT
     );
 
-  return [...talents]
-    .sort(
-      (a, b) =>
-        normalizeNumber(
-          b.likes
-        ) -
-        normalizeNumber(
-          a.likes
-        )
-    )
-    .slice(
-      0,
-      safeLimit
-    )
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const talentsRef =
+    collection(
+      db,
+      TALENTS_COLLECTION
+    );
+
+  const talentsQuery =
+    query(
+      talentsRef,
+
+      orderBy(
+        "likes",
+        "desc"
+      ),
+
+      firestoreLimit(
+        safeLimit
+      )
+    );
+
+  const snapshot =
+    await getDocs(
+      talentsQuery
+    );
+
+  return snapshot.docs
     .map(
-      serializeTalent
+      serializeTalentDocument
     )
     .filter(Boolean);
 }
@@ -855,9 +871,6 @@ export async function getTopTalents(
 
 /**
  * Get newest talents.
- *
- * createdAt is used internally
- * and is never returned.
  */
 export async function getNewTalents(
   limit = DISCOVER_TALENTS_LIMIT
@@ -877,23 +890,39 @@ export async function getNewTalents(
       DISCOVER_TALENTS_LIMIT
     );
 
-  return [...talents]
-    .sort(
-      (a, b) =>
-        String(
-          b.createdAt || ""
-        ).localeCompare(
-          String(
-            a.createdAt || ""
-          )
-        )
-    )
-    .slice(
-      0,
-      safeLimit
-    )
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const talentsRef =
+    collection(
+      db,
+      TALENTS_COLLECTION
+    );
+
+  const talentsQuery =
+    query(
+      talentsRef,
+
+      orderBy(
+        "createdAt",
+        "desc"
+      ),
+
+      firestoreLimit(
+        safeLimit
+      )
+    );
+
+  const snapshot =
+    await getDocs(
+      talentsQuery
+    );
+
+  return snapshot.docs
     .map(
-      serializeTalent
+      serializeTalentDocument
     )
     .filter(Boolean);
 }
@@ -907,7 +936,8 @@ export async function getNewTalents(
 /**
  * Get a talent by ID or UID.
  *
- * Cached.
+ * Since talent document IDs are UIDs,
+ * the document ID is checked first.
  */
 export async function getTalentById(
   id
@@ -933,17 +963,25 @@ export async function getTalentById(
     )
   );
 
-  const talent =
-    talents.find(
-      (item) =>
-        item.id ===
-          normalizedId ||
-        item.uid ===
-          normalizedId
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const talentRef =
+    doc(
+      db,
+      TALENTS_COLLECTION,
+      normalizedId
     );
 
-  return serializeTalent(
-    talent
+  const snapshot =
+    await getDoc(
+      talentRef
+    );
+
+  return serializeTalentDocument(
+    snapshot
   );
 }
 
@@ -988,17 +1026,67 @@ export async function getTalentByUsername(
     )
   );
 
-  const talent =
-    talents.find(
-      (item) =>
-        normalizeString(
-          item.username
-        ).toLowerCase() ===
-        normalizedUsername
+  const {
+    db,
+  } =
+    getPublicServerFirebase();
+
+  const usernamesRef =
+    collection(
+      db,
+      "usernames"
     );
 
-  return serializeTalent(
-    talent
+  const usernameQuery =
+    query(
+      usernamesRef,
+
+      where(
+        "username",
+        "==",
+        normalizedUsername
+      ),
+
+      firestoreLimit(1)
+    );
+
+  const usernameSnapshot =
+    await getDocs(
+      usernameQuery
+    );
+
+  if (
+    usernameSnapshot.empty
+  ) {
+    return null;
+  }
+
+  const usernameData =
+    usernameSnapshot.docs[0].data();
+
+  const uid =
+    normalizeString(
+      usernameData.uid
+    );
+
+  if (!uid) {
+    return null;
+  }
+
+  const talentRef =
+    doc(
+      db,
+      TALENTS_COLLECTION,
+      uid
+    );
+
+  const talentSnapshot =
+    await getDoc(
+      talentRef
+    );
+
+  return serializeTalentDocument(
+    talentSnapshot
   );
 }
 
@@ -1009,5 +1097,6 @@ export async function getTalentByUsername(
  */
 
 export {
+  TALENTS_COLLECTION,
   serializeTalent,
 };
