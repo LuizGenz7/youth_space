@@ -648,12 +648,12 @@ export async function checkUsernameAction(
       available,
       error: null,
     };
-  } catch {
+  } catch(e) {
     return {
       success: false,
       available: false,
       error:
-        "Unable to check username.",
+        "Unable to check username." + e,
     };
   }
 }
