@@ -314,7 +314,7 @@ export default function ForgotPasswordPage() {
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
                   Enter the email address
                   connected to your Youth
-                  Space account and we'll
+                  Space account and we&apos;ll
                   send you a secure link to
                   reset your password.
                 </p>
