@@ -32,6 +32,7 @@ import {
 
 import {
   completeProfileAction,
+  checkUsernameAction,
 } from "@/actions/profile";
 
 import { useSnackbarStore } from "@/stores/useSnackbarStore";
@@ -130,10 +131,11 @@ export default function RegisterClient({
   ] = useState(false);
 
   /*
-   * This is only the Firebase Auth user
-   * returned after Google authentication.
+   * Firebase Auth user returned after
+   * Google authentication.
    *
-   * Profile data is NOT stored here.
+   * Profile data is created through
+   * the Server Action.
    */
 
   const [
@@ -228,9 +230,8 @@ export default function RegisterClient({
    * PROFILE DATA
    * --------------------------------------------------
    *
-   * This only collects form data.
+   * Collects and validates profile fields.
    *
-   * IMPORTANT:
    * Final validation also happens on the
    * server inside completeProfileAction().
    */
@@ -459,8 +460,8 @@ export default function RegisterClient({
     /*
      * Only profile fields are returned.
      *
-     * uid/email/displayName are intentionally
-     * NOT accepted from the form.
+     * uid/email/displayName are never
+     * accepted from the form.
      */
 
     return {
@@ -479,6 +480,47 @@ export default function RegisterClient({
 
   /*
    * --------------------------------------------------
+   * USERNAME CHECK
+   * --------------------------------------------------
+   *
+   * This runs BEFORE Firebase account creation.
+   *
+   * It is a pre-check only.
+   *
+   * The server must still enforce username
+   * uniqueness inside createProfile().
+   */
+
+  async function checkUsernameBeforeAccountCreation(
+    username
+  ) {
+    const result =
+      await checkUsernameAction(
+        username
+      );
+
+    if (!result?.success) {
+      showError(
+        result?.error ||
+          "Unable to check username. Please try again."
+      );
+
+      return false;
+    }
+
+    if (!result.available) {
+      showError(
+        "That username is already taken. Please choose another one."
+      );
+
+      return false;
+    }
+
+    return true;
+  }
+
+  /*
+   * --------------------------------------------------
    * COMPLETE PROFILE
    * --------------------------------------------------
    */
@@ -486,13 +528,6 @@ export default function RegisterClient({
   async function finishRegistration(
     profile
   ) {
-    /*
-     * No uid is passed.
-     *
-     * The Server Action gets the authenticated
-     * Firebase user through requireAuth().
-     */
-
     const result =
       await completeProfileAction(
         profile
@@ -662,9 +697,29 @@ export default function RegisterClient({
       return;
     }
 
+    /*
+     * ------------------------------------------------
+     * USERNAME PRE-CHECK
+     * ------------------------------------------------
+     *
+     * IMPORTANT:
+     *
+     * This happens BEFORE Firebase creates
+     * the email account.
+     */
+
     setLoading(true);
 
     try {
+      const usernameAvailable =
+        await checkUsernameBeforeAccountCreation(
+          profile.username
+        );
+
+      if (!usernameAvailable) {
+        return;
+      }
+
       /*
        * ------------------------------------------------
        * GOOGLE USER
@@ -684,7 +739,9 @@ export default function RegisterClient({
        * EMAIL USER
        * ------------------------------------------------
        *
-       * Firebase creates the authenticated user.
+       * Username has already been checked.
+       *
+       * Firebase account is created only now.
        */
 
       await signUpWithEmail(
@@ -698,21 +755,16 @@ export default function RegisterClient({
        * CREATE FIRESTORE PROFILE
        * ------------------------------------------------
        *
-       * We do NOT pass the Firebase user.
+       * uid/email/displayName are NOT passed.
        *
-       * The server gets it securely through
-       * FirebaseServerApp.
+       * The server gets the authenticated
+       * Firebase user through FirebaseServerApp.
        */
 
       await finishRegistration(
         profile
       );
     } catch (error) {
-      console.error(
-        "Registration error:",
-        error
-      );
-
       showError(
         getRegistrationError(
           error
@@ -742,39 +794,84 @@ export default function RegisterClient({
       return;
     }
 
+    /*
+     * Get the current form data before opening
+     * the Google authentication popup.
+     */
+
+    const form =
+      document.querySelector(
+        "form"
+      );
+
+    if (!form) {
+      showError(
+        "Unable to read the registration form."
+      );
+
+      return;
+    }
+
+    const formData =
+      new FormData(form);
+
+    /*
+     * Validate profile first.
+     */
+
+    const profile =
+      getProfileData(
+        formData
+      );
+
+    if (!profile) {
+      return;
+    }
+
     setGoogleLoading(true);
 
     try {
       /*
-       * Firebase Auth handles Google authentication.
+       * ------------------------------------------------
+       * USERNAME PRE-CHECK
+       * ------------------------------------------------
+       *
+       * Google authentication does NOT happen
+       * until the username is confirmed available.
+       */
+
+      const usernameAvailable =
+        await checkUsernameBeforeAccountCreation(
+          profile.username
+        );
+
+      if (!usernameAvailable) {
+        return;
+      }
+
+      /*
+       * ------------------------------------------------
+       * GOOGLE AUTHENTICATION
+       * ------------------------------------------------
        */
 
       const user =
         await signInWithGoogle();
 
       /*
-       * Keep only the authenticated Firebase
-       * user in client state.
-       *
-       * The actual profile is created later
-       * through the Server Action.
+       * ------------------------------------------------
+       * CREATE PROFILE
+       * ------------------------------------------------
        */
 
       setGoogleUser(
         user
       );
 
-      showSnackbar({
-        type: "success",
-        message:
-          "Google account connected. Complete your profile below.",
-      });
-    } catch (error) {
-      console.error(
-        "Google registration error:",
-        error
+      await finishRegistration(
+        profile
       );
-
+    } catch (error) {
       showError(
         getRegistrationError(
           error
@@ -1741,11 +1838,6 @@ function getRegistrationError(
       return message;
     }
 
-    /*
-     * Don't expose internal
-     * server/Firebase errors.
-     */
-
     if (
       message ===
         "Unable to create your profile. Please try again."
@@ -1795,8 +1887,6 @@ function getRegistrationError(
       return "This account has been disabled.";
 
     default:
-      return (
-        "Unable to create your account. Please try again."
-      );
+      return "Unable to create your account. Please try again.";
   }
 }

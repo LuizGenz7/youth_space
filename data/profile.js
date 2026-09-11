@@ -1,29 +1,24 @@
 import { z } from "zod";
 
 import {
-    cacheLife,
-    cacheTag,
+  cacheLife,
+  cacheTag,
 } from "next/cache";
 
 import {
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc,
-    deleteDoc,
-    collection,
-    query,
-    where,
-    getDocs,
-    serverTimestamp,
+  doc,
+  getDoc,
+  updateDoc,
+  runTransaction,
+  serverTimestamp,
 } from "firebase/firestore";
 
 import {
-    getServerFirebase,
+  getServerFirebase,
 } from "@/lib/server";
 
 import {
-    categories,
+  categories,
 } from "./categories";
 
 /*
@@ -33,10 +28,13 @@ import {
  */
 
 const PROFILES_COLLECTION =
-    "talents";
+  "talents";
+
+const USERNAMES_COLLECTION =
+  "usernames";
 
 const USERNAME_REGEX =
-    /^[a-z0-9_]{3,30}$/;
+  /^[a-z0-9_]{3,30}$/;
 
 /*
  * --------------------------------------------------
@@ -45,138 +43,140 @@ const USERNAME_REGEX =
  */
 
 const usernameSchema =
-    z
-        .string()
-        .trim()
-        .toLowerCase()
-        .regex(
-            USERNAME_REGEX,
-            "Username must be 3-30 characters and contain only lowercase letters, numbers, and underscores."
-        );
+  z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(
+      USERNAME_REGEX,
+      "Username must be 3-30 characters and contain only lowercase letters, numbers, and underscores."
+    );
 
 const profileUpdateSchema =
-    z.object({
-        username:
-            usernameSchema.optional(),
+  z
+    .object({
+      username:
+        usernameSchema.optional(),
 
-        role:
+      role:
+        z
+          .string()
+          .trim()
+          .max(100)
+          .optional(),
+
+      categoryId:
+        z
+          .string()
+          .trim()
+          .max(100)
+          .optional(),
+
+      province:
+        z
+          .string()
+          .trim()
+          .max(100)
+          .optional(),
+
+      district:
+        z
+          .string()
+          .trim()
+          .max(100)
+          .optional(),
+
+      bio:
+        z
+          .string()
+          .trim()
+          .max(1000)
+          .optional(),
+
+      phone:
+        z
+          .string()
+          .trim()
+          .max(30)
+          .optional(),
+
+      whatsapp:
+        z
+          .string()
+          .trim()
+          .max(30)
+          .optional(),
+
+      available:
+        z
+          .boolean()
+          .optional(),
+
+      avatar:
+        z
+          .string()
+          .trim()
+          .url()
+          .nullable()
+          .optional(),
+
+      skills:
+        z
+          .array(
             z
-                .string()
-                .trim()
-                .max(100)
-                .optional(),
+              .string()
+              .trim()
+              .min(1)
+              .max(100)
+          )
+          .max(20)
+          .optional(),
 
-        categoryId:
-            z
-                .string()
-                .trim()
-                .max(100)
-                .optional(),
+      services:
+        z
+          .array(
+            z.object({
+              id:
+                z.string(),
 
-        province:
-            z
-                .string()
-                .trim()
-                .max(100)
-                .optional(),
+              name:
+                z
+                  .string()
+                  .trim()
+                  .min(1)
+                  .max(150),
 
-        district:
-            z
-                .string()
-                .trim()
-                .max(100)
-                .optional(),
+              description:
+                z
+                  .string()
+                  .trim()
+                  .max(1000)
+                  .optional()
+                  .default(""),
 
-        bio:
-            z
-                .string()
-                .trim()
-                .max(1000)
-                .optional(),
+              price:
+                z
+                  .string()
+                  .max(50)
+                  .optional()
+                  .default(""),
 
-        phone:
-            z
-                .string()
-                .trim()
-                .max(30)
-                .optional(),
-
-        whatsapp:
-            z
-                .string()
-                .trim()
-                .max(30)
-                .optional(),
-
-        available:
-            z
-                .boolean()
-                .optional(),
-
-        avatar:
-            z
-                .string()
-                .trim()
-                .url()
-                .nullable()
-                .optional(),
-
-        skills:
-            z
-                .array(
-                    z
-                        .string()
-                        .trim()
-                        .min(1)
-                        .max(100)
-                )
-                .max(20)
-                .optional(),
-
-        services:
-            z
-                .array(
-                    z.object({
-                        id:
-                            z.string(),
-
-                        name:
-                            z
-                                .string()
-                                .trim()
-                                .min(1)
-                                .max(150),
-
-                        description:
-                            z
-                                .string()
-                                .trim()
-                                .max(1000)
-                                .optional()
-                                .default(""),
-
-                        price:
-                            z
-                                .string()
-                                .max(50)
-                                .optional()
-                                .default(""),
-
-                        image:
-                            z
-                                .string()
-                                .trim()
-                                .url()
-                                .or(
-                                    z.literal("")
-                                )
-                                .optional()
-                                .default(""),
-                    })
-                )
-                .max(20)
-                .optional(),
-    });
+              image:
+                z
+                  .string()
+                  .trim()
+                  .url()
+                  .or(
+                    z.literal("")
+                  )
+                  .optional()
+                  .default(""),
+            })
+          )
+          .max(20)
+          .optional(),
+    })
+    .strict();
 
 /*
  * --------------------------------------------------
@@ -184,104 +184,121 @@ const profileUpdateSchema =
  * --------------------------------------------------
  */
 
-function normalizeString(value) {
-    if (
-        typeof value !== "string"
-    ) {
-        return "";
-    }
+function normalizeString(
+  value
+) {
+  if (
+    typeof value !==
+    "string"
+  ) {
+    return "";
+  }
 
-    return value.trim();
+  return value.trim();
 }
 
-function normalizeStringArray(value) {
-    if (!Array.isArray(value)) {
-        return [];
-    }
+function normalizeStringArray(
+  value
+) {
+  if (
+    !Array.isArray(value)
+  ) {
+    return [];
+  }
 
-    return value
-        .filter(
-            (item) =>
-                typeof item ===
-                "string"
-        )
-        .map(
-            (item) =>
-                item.trim()
-        )
-        .filter(Boolean);
+  return value
+    .filter(
+      (item) =>
+        typeof item ===
+        "string"
+    )
+    .map(
+      (item) =>
+        item.trim()
+    )
+    .filter(Boolean);
 }
 
-function normalizeBoolean(value) {
-    return value === true;
+function normalizeBoolean(
+  value
+) {
+  return value === true;
 }
 
-function normalizeNumber(value) {
-    const number =
-        Number(value);
+function normalizeNumber(
+  value
+) {
+  const number =
+    Number(value);
 
-    return Number.isFinite(number)
-        ? number
-        : 0;
+  return Number.isFinite(
+    number
+  )
+    ? number
+    : 0;
 }
 
-function normalizeServices(value) {
-    if (!Array.isArray(value)) {
-        return [];
-    }
+function normalizeServices(
+  value
+) {
+  if (
+    !Array.isArray(value)
+  ) {
+    return [];
+  }
 
-    return value
-        .map((service) => {
-            if (
-                !service ||
-                typeof service !==
-                    "object" ||
-                Array.isArray(service)
-            ) {
-                return null;
-            }
+  return value
+    .map((service) => {
+      if (
+        !service ||
+        typeof service !==
+          "object" ||
+        Array.isArray(service)
+      ) {
+        return null;
+      }
 
-            return {
-                id:
-                    typeof service.id ===
-                        "string"
-                        ? service.id
-                        : "",
+      return {
+        id:
+          typeof service.id ===
+          "string"
+            ? service.id.trim()
+            : "",
 
-                name:
-                    typeof service.name ===
-                        "string"
-                        ? service.name.trim()
-                        : "",
+        name:
+          typeof service.name ===
+          "string"
+            ? service.name.trim()
+            : "",
 
-                description:
-                    typeof service.description ===
-                        "string"
-                        ? service.description.trim()
-                        : "",
+        description:
+          typeof service.description ===
+          "string"
+            ? service.description.trim()
+            : "",
 
-                price:
-                    service.price !==
-                        undefined &&
-                    service.price !==
-                        null
-                        ? String(
-                              service.price
-                          )
-                        : "",
+        price:
+          service.price !==
+            undefined &&
+          service.price !==
+            null
+            ? String(
+                service.price
+              ).trim()
+            : "",
 
-                image:
-                    typeof service.image ===
-                        "string"
-                        ? service.image
-                        : "",
-            };
-        })
-        .filter(
-            (service) =>
-                service &&
-                service.name
-        );
+        image:
+          typeof service.image ===
+          "string"
+            ? service.image.trim()
+            : "",
+      };
+    })
+    .filter(
+      (service) =>
+        service &&
+        service.name
+    );
 }
 
 /*
@@ -290,35 +307,38 @@ function normalizeServices(value) {
  * --------------------------------------------------
  */
 
-function getCategory(categoryId) {
-    const normalizedId =
-        normalizeString(
-            categoryId
-        );
+function getCategory(
+  categoryId
+) {
+  const normalizedId =
+    normalizeString(
+      categoryId
+    );
 
-    if (!normalizedId) {
-        return null;
-    }
+  if (!normalizedId) {
+    return null;
+  }
 
-    const category =
-        categories.find(
-            (item) =>
-                item.id ===
-                normalizedId
-        );
+  const category =
+    categories.find(
+      (item) =>
+        item.id ===
+        normalizedId
+    );
 
-    if (!category) {
-        return null;
-    }
+  if (!category) {
+    return null;
+  }
 
-    return {
-        id: category.id,
+  return {
+    id:
+      category.id,
 
-        name:
-            normalizeString(
-                category.name
-            ),
-    };
+    name:
+      normalizeString(
+        category.name
+      ),
+  };
 }
 
 /*
@@ -328,43 +348,43 @@ function getCategory(categoryId) {
  */
 
 async function getCurrentUser() {
-    const {
-        auth,
-    } = await getServerFirebase();
+  const {
+    auth,
+  } = await getServerFirebase();
 
-    await auth.authStateReady();
+  await auth.authStateReady();
 
-    const user =
-        auth.currentUser;
+  const user =
+    auth.currentUser;
 
-    if (!user) {
-        throw new Error(
-            "AUTH_REQUIRED"
-        );
-    }
+  if (!user) {
+    throw new Error(
+      "AUTH_REQUIRED"
+    );
+  }
 
-    return {
-        uid:
-            user.uid,
+  return {
+    uid:
+      user.uid,
 
-        displayName:
-            normalizeString(
-                user.displayName
-            ),
+    displayName:
+      normalizeString(
+        user.displayName
+      ),
 
-        email:
-            normalizeString(
-                user.email
-            ),
+    email:
+      normalizeString(
+        user.email
+      ),
 
-        photoURL:
-            user.photoURL ||
-            null,
+    photoURL:
+      user.photoURL ||
+      null,
 
-        emailVerified:
-            user.emailVerified ===
-            true,
-    };
+    emailVerified:
+      user.emailVerified ===
+      true,
+  };
 }
 
 /*
@@ -373,426 +393,492 @@ async function getCurrentUser() {
  * --------------------------------------------------
  */
 
-function serializeProfile(profile) {
-    if (!profile) {
-        return null;
-    }
+function serializeProfile(
+  profile
+) {
+  if (!profile) {
+    return null;
+  }
 
-    return {
-        id:
-            normalizeString(
-                profile.id ||
-                    profile.uid
-            ),
+  return {
+    id:
+      normalizeString(
+        profile.id ||
+          profile.uid
+      ),
 
-        uid:
-            normalizeString(
-                profile.uid
-            ),
+    uid:
+      normalizeString(
+        profile.uid
+      ),
 
-        username:
-            normalizeString(
-                profile.username
-            ),
+    username:
+      normalizeString(
+        profile.username
+      ),
 
-        displayName:
-            normalizeString(
-                profile.displayName
-            ),
+    displayName:
+      normalizeString(
+        profile.displayName
+      ),
 
-        email:
-            normalizeString(
-                profile.email
-            ),
+    email:
+      normalizeString(
+        profile.email
+      ),
 
-        role:
-            normalizeString(
-                profile.role
-            ),
+    role:
+      normalizeString(
+        profile.role
+      ),
 
-        categoryId:
-            normalizeString(
-                profile.categoryId
-            ),
+    categoryId:
+      normalizeString(
+        profile.categoryId
+      ),
 
-        category:
-            normalizeString(
-                profile.category
-            ),
+    category:
+      normalizeString(
+        profile.category
+      ),
 
-        province:
-            normalizeString(
-                profile.province
-            ),
+    province:
+      normalizeString(
+        profile.province
+      ),
 
-        district:
-            normalizeString(
-                profile.district
-            ),
+    district:
+      normalizeString(
+        profile.district
+      ),
 
-        bio:
-            normalizeString(
-                profile.bio
-            ),
+    bio:
+      normalizeString(
+        profile.bio
+      ),
 
-        phone:
-            normalizeString(
-                profile.phone
-            ),
+    phone:
+      normalizeString(
+        profile.phone
+      ),
 
-        whatsapp:
-            normalizeString(
-                profile.whatsapp
-            ),
+    whatsapp:
+      normalizeString(
+        profile.whatsapp
+      ),
 
-        available:
-            normalizeBoolean(
-                profile.available
-            ),
+    available:
+      normalizeBoolean(
+        profile.available
+      ),
 
-        avatar:
-            typeof profile.avatar ===
-                "string"
-                ? profile.avatar
-                : null,
+    avatar:
+      typeof profile.avatar ===
+        "string"
+        ? profile.avatar
+        : null,
 
-        skills:
-            normalizeStringArray(
-                profile.skills
-            ),
+    skills:
+      normalizeStringArray(
+        profile.skills
+      ),
 
-        services:
-            normalizeServices(
-                profile.services
-            ),
+    services:
+      normalizeServices(
+        profile.services
+      ),
 
-        verified:
-            normalizeBoolean(
-                profile.verified
-            ),
+    verified:
+      normalizeBoolean(
+        profile.verified
+      ),
 
-        likes:
-            normalizeNumber(
-                profile.likes
-            ),
+    likes:
+      normalizeNumber(
+        profile.likes
+      ),
 
-        workCount:
-            normalizeNumber(
-                profile.workCount
-            ),
-    };
+    workCount:
+      normalizeNumber(
+        profile.workCount
+      ),
+  };
 }
 
-function serializePublicProfile(profile) {
-    if (!profile) {
-        return null;
-    }
+function serializePublicProfile(
+  profile
+) {
+  if (!profile) {
+    return null;
+  }
 
-    return {
-        id:
-            normalizeString(
-                profile.id ||
-                    profile.uid
-            ),
+  return {
+    id:
+      normalizeString(
+        profile.id ||
+          profile.uid
+      ),
 
-        uid:
-            normalizeString(
-                profile.uid
-            ),
+    uid:
+      normalizeString(
+        profile.uid
+      ),
 
-        username:
-            normalizeString(
-                profile.username
-            ),
+    username:
+      normalizeString(
+        profile.username
+      ),
 
-        displayName:
-            normalizeString(
-                profile.displayName
-            ),
+    displayName:
+      normalizeString(
+        profile.displayName
+      ),
 
-        role:
-            normalizeString(
-                profile.role
-            ),
+    role:
+      normalizeString(
+        profile.role
+      ),
 
-        categoryId:
-            normalizeString(
-                profile.categoryId
-            ),
+    categoryId:
+      normalizeString(
+        profile.categoryId
+      ),
 
-        category:
-            normalizeString(
-                profile.category
-            ),
+    category:
+      normalizeString(
+        profile.category
+      ),
 
-        province:
-            normalizeString(
-                profile.province
-            ),
+    province:
+      normalizeString(
+        profile.province
+      ),
 
-        district:
-            normalizeString(
-                profile.district
-            ),
+    district:
+      normalizeString(
+        profile.district
+      ),
 
-        bio:
-            normalizeString(
-                profile.bio
-            ),
+    bio:
+      normalizeString(
+        profile.bio
+      ),
 
-        phone:
-            normalizeString(
-                profile.phone
-            ),
+    phone:
+      normalizeString(
+        profile.phone
+      ),
 
-        whatsapp:
-            normalizeString(
-                profile.whatsapp
-            ),
+    whatsapp:
+      normalizeString(
+        profile.whatsapp
+      ),
 
-        available:
-            normalizeBoolean(
-                profile.available
-            ),
+    available:
+      normalizeBoolean(
+        profile.available
+      ),
 
-        avatar:
-            typeof profile.avatar ===
-                "string"
-                ? profile.avatar
-                : null,
+    avatar:
+      typeof profile.avatar ===
+        "string"
+        ? profile.avatar
+        : null,
 
-        skills:
-            normalizeStringArray(
-                profile.skills
-            ),
+    skills:
+      normalizeStringArray(
+        profile.skills
+      ),
 
-        services:
-            normalizeServices(
-                profile.services
-            ),
+    services:
+      normalizeServices(
+        profile.services
+      ),
 
-        verified:
-            normalizeBoolean(
-                profile.verified
-            ),
+    verified:
+      normalizeBoolean(
+        profile.verified
+      ),
 
-        likes:
-            normalizeNumber(
-                profile.likes
-            ),
+    likes:
+      normalizeNumber(
+        profile.likes
+      ),
 
-        workCount:
-            normalizeNumber(
-                profile.workCount
-            ),
-    };
+    workCount:
+      normalizeNumber(
+        profile.workCount
+      ),
+  };
 }
 
-function serializeUsernameRecord(profile) {
-    if (!profile) {
-        return null;
-    }
+function serializeUsernameRecord(
+  record
+) {
+  if (!record) {
+    return null;
+  }
 
-    return {
-        id:
-            normalizeString(
-                profile.id ||
-                    profile.uid
-            ),
+  return {
+    id:
+      normalizeString(
+        record.id ||
+          record.username
+      ),
 
-        uid:
-            normalizeString(
-                profile.uid
-            ),
+    uid:
+      normalizeString(
+        record.uid
+      ),
 
-        username:
-            normalizeString(
-                profile.username
-            ),
-    };
+    username:
+      normalizeString(
+        record.username
+      ),
+  };
 }
 
 /*
  * --------------------------------------------------
  * CREATE PROFILE
  * --------------------------------------------------
+ *
+ * Creates both documents atomically:
+ *
+ * talents/{uid}
+ * usernames/{username}
+ *
+ * The username document is the unique
+ * username registry/index.
+ * --------------------------------------------------
  */
 
 export async function createProfile(
-    profileData
+  profileData
 ) {
-    const user =
-        await getCurrentUser();
+  const user =
+    await getCurrentUser();
 
-    const username =
-        usernameSchema.parse(
-            profileData?.username
-        );
-
-    const categoryId =
-        normalizeString(
-            profileData?.categoryId
-        );
-
-    if (!categoryId) {
-        throw new Error(
-            "CATEGORY_REQUIRED"
-        );
-    }
-
-    const category =
-        getCategory(
-            categoryId
-        );
-
-    if (!category) {
-        throw new Error(
-            "CATEGORY_NOT_FOUND"
-        );
-    }
-
-    const {
-        db,
-    } = await getServerFirebase();
-
-    const profileRef =
-        doc(
-            db,
-            PROFILES_COLLECTION,
-            user.uid
-        );
-
-    const existingProfile =
-        await getDoc(
-            profileRef
-        );
-
-    if (existingProfile.exists()) {
-        throw new Error(
-            "PROFILE_EXISTS"
-        );
-    }
-
-    const usernameQuery =
-        query(
-            collection(
-                db,
-                PROFILES_COLLECTION
-            ),
-            where(
-                "username",
-                "==",
-                username
-            )
-        );
-
-    const usernameSnapshot =
-        await getDocs(
-            usernameQuery
-        );
-
-    if (!usernameSnapshot.empty) {
-        throw new Error(
-            "USERNAME_TAKEN"
-        );
-    }
-
-    const newProfile = {
-        id:
-            user.uid,
-
-        uid:
-            user.uid,
-
-        username,
-
-        displayName:
-            user.displayName,
-
-        email:
-            user.email,
-
-        role:
-            normalizeString(
-                profileData?.role
-            ),
-
-        categoryId:
-            category.id,
-
-        category:
-            category.name,
-
-        province:
-            normalizeString(
-                profileData?.province
-            ),
-
-        district:
-            normalizeString(
-                profileData?.district
-            ),
-
-        bio:
-            normalizeString(
-                profileData?.bio
-            ),
-
-        phone:
-            normalizeString(
-                profileData?.phone
-            ),
-
-        whatsapp:
-            normalizeString(
-                profileData?.whatsapp
-            ),
-
-        available:
-            normalizeBoolean(
-                profileData?.available
-            ),
-
-        avatar:
-            typeof profileData?.avatar ===
-                "string"
-                ? profileData.avatar
-                : null,
-
-        skills:
-            normalizeStringArray(
-                profileData?.skills
-            ),
-
-        services:
-            normalizeServices(
-                profileData?.services
-            ),
-
-        verified: false,
-
-        likes: 0,
-
-        workCount: 0,
-
-        createdAt:
-            serverTimestamp(),
-
-        updatedAt:
-            serverTimestamp(),
-    };
-
-    await setDoc(
-        profileRef,
-        newProfile
+  const username =
+    usernameSchema.parse(
+      profileData?.username
     );
 
-    return serializeProfile({
-        ...newProfile,
+  const categoryId =
+    normalizeString(
+      profileData?.categoryId
+    );
 
-        createdAt: null,
-        updatedAt: null,
-    });
+  if (!categoryId) {
+    throw new Error(
+      "CATEGORY_REQUIRED"
+    );
+  }
+
+  const category =
+    getCategory(
+      categoryId
+    );
+
+  if (!category) {
+    throw new Error(
+      "CATEGORY_NOT_FOUND"
+    );
+  }
+
+  const {
+    db,
+  } = await getServerFirebase();
+
+  const profileRef =
+    doc(
+      db,
+      PROFILES_COLLECTION,
+      user.uid
+    );
+
+  const usernameRef =
+    doc(
+      db,
+      USERNAMES_COLLECTION,
+      username
+    );
+
+  const profile =
+    await runTransaction(
+      db,
+      async (transaction) => {
+        /*
+         * READS FIRST.
+         */
+
+        const profileSnapshot =
+          await transaction.get(
+            profileRef
+          );
+
+        if (
+          profileSnapshot.exists()
+        ) {
+          throw new Error(
+            "PROFILE_EXISTS"
+          );
+        }
+
+        const usernameSnapshot =
+          await transaction.get(
+            usernameRef
+          );
+
+        if (
+          usernameSnapshot.exists()
+        ) {
+          throw new Error(
+            "USERNAME_TAKEN"
+          );
+        }
+
+        /*
+         * DATA
+         */
+
+        const newProfile = {
+          id:
+            user.uid,
+
+          uid:
+            user.uid,
+
+          username,
+
+          displayName:
+            user.displayName,
+
+          email:
+            user.email,
+
+          role:
+            normalizeString(
+              profileData?.role
+            ),
+
+          categoryId:
+            category.id,
+
+          category:
+            category.name,
+
+          province:
+            normalizeString(
+              profileData?.province
+            ),
+
+          district:
+            normalizeString(
+              profileData?.district
+            ),
+
+          bio:
+            normalizeString(
+              profileData?.bio
+            ),
+
+          phone:
+            normalizeString(
+              profileData?.phone
+            ),
+
+          whatsapp:
+            normalizeString(
+              profileData?.whatsapp
+            ),
+
+          available:
+            normalizeBoolean(
+              profileData?.available
+            ),
+
+          avatar:
+            typeof profileData?.avatar ===
+              "string"
+              ? profileData.avatar.trim()
+              : null,
+
+          skills:
+            normalizeStringArray(
+              profileData?.skills
+            ),
+
+          services:
+            normalizeServices(
+              profileData?.services
+            ),
+
+          verified:
+            false,
+
+          likes:
+            0,
+
+          workCount:
+            0,
+
+          createdAt:
+            serverTimestamp(),
+
+          updatedAt:
+            serverTimestamp(),
+        };
+
+        /*
+         * USERNAME INDEX
+         *
+         * usernames/{username}
+         */
+
+        const usernameRecord = {
+          id:
+            username,
+
+          uid:
+            user.uid,
+
+          username,
+
+          createdAt:
+            serverTimestamp(),
+
+          updatedAt:
+            serverTimestamp(),
+        };
+
+        /*
+         * WRITES AFTER ALL READS.
+         */
+
+        transaction.set(
+          profileRef,
+          newProfile
+        );
+
+        transaction.set(
+          usernameRef,
+          usernameRecord
+        );
+
+        return newProfile;
+      }
+    );
+
+  return serializeProfile({
+    ...profile,
+
+    createdAt:
+      null,
+
+    updatedAt:
+      null,
+  });
 }
 
 /*
@@ -800,42 +886,43 @@ export async function createProfile(
  * GET MY PROFILE
  * --------------------------------------------------
  *
- * Authenticated + request-specific.
+ * Authenticated.
  * DO NOT CACHE.
+ * --------------------------------------------------
  */
 
 export async function getMyProfile() {
-    const user =
-        await getCurrentUser();
+  const user =
+    await getCurrentUser();
 
-    const {
-        db,
-    } = await getServerFirebase();
+  const {
+    db,
+  } = await getServerFirebase();
 
-    const profileRef =
-        doc(
-            db,
-            PROFILES_COLLECTION,
-            user.uid
-        );
+  const profileRef =
+    doc(
+      db,
+      PROFILES_COLLECTION,
+      user.uid
+    );
 
-    const profileSnapshot =
-        await getDoc(
-            profileRef
-        );
+  const profileSnapshot =
+    await getDoc(
+      profileRef
+    );
 
-    if (
-        !profileSnapshot.exists()
-    ) {
-        return null;
-    }
+  if (
+    !profileSnapshot.exists()
+  ) {
+    return null;
+  }
 
-    return serializeProfile({
-        id:
-            profileSnapshot.id,
+  return serializeProfile({
+    id:
+      profileSnapshot.id,
 
-        ...profileSnapshot.data(),
-    });
+    ...profileSnapshot.data(),
+  });
 }
 
 /*
@@ -845,48 +932,49 @@ export async function getMyProfile() {
  *
  * Authenticated/private usage.
  * DO NOT CACHE.
+ * --------------------------------------------------
  */
 
 export async function getProfileByUid(
-    uid
+  uid
 ) {
-    const normalizedUid =
-        normalizeString(
-            uid
-        );
+  const normalizedUid =
+    normalizeString(
+      uid
+    );
 
-    if (!normalizedUid) {
-        return null;
-    }
+  if (!normalizedUid) {
+    return null;
+  }
 
-    const {
-        db,
-    } = await getServerFirebase();
+  const {
+    db,
+  } = await getServerFirebase();
 
-    const profileRef =
-        doc(
-            db,
-            PROFILES_COLLECTION,
-            normalizedUid
-        );
+  const profileRef =
+    doc(
+      db,
+      PROFILES_COLLECTION,
+      normalizedUid
+    );
 
-    const profileSnapshot =
-        await getDoc(
-            profileRef
-        );
+  const profileSnapshot =
+    await getDoc(
+      profileRef
+    );
 
-    if (
-        !profileSnapshot.exists()
-    ) {
-        return null;
-    }
+  if (
+    !profileSnapshot.exists()
+  ) {
+    return null;
+  }
 
-    return serializeProfile({
-        id:
-            profileSnapshot.id,
+  return serializeProfile({
+    id:
+      profileSnapshot.id,
 
-        ...profileSnapshot.data(),
-    });
+    ...profileSnapshot.data(),
+  });
 }
 
 /*
@@ -894,69 +982,108 @@ export async function getProfileByUid(
  * GET PROFILE BY USERNAME
  * --------------------------------------------------
  *
- * Public + cacheable.
+ * Public.
+ *
+ * usernames/{username}
+ *          ↓
+ *         uid
+ *          ↓
+ * talents/{uid}
+ * --------------------------------------------------
  */
 
 export async function getProfileByUsername(
-    username
+  username
 ) {
-    const normalizedUsername =
-        usernameSchema.parse(
-            username
-        );
-
-    return getCachedProfileByUsername(
-        normalizedUsername
+  const normalizedUsername =
+    usernameSchema.parse(
+      username
     );
+
+  return getCachedProfileByUsername(
+    normalizedUsername
+  );
 }
 
 async function getCachedProfileByUsername(
-    username
+  username
 ) {
-    "use cache";
+  "use cache";
 
-    cacheLife("hours");
+  cacheLife("hours");
 
-    cacheTag(
-        "profiles",
-        `profile-username:${username}`
+  cacheTag(
+    "profiles",
+    `profile-username:${username}`,
+    `username:${username}`
+  );
+
+  const {
+    db,
+  } = await getServerFirebase();
+
+  /*
+   * First resolve username → uid.
+   */
+
+  const usernameRef =
+    doc(
+      db,
+      USERNAMES_COLLECTION,
+      username
     );
 
-    const {
-        db,
-    } = await getServerFirebase();
+  const usernameSnapshot =
+    await getDoc(
+      usernameRef
+    );
 
-    const profileQuery =
-        query(
-            collection(
-                db,
-                PROFILES_COLLECTION
-            ),
-            where(
-                "username",
-                "==",
-                username
-            )
-        );
+  if (
+    !usernameSnapshot.exists()
+  ) {
+    return null;
+  }
 
-    const snapshot =
-        await getDocs(
-            profileQuery
-        );
+  const usernameData =
+    usernameSnapshot.data();
 
-    if (snapshot.empty) {
-        return null;
-    }
+  const uid =
+    normalizeString(
+      usernameData?.uid
+    );
 
-    const profile =
-        snapshot.docs[0];
+  if (!uid) {
+    return null;
+  }
 
-    return serializePublicProfile({
-        id:
-            profile.id,
+  /*
+   * Then resolve uid → profile.
+   */
 
-        ...profile.data(),
-    });
+  const profileRef =
+    doc(
+      db,
+      PROFILES_COLLECTION,
+      uid
+    );
+
+  const profileSnapshot =
+    await getDoc(
+      profileRef
+    );
+
+  if (
+    !profileSnapshot.exists()
+  ) {
+    return null;
+  }
+
+  return serializePublicProfile({
+    id:
+      profileSnapshot.id,
+
+    ...profileSnapshot.data(),
+  });
 }
 
 /*
@@ -964,130 +1091,123 @@ async function getCachedProfileByUsername(
  * GET USERNAME RECORD
  * --------------------------------------------------
  *
- * Public + cacheable.
+ * Direct lookup:
+ *
+ * usernames/{username}
+ * --------------------------------------------------
  */
 
 export async function getUsernameRecord(
-    username
+  username
 ) {
-    const normalizedUsername =
-        usernameSchema.parse(
-            username
-        );
-
-    return getCachedUsernameRecord(
-        normalizedUsername
+  const normalizedUsername =
+    usernameSchema.parse(
+      username
     );
+
+  return getCachedUsernameRecord(
+    normalizedUsername
+  );
 }
 
 async function getCachedUsernameRecord(
-    username
+  username
 ) {
-    "use cache";
+  "use cache";
 
-    cacheLife("minutes");
+  cacheLife("minutes");
 
-    cacheTag(
-        "profiles",
-        `username:${username}`
+  cacheTag(
+    "profiles",
+    `username:${username}`
+  );
+
+  const {
+    db,
+  } = await getServerFirebase();
+
+  const usernameRef =
+    doc(
+      db,
+      USERNAMES_COLLECTION,
+      username
     );
 
-    const {
-        db,
-    } = await getServerFirebase();
+  const snapshot =
+    await getDoc(
+      usernameRef
+    );
 
-    const profileQuery =
-        query(
-            collection(
-                db,
-                PROFILES_COLLECTION
-            ),
-            where(
-                "username",
-                "==",
-                username
-            )
-        );
+  if (
+    !snapshot.exists()
+  ) {
+    return null;
+  }
 
-    const snapshot =
-        await getDocs(
-            profileQuery
-        );
+  return serializeUsernameRecord({
+    id:
+      snapshot.id,
 
-    if (snapshot.empty) {
-        return null;
-    }
-
-    const profile =
-        snapshot.docs[0];
-
-    const data =
-        profile.data();
-
-    return serializeUsernameRecord({
-        id:
-            profile.id,
-
-        ...data,
-    });
+    ...snapshot.data(),
+  });
 }
 
 /*
  * --------------------------------------------------
- * CHECK USERNAME
+ * CHECK USERNAME AVAILABILITY
  * --------------------------------------------------
  *
- * Public + cacheable.
+ * Direct lookup:
+ *
+ * usernames/{username}
+ *
+ * No query against talents.
+ * --------------------------------------------------
  */
 
 export async function isUsernameAvailable(
-    username
+  username
 ) {
-    const normalizedUsername =
-        usernameSchema.parse(
-            username
-        );
-
-    return checkCachedUsernameAvailability(
-        normalizedUsername
+  const normalizedUsername =
+    usernameSchema.parse(
+      username
     );
+
+  return checkCachedUsernameAvailability(
+    normalizedUsername
+  );
 }
 
 async function checkCachedUsernameAvailability(
-    username
+  username
 ) {
-    "use cache";
+  "use cache";
 
-    cacheLife("seconds");
+  cacheLife("seconds");
 
-    cacheTag(
-        "profiles",
-        `username-availability:${username}`
+  cacheTag(
+    "profiles",
+    `username:${username}`,
+    `username-availability:${username}`
+  );
+
+  const {
+    db,
+  } = await getServerFirebase();
+
+  const usernameRef =
+    doc(
+      db,
+      USERNAMES_COLLECTION,
+      username
     );
 
-    const {
-        db,
-    } = await getServerFirebase();
+  const snapshot =
+    await getDoc(
+      usernameRef
+    );
 
-    const profileQuery =
-        query(
-            collection(
-                db,
-                PROFILES_COLLECTION
-            ),
-            where(
-                "username",
-                "==",
-                username
-            )
-        );
-
-    const snapshot =
-        await getDocs(
-            profileQuery
-        );
-
-    return snapshot.empty;
+  return !snapshot.exists();
 }
 
 /*
@@ -1097,274 +1217,480 @@ async function checkCachedUsernameAvailability(
  */
 
 function buildProfileUpdates(
-    updates,
-    category
+  updates,
+  category
 ) {
-    const clean = {};
+  const clean = {};
 
-    if (
-        updates.role !==
-        undefined
-    ) {
-        clean.role =
-            normalizeString(
-                updates.role
-            );
-    }
+  if (
+    updates.role !==
+    undefined
+  ) {
+    clean.role =
+      normalizeString(
+        updates.role
+      );
+  }
 
-    if (
-        updates.province !==
-        undefined
-    ) {
-        clean.province =
-            normalizeString(
-                updates.province
-            );
-    }
+  if (
+    updates.province !==
+    undefined
+  ) {
+    clean.province =
+      normalizeString(
+        updates.province
+      );
+  }
 
-    if (
-        updates.district !==
-        undefined
-    ) {
-        clean.district =
-            normalizeString(
-                updates.district
-            );
-    }
+  if (
+    updates.district !==
+    undefined
+  ) {
+    clean.district =
+      normalizeString(
+        updates.district
+      );
+  }
 
-    if (
-        updates.bio !==
-        undefined
-    ) {
-        clean.bio =
-            normalizeString(
-                updates.bio
-            );
-    }
+  if (
+    updates.bio !==
+    undefined
+  ) {
+    clean.bio =
+      normalizeString(
+        updates.bio
+      );
+  }
 
-    if (
-        updates.phone !==
-        undefined
-    ) {
-        clean.phone =
-            normalizeString(
-                updates.phone
-            );
-    }
+  if (
+    updates.phone !==
+    undefined
+  ) {
+    clean.phone =
+      normalizeString(
+        updates.phone
+      );
+  }
 
-    if (
-        updates.whatsapp !==
-        undefined
-    ) {
-        clean.whatsapp =
-            normalizeString(
-                updates.whatsapp
-            );
-    }
+  if (
+    updates.whatsapp !==
+    undefined
+  ) {
+    clean.whatsapp =
+      normalizeString(
+        updates.whatsapp
+      );
+  }
 
-    if (
-        updates.available !==
-        undefined
-    ) {
-        clean.available =
-            updates.available === true;
-    }
+  if (
+    updates.available !==
+    undefined
+  ) {
+    clean.available =
+      updates.available ===
+      true;
+  }
 
-    if (
-        updates.avatar !==
-        undefined
-    ) {
-        clean.avatar =
-            typeof updates.avatar ===
-                "string"
-                ? updates.avatar
-                : null;
-    }
+  if (
+    updates.avatar !==
+    undefined
+  ) {
+    clean.avatar =
+      typeof updates.avatar ===
+        "string"
+        ? updates.avatar.trim()
+        : null;
+  }
 
-    if (
-        updates.skills !==
-        undefined
-    ) {
-        clean.skills =
-            normalizeStringArray(
-                updates.skills
-            );
-    }
+  if (
+    updates.skills !==
+    undefined
+  ) {
+    clean.skills =
+      normalizeStringArray(
+        updates.skills
+      );
+  }
 
-    if (
-        updates.services !==
-        undefined
-    ) {
-        clean.services =
-            normalizeServices(
-                updates.services
-            );
-    }
+  if (
+    updates.services !==
+    undefined
+  ) {
+    clean.services =
+      normalizeServices(
+        updates.services
+      );
+  }
 
-    if (category) {
-        clean.categoryId =
-            category.id;
+  if (category) {
+    clean.categoryId =
+      category.id;
 
-        clean.category =
-            category.name;
-    }
+    clean.category =
+      category.name;
+  }
 
-    clean.updatedAt =
-        serverTimestamp();
+  clean.updatedAt =
+    serverTimestamp();
 
-    return clean;
+  return clean;
 }
 
 /*
  * --------------------------------------------------
  * UPDATE PROFILE
  * --------------------------------------------------
+ *
+ * Normal profile updates:
+ *
+ * talents/{uid}
+ *
+ * Username change:
+ *
+ * usernames/old
+ * usernames/new
+ * talents/{uid}
+ *
+ * All username changes happen atomically.
+ * --------------------------------------------------
  */
 
 export async function updateProfile(
-    updates
+  updates
 ) {
-    const user =
-        await getCurrentUser();
+  const user =
+    await getCurrentUser();
 
-    const validation =
-        profileUpdateSchema.safeParse(
-            updates ?? {}
-        );
+  const validation =
+    profileUpdateSchema.safeParse(
+      updates ?? {}
+    );
 
-    if (!validation.success) {
-        throw new Error(
-            "INVALID_PROFILE_DATA"
-        );
+  if (!validation.success) {
+    throw new Error(
+      "INVALID_PROFILE_DATA"
+    );
+  }
+
+  const data =
+    validation.data;
+
+  const {
+    db,
+  } = await getServerFirebase();
+
+  const profileRef =
+    doc(
+      db,
+      PROFILES_COLLECTION,
+      user.uid
+    );
+
+  const profileSnapshot =
+    await getDoc(
+      profileRef
+    );
+
+  if (
+    !profileSnapshot.exists()
+  ) {
+    throw new Error(
+      "PROFILE_NOT_FOUND"
+    );
+  }
+
+  const profile = {
+    id:
+      profileSnapshot.id,
+
+    ...profileSnapshot.data(),
+  };
+
+  const currentUsername =
+    usernameSchema.safeParse(
+      profile.username
+    ).success
+      ? profile.username
+      : "";
+
+  const requestedUsername =
+    data.username ??
+    currentUsername;
+
+  const usernameChanged =
+    requestedUsername !==
+    currentUsername;
+
+  const requestedCategoryId =
+    data.categoryId ??
+    profile.categoryId;
+
+  const categoryChanged =
+    requestedCategoryId !==
+    profile.categoryId;
+
+  let newCategory = null;
+
+  if (categoryChanged) {
+    newCategory =
+      getCategory(
+        requestedCategoryId
+      );
+
+    if (!newCategory) {
+      throw new Error(
+        "CATEGORY_NOT_FOUND"
+      );
     }
+  }
 
-    const data =
-        validation.data;
+  /*
+   * ----------------------------------------------
+   * NORMAL PROFILE UPDATE
+   * ----------------------------------------------
+   */
 
-    const {
-        db,
-    } = await getServerFirebase();
-
-    const profileRef =
-        doc(
-            db,
-            PROFILES_COLLECTION,
-            user.uid
-        );
-
-    const profileSnapshot =
-        await getDoc(
-            profileRef
-        );
-
-    if (
-        !profileSnapshot.exists()
-    ) {
-        throw new Error(
-            "PROFILE_NOT_FOUND"
-        );
-    }
-
-    const profile = {
-        id:
-            profileSnapshot.id,
-
-        ...profileSnapshot.data(),
-    };
-
-    const requestedUsername =
-        data.username ??
-        profile.username;
-
-    const usernameChanged =
-        requestedUsername !==
-        profile.username;
-
-    const requestedCategoryId =
-        data.categoryId ??
-        profile.categoryId;
-
-    const categoryChanged =
-        requestedCategoryId !==
-        profile.categoryId;
-
-    let newCategory = null;
-
-    if (categoryChanged) {
-        newCategory =
-            getCategory(
-                requestedCategoryId
-            );
-
-        if (!newCategory) {
-            throw new Error(
-                "CATEGORY_NOT_FOUND"
-            );
-        }
-    }
-
-    if (usernameChanged) {
-        const usernameQuery =
-            query(
-                collection(
-                    db,
-                    PROFILES_COLLECTION
-                ),
-                where(
-                    "username",
-                    "==",
-                    requestedUsername
-                )
-            );
-
-        const usernameSnapshot =
-            await getDocs(
-                usernameQuery
-            );
-
-        const usernameOwner =
-            usernameSnapshot.docs.find(
-                (document) =>
-                    document.id !==
-                    user.uid
-            );
-
-        if (usernameOwner) {
-            throw new Error(
-                "USERNAME_TAKEN"
-            );
-        }
-    }
-
+  if (!usernameChanged) {
     const cleanUpdates =
-        buildProfileUpdates(
-            data,
-            categoryChanged
-                ? newCategory
-                : null
-        );
-
-    if (usernameChanged) {
-        cleanUpdates.username =
-            requestedUsername;
-    }
+      buildProfileUpdates(
+        data,
+        categoryChanged
+          ? newCategory
+          : null
+      );
 
     await updateDoc(
-        profileRef,
-        cleanUpdates
+      profileRef,
+      cleanUpdates
     );
 
     const updatedSnapshot =
-        await getDoc(
-            profileRef
-        );
+      await getDoc(
+        profileRef
+      );
 
     return serializeProfile({
-        id:
-            updatedSnapshot.id,
+      id:
+        updatedSnapshot.id,
 
-        ...updatedSnapshot.data(),
+      ...updatedSnapshot.data(),
     });
+  }
+
+  /*
+   * ----------------------------------------------
+   * USERNAME CHANGE
+   * ----------------------------------------------
+   */
+
+  const oldUsernameRef =
+    currentUsername
+      ? doc(
+          db,
+          USERNAMES_COLLECTION,
+          currentUsername
+        )
+      : null;
+
+  const newUsernameRef =
+    doc(
+      db,
+      USERNAMES_COLLECTION,
+      requestedUsername
+    );
+
+  await runTransaction(
+    db,
+    async (transaction) => {
+      /*
+       * READS FIRST.
+       */
+
+      const profileSnapshot =
+        await transaction.get(
+          profileRef
+        );
+
+      if (
+        !profileSnapshot.exists()
+      ) {
+        throw new Error(
+          "PROFILE_NOT_FOUND"
+        );
+      }
+
+      const newUsernameSnapshot =
+        await transaction.get(
+          newUsernameRef
+        );
+
+      /*
+       * Make sure the requested
+       * username isn't owned by
+       * another account.
+       */
+
+      if (
+        newUsernameSnapshot.exists()
+      ) {
+        const ownerUid =
+          normalizeString(
+            newUsernameSnapshot.data()
+              ?.uid
+          );
+
+        if (
+          ownerUid !==
+          user.uid
+        ) {
+          throw new Error(
+            "USERNAME_TAKEN"
+          );
+        }
+      }
+
+      /*
+       * Read the old username record
+       * before performing any writes.
+       */
+
+      let oldUsernameSnapshot =
+        null;
+
+      if (oldUsernameRef) {
+        oldUsernameSnapshot =
+          await transaction.get(
+            oldUsernameRef
+          );
+      }
+
+      /*
+       * BUILD PROFILE UPDATE
+       */
+
+      const cleanUpdates =
+        buildProfileUpdates(
+          data,
+          categoryChanged
+            ? newCategory
+            : null
+        );
+
+      cleanUpdates.username =
+        requestedUsername;
+
+      /*
+       * WRITES
+       */
+
+      transaction.update(
+        profileRef,
+        cleanUpdates
+      );
+
+      /*
+       * Create/update:
+       *
+       * usernames/{newUsername}
+       */
+
+      const usernameRecord = {
+        id:
+          requestedUsername,
+
+        uid:
+          user.uid,
+
+        username:
+          requestedUsername,
+
+        updatedAt:
+          serverTimestamp(),
+      };
+
+      /*
+       * Preserve createdAt if the
+       * username document already
+       * belongs to this user.
+       */
+
+      if (
+        newUsernameSnapshot.exists()
+      ) {
+        const existingCreatedAt =
+          newUsernameSnapshot.data()
+            ?.createdAt;
+
+        if (
+          existingCreatedAt
+        ) {
+          usernameRecord.createdAt =
+            existingCreatedAt;
+        }
+      } else {
+        usernameRecord.createdAt =
+          serverTimestamp();
+      }
+
+      transaction.set(
+        newUsernameRef,
+        usernameRecord
+      );
+
+      /*
+       * Delete:
+       *
+       * usernames/{oldUsername}
+       *
+       * only if it belongs to
+       * the authenticated user.
+       */
+
+      if (
+        oldUsernameRef &&
+        oldUsernameSnapshot?.exists()
+      ) {
+        const oldOwnerUid =
+          normalizeString(
+            oldUsernameSnapshot.data()
+              ?.uid
+          );
+
+        if (
+          oldOwnerUid ===
+          user.uid
+        ) {
+          transaction.delete(
+            oldUsernameRef
+          );
+        }
+      }
+    }
+  );
+
+  /*
+   * Read the final profile.
+   */
+
+  const updatedSnapshot =
+    await getDoc(
+      profileRef
+    );
+
+  if (
+    !updatedSnapshot.exists()
+  ) {
+    throw new Error(
+      "PROFILE_UPDATE_FAILED"
+    );
+  }
+
+  return serializeProfile({
+    id:
+      updatedSnapshot.id,
+
+    ...updatedSnapshot.data(),
+  });
 }
 
 /*
@@ -1374,11 +1700,11 @@ export async function updateProfile(
  */
 
 export async function updateUsername(
-    username
+  username
 ) {
-    return updateProfile({
-        username,
-    });
+  return updateProfile({
+    username,
+  });
 }
 
 /*
@@ -1388,54 +1714,144 @@ export async function updateUsername(
  */
 
 export async function updateProfileWithUsername(
-    updates
+  updates
 ) {
-    return updateProfile(
-        updates
-    );
+  return updateProfile(
+    updates
+  );
 }
 
 /*
  * --------------------------------------------------
  * DELETE PROFILE
  * --------------------------------------------------
+ *
+ * Deletes atomically:
+ *
+ * talents/{uid}
+ * usernames/{username}
+ * --------------------------------------------------
  */
 
 export async function deleteProfile() {
-    const user =
-        await getCurrentUser();
+  const user =
+    await getCurrentUser();
 
-    const {
-        db,
-    } = await getServerFirebase();
+  const {
+    db,
+  } = await getServerFirebase();
 
-    const profileRef =
-        doc(
-            db,
-            PROFILES_COLLECTION,
-            user.uid
-        );
-
-    const profileSnapshot =
-        await getDoc(
-            profileRef
-        );
-
-    if (
-        !profileSnapshot.exists()
-    ) {
-        throw new Error(
-            "PROFILE_NOT_FOUND"
-        );
-    }
-
-    await deleteDoc(
-        profileRef
+  const profileRef =
+    doc(
+      db,
+      PROFILES_COLLECTION,
+      user.uid
     );
 
-    return {
-        success: true,
-    };
+  const usernameFromProfile =
+    await getDoc(
+      profileRef
+    );
+
+  if (
+    !usernameFromProfile.exists()
+  ) {
+    throw new Error(
+      "PROFILE_NOT_FOUND"
+    );
+  }
+
+  const profile =
+    usernameFromProfile.data();
+
+  const username =
+    usernameSchema.safeParse(
+      profile?.username
+    ).success
+      ? profile.username
+      : null;
+
+  const usernameRef =
+    username
+      ? doc(
+          db,
+          USERNAMES_COLLECTION,
+          username
+        )
+      : null;
+
+  await runTransaction(
+    db,
+    async (transaction) => {
+      /*
+       * ------------------------------------------
+       * ALL READS FIRST
+       * ------------------------------------------
+       */
+
+      const profileSnapshot =
+        await transaction.get(
+          profileRef
+        );
+
+      if (
+        !profileSnapshot.exists()
+      ) {
+        throw new Error(
+          "PROFILE_NOT_FOUND"
+        );
+      }
+
+      let usernameSnapshot =
+        null;
+
+      if (usernameRef) {
+        usernameSnapshot =
+          await transaction.get(
+            usernameRef
+          );
+      }
+
+      /*
+       * ------------------------------------------
+       * WRITES AFTER ALL READS
+       * ------------------------------------------
+       */
+
+      transaction.delete(
+        profileRef
+      );
+
+      if (
+        usernameRef &&
+        usernameSnapshot?.exists()
+      ) {
+        const ownerUid =
+          normalizeString(
+            usernameSnapshot.data()
+              ?.uid
+          );
+
+        /*
+         * Never delete another user's
+         * username reservation.
+         */
+
+        if (
+          ownerUid ===
+          user.uid
+        ) {
+          transaction.delete(
+            usernameRef
+          );
+        }
+      }
+    }
+  );
+
+  return {
+    success: true,
+  };
 }
 
 /*
@@ -1445,7 +1861,7 @@ export async function deleteProfile() {
  */
 
 export {
-    serializeProfile,
-    serializePublicProfile,
-    serializeUsernameRecord,
+  serializeProfile,
+  serializePublicProfile,
+  serializeUsernameRecord,
 };
