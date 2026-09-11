@@ -36,233 +36,254 @@ const USERNAME_REGEX =
  * ==================================================
  */
 
-const usernameSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .regex(
-    USERNAME_REGEX,
-    "Username must be 3–30 characters and use only lowercase letters, numbers and underscores."
-  );
+const usernameSchema =
+  z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(
+      USERNAME_REGEX,
+      "Username must be 3–30 characters and use only lowercase letters, numbers and underscores."
+    );
 
-const categoryIdSchema = z
-  .string()
-  .trim()
-  .min(
-    1,
-    "Please select a category."
-  );
+const categoryIdSchema =
+  z
+    .string()
+    .trim()
+    .min(
+      1,
+      "Please select a category."
+    );
 
-const completeProfileSchema = z
-  .object({
-    username: usernameSchema,
+const completeProfileSchema =
+  z
+    .object({
+      username:
+        usernameSchema,
 
-    role: z
-      .string()
-      .trim()
-      .min(
-        2,
-        "Please enter what you do."
-      )
-      .max(
-        60,
-        "Your role is too long."
-      ),
-
-    categoryId:
-      categoryIdSchema,
-
-    province: z
-      .string()
-      .trim()
-      .min(
-        1,
-        "Please select your province."
-      ),
-
-    district: z
-      .string()
-      .trim()
-      .min(
-        1,
-        "Please select your district."
-      ),
-
-    bio: z
-      .string()
-      .trim()
-      .min(
-        20,
-        "Your bio should be at least 20 characters."
-      )
-      .max(
-        500,
-        "Your bio is too long."
-      ),
-
-    phone: z
-      .string()
-      .trim()
-      .min(
-        7,
-        "Please enter a valid phone number."
-      )
-      .max(
-        20,
-        "Phone number is too long."
-      ),
-
-    whatsapp: z
-      .string()
-      .trim()
-      .min(
-        7,
-        "Please enter a valid WhatsApp number."
-      )
-      .max(
-        20,
-        "WhatsApp number is too long."
-      ),
-
-    available:
-      z.boolean(),
-  })
-  .strict();
-
-const updateProfileSchema = z
-  .object({
-    role: z
-      .string()
-      .trim()
-      .min(
-        2,
-        "Your role is too short."
-      )
-      .max(
-        60,
-        "Your role is too long."
-      )
-      .optional(),
-
-    categoryId:
-      categoryIdSchema
-        .optional(),
-
-    province: z
-      .string()
-      .trim()
-      .min(
-        1,
-        "Please select a province."
-      )
-      .optional(),
-
-    district: z
-      .string()
-      .trim()
-      .min(
-        1,
-        "Please select a district."
-      )
-      .optional(),
-
-    bio: z
-      .string()
-      .trim()
-      .min(
-        20,
-        "Your bio should be at least 20 characters."
-      )
-      .max(
-        500,
-        "Your bio is too long."
-      )
-      .optional(),
-
-    phone: z
-      .string()
-      .trim()
-      .min(
-        7,
-        "Please enter a valid phone number."
-      )
-      .max(
-        20,
-        "Your phone number is too long."
-      )
-      .optional(),
-
-    whatsapp: z
-      .string()
-      .trim()
-      .min(
-        7,
-        "Please enter a valid WhatsApp number."
-      )
-      .max(
-        20,
-        "Your WhatsApp number is too long."
-      )
-      .optional(),
-
-    available:
-      z.boolean()
-        .optional(),
-
-    avatar: z
-      .string()
-      .trim()
-      .url(
-        "Please provide a valid avatar URL."
-      )
-      .nullable()
-      .optional(),
-
-    skills: z
-      .array(
+      role:
         z
           .string()
           .trim()
           .min(
-            1,
-            "Skill cannot be empty."
+            2,
+            "Please enter what you do."
           )
           .max(
             60,
-            "Skill is too long."
-          )
-      )
-      .max(
-        20,
-        "You can have up to 20 skills."
-      )
-      .optional(),
+            "Your role is too long."
+          ),
 
-    services: z
-      .array(
+      categoryId:
+        categoryIdSchema,
+
+      province:
         z
           .string()
           .trim()
           .min(
             1,
-            "Service cannot be empty."
+            "Please select your province."
+          ),
+
+      district:
+        z
+          .string()
+          .trim()
+          .min(
+            1,
+            "Please select your district."
+          ),
+
+      bio:
+        z
+          .string()
+          .trim()
+          .min(
+            20,
+            "Your bio should be at least 20 characters."
           )
           .max(
-            100,
-            "Service is too long."
-          )
-      )
-      .max(
-        20,
-        "You can have up to 20 services."
-      )
-      .optional(),
+            500,
+            "Your bio is too long."
+          ),
 
-    username:
-      usernameSchema
-        .optional(),
-  })
-  .strict();
+      phone:
+        z
+          .string()
+          .trim()
+          .min(
+            7,
+            "Please enter a valid phone number."
+          )
+          .max(
+            20,
+            "Phone number is too long."
+          ),
+
+      whatsapp:
+        z
+          .string()
+          .trim()
+          .min(
+            7,
+            "Please enter a valid WhatsApp number."
+          )
+          .max(
+            20,
+            "WhatsApp number is too long."
+          ),
+
+      available:
+        z.boolean(),
+    })
+    .strict();
+
+const updateProfileSchema =
+  z
+    .object({
+      role:
+        z
+          .string()
+          .trim()
+          .min(
+            2,
+            "Your role is too short."
+          )
+          .max(
+            60,
+            "Your role is too long."
+          )
+          .optional(),
+
+      categoryId:
+        categoryIdSchema
+          .optional(),
+
+      province:
+        z
+          .string()
+          .trim()
+          .min(
+            1,
+            "Please select a province."
+          )
+          .optional(),
+
+      district:
+        z
+          .string()
+          .trim()
+          .min(
+            1,
+            "Please select a district."
+          )
+          .optional(),
+
+      bio:
+        z
+          .string()
+          .trim()
+          .min(
+            20,
+            "Your bio should be at least 20 characters."
+          )
+          .max(
+            500,
+            "Your bio is too long."
+          )
+          .optional(),
+
+      phone:
+        z
+          .string()
+          .trim()
+          .min(
+            7,
+            "Please enter a valid phone number."
+          )
+          .max(
+            20,
+            "Your phone number is too long."
+          )
+          .optional(),
+
+      whatsapp:
+        z
+          .string()
+          .trim()
+          .min(
+            7,
+            "Please enter a valid WhatsApp number."
+          )
+          .max(
+            20,
+            "Your WhatsApp number is too long."
+          )
+          .optional(),
+
+      available:
+        z
+          .boolean()
+          .optional(),
+
+      avatar:
+        z
+          .string()
+          .trim()
+          .url(
+            "Please provide a valid avatar URL."
+          )
+          .nullable()
+          .optional(),
+
+      skills:
+        z
+          .array(
+            z
+              .string()
+              .trim()
+              .min(
+                1,
+                "Skill cannot be empty."
+              )
+              .max(
+                60,
+                "Skill is too long."
+              )
+          )
+          .max(
+            20,
+            "You can have up to 20 skills."
+          )
+          .optional(),
+
+      services:
+        z
+          .array(
+            z
+              .string()
+              .trim()
+              .min(
+                1,
+                "Service cannot be empty."
+              )
+              .max(
+                100,
+                "Service is too long."
+              )
+          )
+          .max(
+            20,
+            "You can have up to 20 services."
+          )
+          .optional(),
+
+      username:
+        usernameSchema
+          .optional(),
+    })
+    .strict();
 
 /*
  * ==================================================
@@ -300,7 +321,61 @@ async function validateCategory(
 
 /*
  * ==================================================
+ * CACHE INVALIDATION
+ * ==================================================
+ */
+
+function invalidateProfileCache({
+  uid,
+  oldUsername = null,
+  newUsername = null,
+}) {
+  updateTag("profiles");
+
+  updateTag(
+    `profile:${uid}`
+  );
+
+  if (oldUsername) {
+    updateTag(
+      `profile-username:${oldUsername}`
+    );
+
+    updateTag(
+      `username:${oldUsername}`
+    );
+
+    updateTag(
+      `username-availability:${oldUsername}`
+    );
+  }
+
+  if (newUsername) {
+    updateTag(
+      `profile-username:${newUsername}`
+    );
+
+    updateTag(
+      `username:${newUsername}`
+    );
+
+    updateTag(
+      `username-availability:${newUsername}`
+    );
+  }
+}
+
+/*
+ * ==================================================
  * COMPLETE PROFILE
+ * ==================================================
+ *
+ * data/profile.js is responsible for creating:
+ *
+ * talents/{uid}
+ * usernames/{username}
+ *
+ * atomically.
  * ==================================================
  */
 
@@ -344,6 +419,11 @@ export async function completeProfileAction(
       };
     }
 
+    /*
+     * Validate the category before
+     * touching Firestore.
+     */
+
     const categoryResult =
       await validateCategory(
         validation.data
@@ -379,27 +459,31 @@ export async function completeProfileAction(
           .category.name,
     };
 
+    /*
+     * createProfile() creates BOTH:
+     *
+     * talents/{uid}
+     * usernames/{username}
+     *
+     * in one Firestore transaction.
+     */
+
     const profile =
       await createProfile(
         profileInput
       );
 
-    /*
-     * Invalidate public profile
-     * and profile-related caches.
-     */
+    invalidateProfileCache({
+      uid:
+        user.uid,
 
-    updateTag("profiles");
-
-    updateTag(
-      `profile:${user.uid}`
-    );
+      newUsername:
+        profile.username,
+    });
 
     updateTag(
-      `profile-username:${profile.username}`
+      "categories"
     );
-
-    updateTag("categories");
 
     return {
       success: true,
@@ -451,7 +535,7 @@ export async function getMyProfileAction() {
       profile: null,
       error:
         error?.message ===
-          "AUTH_REQUIRED"
+        "AUTH_REQUIRED"
           ? "You must be logged in."
           : "Unable to load your profile.",
     };
@@ -461,6 +545,15 @@ export async function getMyProfileAction() {
 /*
  * ==================================================
  * GET PUBLIC PROFILE
+ * ==================================================
+ *
+ * Username resolution happens through:
+ *
+ * usernames/{username}
+ *        ↓
+ *       uid
+ *        ↓
+ * talents/{uid}
  * ==================================================
  */
 
@@ -514,6 +607,13 @@ export async function getProfileAction(
 /*
  * ==================================================
  * CHECK USERNAME
+ * ==================================================
+ *
+ * Checks:
+ *
+ * usernames/{username}
+ *
+ * directly.
  * ==================================================
  */
 
@@ -602,8 +702,14 @@ export async function updateProfileAction(
       };
     }
 
+    /*
+     * Validate category before
+     * updating the profile.
+     */
+
     if (
-      validation.data.categoryId
+      validation.data
+        .categoryId
     ) {
       const categoryResult =
         await validateCategory(
@@ -621,34 +727,44 @@ export async function updateProfileAction(
       }
     }
 
+    const oldUsername =
+      currentProfile.username ||
+      null;
+
+    const requestedUsername =
+      validation.data.username ||
+      oldUsername;
+
     const profile =
       await updateProfileWithUsername(
         validation.data
       );
 
-    updateTag("profiles");
+    /*
+     * updateProfileWithUsername()
+     * atomically handles:
+     *
+     * talents/{uid}
+     *
+     * usernames/{oldUsername}
+     *
+     * usernames/{newUsername}
+     */
+
+    invalidateProfileCache({
+      uid:
+        user.uid,
+
+      oldUsername,
+
+      newUsername:
+        profile?.username ||
+        requestedUsername,
+    });
 
     updateTag(
-      `profile:${user.uid}`
+      "categories"
     );
-
-    updateTag("categories");
-
-    if (
-      currentProfile.username
-    ) {
-      updateTag(
-        `profile-username:${currentProfile.username}`
-      );
-    }
-
-    if (
-      profile?.username
-    ) {
-      updateTag(
-        `profile-username:${profile.username}`
-      );
-    }
 
     return {
       success: true,
@@ -711,28 +827,23 @@ export async function updateUsernameAction(
     }
 
     const oldUsername =
-      currentProfile.username;
+      currentProfile.username ||
+      null;
 
     const profile =
       await updateUsername(
         validation.data
       );
 
-    updateTag("profiles");
+    invalidateProfileCache({
+      uid:
+        user.uid,
 
-    updateTag(
-      `profile:${user.uid}`
-    );
+      oldUsername,
 
-    if (oldUsername) {
-      updateTag(
-        `profile-username:${oldUsername}`
-      );
-    }
-
-    updateTag(
-      `profile-username:${profile.username}`
-    );
+      newUsername:
+        profile.username,
+    });
 
     return {
       success: true,
@@ -754,6 +865,12 @@ export async function updateUsernameAction(
 /*
  * ==================================================
  * DELETE MY PROFILE
+ * ==================================================
+ *
+ * data/profile.js atomically deletes:
+ *
+ * talents/{uid}
+ * usernames/{username}
  * ==================================================
  */
 
@@ -777,19 +894,18 @@ export async function deleteProfileAction() {
 
     await deleteProfile();
 
-    updateTag("profiles");
+    invalidateProfileCache({
+      uid:
+        user.uid,
+
+      oldUsername:
+        profile.username ||
+        null,
+    });
 
     updateTag(
-      `profile:${user.uid}`
+      "categories"
     );
-
-    updateTag("categories");
-
-    if (profile.username) {
-      updateTag(
-        `profile-username:${profile.username}`
-      );
-    }
 
     return {
       success: true,
@@ -836,7 +952,7 @@ function handleProfileError(
   error
 ) {
   switch (
-  error?.message
+    error?.message
   ) {
     case "AUTH_REQUIRED":
       return {
@@ -867,6 +983,8 @@ function handleProfileError(
     case "USERNAME_TAKEN":
       return {
         success: false,
+        alreadyExists: false,
+        username: null,
         error:
           "That username is already taken.",
       };
@@ -890,6 +1008,13 @@ function handleProfileError(
         success: false,
         error:
           "Your profile changed while it was being updated. Please try again.",
+      };
+
+    case "INVALID_PROFILE_DATA":
+      return {
+        success: false,
+        error:
+          "Invalid profile information.",
       };
 
     default:
