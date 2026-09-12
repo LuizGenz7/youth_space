@@ -207,7 +207,7 @@ export async function getCategories() {
             orderBy(
                 "name",
                 "asc"
-            )
+        )
         );
 
     const snapshot =
