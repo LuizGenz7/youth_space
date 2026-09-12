@@ -8,6 +8,7 @@ import {
     doc,
     getDoc,
     getDocs,
+    limit,
     orderBy,
     query,
 } from "firebase/firestore";
@@ -33,6 +34,31 @@ const CATEGORIES_CACHE_TAG =
 
 /*
  * --------------------------------------------------
+ * CACHE TAGS
+ * --------------------------------------------------
+ */
+
+/**
+ * Cache tag for one category.
+ *
+ * Example:
+ *
+ * category:art
+ * category:music
+ * category:technology
+ */
+export function categoryCacheTag(
+    categoryId
+) {
+    return `category:${String(
+        categoryId
+    )
+        .trim()
+        .toLowerCase()}`;
+}
+
+/*
+ * --------------------------------------------------
  * HELPERS
  * --------------------------------------------------
  */
@@ -40,10 +66,6 @@ const CATEGORIES_CACHE_TAG =
 /**
  * Normalize a category into the exact
  * public shape used by the application.
- *
- * IMPORTANT:
- *
- * We intentionally select fields one by one.
  */
 function normalizeCategory(
     category
@@ -54,23 +76,26 @@ function normalizeCategory(
 
     return {
         id:
-            typeof category.id === "string"
+            typeof category.id ===
+                "string"
                 ? category.id
                 : "",
 
         name:
-            typeof category.name === "string"
+            typeof category.name ===
+                "string"
                 ? category.name
                 : "",
 
         icon:
-            typeof category.icon === "string"
+            typeof category.icon ===
+                "string"
                 ? category.icon
                 : "circle",
 
         description:
             typeof category.description ===
-            "string"
+                "string"
                 ? category.description
                 : "",
 
@@ -99,25 +124,41 @@ function serializeCategory(
 }
 
 /**
- * Normalize and validate a category limit.
+ * Normalize and validate a limit.
  */
 function normalizeLimit(
-    limit,
+    value,
     defaultLimit
 ) {
-    const value = Number(limit);
+    const number =
+        Number(value);
 
-    if (!Number.isFinite(value)) {
+    if (!Number.isFinite(number)) {
         return defaultLimit;
     }
 
     return Math.min(
         Math.max(
-            Math.floor(value),
+            Math.floor(number),
             1
         ),
         10
     );
+}
+
+/**
+ * Normalize a category ID.
+ */
+function normalizeCategoryId(
+    categoryId
+) {
+    if (!categoryId) {
+        return "";
+    }
+
+    return String(categoryId)
+        .trim()
+        .toLowerCase();
 }
 
 /*
@@ -129,9 +170,16 @@ function normalizeLimit(
 /**
  * Get all categories.
  *
- * Public Firebase data.
+ * FIRST REQUEST:
+ *   Firestore is queried once.
  *
- * Cached for one day.
+ * SUBSEQUENT REQUESTS:
+ *   Cached for days.
+ *
+ * IMPORTANT:
+ * The entire collection result is one cache
+ * entry. If the collection changes, this cache
+ * entry must be invalidated.
  */
 export async function getCategories() {
     "use cache";
@@ -178,7 +226,7 @@ export async function getCategories() {
 }
 
 /**
- * Alias kept for existing actions.
+ * Alias kept for existing code.
  */
 export async function getAllCategories() {
     return getCategories();
@@ -191,9 +239,17 @@ export async function getAllCategories() {
  */
 
 /**
- * Get a single category by ID.
+ * Get one category.
  *
- * Public Firebase data.
+ * This category has its own cache tag.
+ *
+ * Example:
+ *
+ * category:art
+ *
+ * Changing Art does not require the Art
+ * category's individual cache to be discarded
+ * together with unrelated category caches.
  */
 export async function getCategoryById(
     categoryId
@@ -202,19 +258,19 @@ export async function getCategoryById(
 
     cacheLife("days");
 
-    if (!categoryId) {
-        return null;
-    }
-
     const normalizedCategoryId =
-        String(categoryId).trim();
+        normalizeCategoryId(
+            categoryId
+        );
 
     if (!normalizedCategoryId) {
         return null;
     }
 
     cacheTag(
-        CATEGORIES_CACHE_TAG
+        categoryCacheTag(
+            normalizedCategoryId
+        )
     );
 
     const {
@@ -248,12 +304,13 @@ export async function getCategoryById(
 /**
  * Get the most popular categories.
  *
- * Ordered by totalTalents.
- *
- * Public Firebase data.
+ * Firestore performs the ordering and
+ * limiting, so we don't download every
+ * category just to select the top results.
  */
 export async function getTopCategories(
-    limit = TOP_CATEGORIES_LIMIT
+    limitValue =
+        TOP_CATEGORIES_LIMIT
 ) {
     "use cache";
 
@@ -265,7 +322,7 @@ export async function getTopCategories(
 
     const safeLimit =
         normalizeLimit(
-            limit,
+            limitValue,
             TOP_CATEGORIES_LIMIT
         );
 
@@ -283,9 +340,14 @@ export async function getTopCategories(
     const categoriesQuery =
         query(
             categoriesRef,
+
             orderBy(
                 "totalTalents",
                 "desc"
+            ),
+
+            limit(
+                safeLimit
             )
         );
 
@@ -295,10 +357,6 @@ export async function getTopCategories(
         );
 
     return snapshot.docs
-        .slice(
-            0,
-            safeLimit
-        )
         .map(
             (document) =>
                 serializeCategory(
@@ -317,14 +375,20 @@ export async function getTopCategories(
 /**
  * Get random categories.
  *
- * IMPORTANT:
+ * Firestore does not provide a native
+ * random-document query.
  *
- * Because this function uses "use cache",
- * the random result is cached for the
- * cache lifetime.
+ * Therefore we use the cached complete
+ * category collection and randomize it
+ * in memory.
+ *
+ * Because the result is cached for days,
+ * the random selection remains stable
+ * during the cache lifetime.
  */
 export async function getRandomCategories(
-    limit = RANDOM_CATEGORIES_LIMIT
+    limitValue =
+        RANDOM_CATEGORIES_LIMIT
 ) {
     "use cache";
 
@@ -336,7 +400,7 @@ export async function getRandomCategories(
 
     const safeLimit =
         normalizeLimit(
-            limit,
+            limitValue,
             RANDOM_CATEGORIES_LIMIT
         );
 
@@ -346,7 +410,8 @@ export async function getRandomCategories(
     return [...allCategories]
         .sort(
             () =>
-                Math.random() - 0.5
+                Math.random() -
+                0.5
         )
         .slice(
             0,

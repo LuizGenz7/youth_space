@@ -1,6 +1,7 @@
 import {
   cacheLife,
   cacheTag,
+  revalidateTag,
 } from "next/cache";
 
 import {
@@ -62,6 +63,54 @@ function talentCacheTag(
   return `talent:${String(
     talentId
   ).trim()}`;
+}
+
+/*
+ * --------------------------------------------------
+ * CACHE INVALIDATION
+ * --------------------------------------------------
+ *
+ * Mutations invalidate only the caches that can
+ * contain the changed data.
+ * --------------------------------------------------
+ */
+
+function invalidateWorkCache(
+  workId
+) {
+  revalidateTag(
+    WORKS_CACHE_TAG,
+    "max"
+  );
+
+  revalidateTag(
+    TRENDING_WORKS_CACHE_TAG,
+    "max"
+  );
+
+  revalidateTag(
+    workCacheTag(workId),
+    "max"
+  );
+}
+
+function invalidateTalentWorksCache(
+  talentId
+) {
+  revalidateTag(
+    WORKS_CACHE_TAG,
+    "max"
+  );
+
+  revalidateTag(
+    talentWorksCacheTag(talentId),
+    "max"
+  );
+
+  revalidateTag(
+    talentCacheTag(talentId),
+    "max"
+  );
 }
 
 /*
@@ -589,22 +638,17 @@ export async function getTrendingWorks(
     );
 
   const works =
-    snapshot.docs
-      .map(
-        (document) => ({
-          id: document.id,
-          ...document.data(),
-        })
-      );
+    snapshot.docs.map(
+      (document) => ({
+        id: document.id,
+        ...document.data(),
+      })
+    );
 
   /*
    * ------------------------------------------------
    * GET TALENTS
    * ------------------------------------------------
-   *
-   * The work stores talentId.
-   * We then fetch the corresponding
-   * talents/{uid} document.
    */
 
   const talentResults =
@@ -647,6 +691,7 @@ export async function getTrendingWorks(
               normalizeTalent({
                 id:
                   talentSnapshot.id,
+
                 ...talentSnapshot.data(),
               }),
           };
@@ -714,47 +759,76 @@ export async function toggleWorkLike({
       normalizedUserId
     );
 
-  return runTransaction(
-    db,
-    async (transaction) => {
-      const [
-        workSnapshot,
-        likeSnapshot,
-      ] =
-        await Promise.all([
-          transaction.get(
-            workRef
-          ),
-          transaction.get(
-            likeRef
-          ),
-        ]);
+  const result =
+    await runTransaction(
+      db,
+      async (transaction) => {
+        const [
+          workSnapshot,
+          likeSnapshot,
+        ] =
+          await Promise.all([
+            transaction.get(
+              workRef
+            ),
 
-      if (
-        !workSnapshot.exists()
-      ) {
-        throw new Error(
-          "Work not found."
-        );
-      }
+            transaction.get(
+              likeRef
+            ),
+          ]);
 
-      const currentLikes =
-        normalizeNumber(
-          workSnapshot.data()
-            ?.likes
-        );
+        if (
+          !workSnapshot.exists()
+        ) {
+          throw new Error(
+            "Work not found."
+          );
+        }
 
-      if (
-        likeSnapshot.exists()
-      ) {
-        const likes =
-          Math.max(
-            currentLikes - 1,
-            0
+        const currentLikes =
+          normalizeNumber(
+            workSnapshot.data()
+              ?.likes
           );
 
-        transaction.delete(
-          likeRef
+        if (
+          likeSnapshot.exists()
+        ) {
+          const likes =
+            Math.max(
+              currentLikes - 1,
+              0
+            );
+
+          transaction.delete(
+            likeRef
+          );
+
+          transaction.update(
+            workRef,
+            {
+              likes,
+            }
+          );
+
+          return {
+            liked: false,
+            likes,
+          };
+        }
+
+        const likes =
+          currentLikes + 1;
+
+        transaction.set(
+          likeRef,
+          {
+            userId:
+              normalizedUserId,
+
+            createdAt:
+              new Date(),
+          }
         );
 
         transaction.update(
@@ -765,37 +839,22 @@ export async function toggleWorkLike({
         );
 
         return {
-          liked: false,
+          liked: true,
           likes,
         };
       }
+    );
 
-      const likes =
-        currentLikes + 1;
+  /*
+   * Invalidate only after the transaction
+   * successfully commits.
+   */
 
-      transaction.set(
-        likeRef,
-        {
-          userId:
-            normalizedUserId,
-          createdAt:
-            new Date(),
-        }
-      );
-
-      transaction.update(
-        workRef,
-        {
-          likes,
-        }
-      );
-
-      return {
-        liked: true,
-        likes,
-      };
-    }
+  invalidateWorkCache(
+    normalizedWorkId
   );
+
+  return result;
 }
 
 /*
@@ -848,6 +907,9 @@ export async function deleteWork({
       normalizedUserId
     );
 
+  let talentId =
+    normalizedUserId;
+
   await runTransaction(
     db,
     async (transaction) => {
@@ -859,6 +921,7 @@ export async function deleteWork({
           transaction.get(
             workRef
           ),
+
           transaction.get(
             talentRef
           ),
@@ -889,6 +952,10 @@ export async function deleteWork({
         );
       }
 
+      talentId =
+        ownerId ||
+        normalizedUserId;
+
       transaction.delete(
         workRef
       );
@@ -914,6 +981,27 @@ export async function deleteWork({
         );
       }
     }
+  );
+
+  /*
+   * Invalidate only after the transaction
+   * successfully commits.
+   *
+   * Deleting a work affects:
+   *
+   * - all works
+   * - the individual work
+   * - this talent's works
+   * - this talent's workCount
+   * - trending works
+   */
+
+  invalidateWorkCache(
+    normalizedWorkId
+  );
+
+  invalidateTalentWorksCache(
+    talentId
   );
 
   return {

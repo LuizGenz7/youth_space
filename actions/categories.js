@@ -9,18 +9,18 @@ import {
 } from "@/data/categories";
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * CONSTANTS
- * --------------------------------------------------
+ * ==================================================
  */
 
 const TOP_CATEGORIES_LIMIT = 10;
 const RANDOM_CATEGORIES_LIMIT = 10;
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * VALIDATION
- * --------------------------------------------------
+ * ==================================================
  */
 
 const categoryLimitSchema =
@@ -33,9 +33,9 @@ const categoryLimitSchema =
     });
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * HELPERS
- * --------------------------------------------------
+ * ==================================================
  */
 
 function normalizeInput(input) {
@@ -65,19 +65,20 @@ function getErrorMessage(
 }
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * GET TOP CATEGORIES
- * --------------------------------------------------
+ * ==================================================
  *
  * Action responsibility:
  *
- * 1. Validate input
- * 2. Call data layer
- * 3. Return serializable result
+ * 1. Normalize input
+ * 2. Validate input
+ * 3. Call data layer
+ * 4. Return serializable result
  *
- * Firestore logic stays inside
- * data/categories.js.
- * --------------------------------------------------
+ * Cache and Firestore logic remain
+ * inside data/categories.js.
+ * ==================================================
  */
 
 export async function getTopCategoriesAction(
@@ -125,9 +126,9 @@ export async function getTopCategoriesAction(
 }
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * GET RANDOM CATEGORIES
- * --------------------------------------------------
+ * ==================================================
  */
 
 export async function getRandomCategoriesAction(
@@ -175,9 +176,15 @@ export async function getRandomCategoriesAction(
 }
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * GET ALL CATEGORIES
- * --------------------------------------------------
+ * ==================================================
+ *
+ * getAllCategories() is cached in the data layer.
+ *
+ * This action does not fetch, mutate, or invalidate
+ * the cache itself.
+ * ==================================================
  */
 
 export async function getAllCategoriesAction() {

@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { updateTag } from "next/cache";
 
 import {
   getTrendingWorks,
@@ -110,6 +109,8 @@ function getErrorMessage(
  * PUBLIC
  *
  * No authentication required.
+ *
+ * Cache is managed by data/works.js.
  * ==================================================
  */
 
@@ -176,7 +177,11 @@ export async function getTrendingWorksAction(
  *   workId
  * }
  *
- * UID comes from FirebaseServerApp.
+ * UID comes from authentication.
+ *
+ * Cache invalidation is handled by
+ * data/works.js after the transaction
+ * succeeds.
  * ==================================================
  */
 
@@ -234,9 +239,6 @@ export async function toggleLikeAction(
     };
   }
 
-  const workId =
-    validation.data.workId;
-
   /*
    * --------------------------------------------------
    * TOGGLE LIKE
@@ -246,27 +248,12 @@ export async function toggleLikeAction(
   try {
     const result =
       await toggleWorkLike({
-        workId,
-        userId: user.uid,
+        workId:
+          validation.data.workId,
+
+        userId:
+          user.uid,
       });
-
-    /*
-     * --------------------------------------------------
-     * CACHE INVALIDATION
-     * --------------------------------------------------
-     */
-
-    updateTag(
-      "works"
-    );
-
-    updateTag(
-      "trending-works"
-    );
-
-    updateTag(
-      `work:${workId}`
-    );
 
     return {
       success: true,
@@ -320,9 +307,13 @@ export async function toggleLikeAction(
  *   workId
  * }
  *
- * UID comes from FirebaseServerApp.
+ * UID comes from authentication.
  *
- * Ownership is verified by data/works.js.
+ * Ownership is verified by
+ * data/works.js.
+ *
+ * Cache invalidation is also handled
+ * by data/works.js.
  * ==================================================
  */
 
@@ -374,9 +365,6 @@ export async function deleteWorkAction(
     };
   }
 
-  const workId =
-    validation.data.workId;
-
   /*
    * --------------------------------------------------
    * DELETE
@@ -385,50 +373,12 @@ export async function deleteWorkAction(
 
   try {
     await deleteWork({
-      workId,
-      userId: user.uid,
+      workId:
+        validation.data.workId,
+
+      userId:
+        user.uid,
     });
-
-    /*
-     * --------------------------------------------------
-     * CACHE INVALIDATION
-     * --------------------------------------------------
-     */
-
-    updateTag(
-      "works"
-    );
-
-    updateTag(
-      "trending-works"
-    );
-
-    updateTag(
-      `work:${workId}`
-    );
-
-    updateTag(
-      `talent-works:${user.uid}`
-    );
-
-    updateTag(
-      `talent:${user.uid}`
-    );
-
-    /*
-     * Profile cache tags.
-     *
-     * Keep these only if your profile
-     * data functions use these tags.
-     */
-
-    updateTag(
-      "profiles"
-    );
-
-    updateTag(
-      `profile:${user.uid}`
-    );
 
     return {
       success: true,
