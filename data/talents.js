@@ -25,345 +25,271 @@ import {
   getServerFirebase,
 } from "@/lib/server";
 
-import {
-  getCategories,
-} from "@/data/categories";
+import { getCategories } from "@/data/categories";
 
 /*
- * --------------------------------------------------
- * COLLECTIONS
- * --------------------------------------------------
+ * =========================================================
+ * CONFIG
+ * =========================================================
  */
 
-export const TALENTS_COLLECTION = "talents";
-export const TALENT_LIKES_COLLECTION = "talentLikes";
-export const CATEGORIES_COLLECTION = "categories";
-export const USERNAMES_COLLECTION = "usernames";
-
-/*
- * --------------------------------------------------
- * CONSTANTS
- * --------------------------------------------------
- */
+const TALENTS_COLLECTION = "talents";
+const TALENT_LIKES_COLLECTION = "talentLikes";
+const CATEGORIES_COLLECTION = "categories";
+const USERNAMES_COLLECTION = "usernames";
 
 const INITIAL_CATEGORIES_LIMIT = 6;
 const TALENTS_PER_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
 
+const MAX_CATEGORY_ID_LENGTH = 128;
+const MAX_CURSOR_LENGTH = 1000;
+const MAX_USERNAME_LENGTH = 30;
+
 /*
- * --------------------------------------------------
+ * =========================================================
  * CACHE TAGS
- * --------------------------------------------------
+ * =========================================================
  */
 
-export const TALENTS_CACHE_TAG = "talents";
+const TALENTS_CACHE_TAG = "talents";
 
-export const talentCacheTag = (uid) =>
-  `talent:${String(uid || "").trim()}`;
+function categoryTalentsCacheTag(categoryId) {
+  return `category-talents:${categoryId}`;
+}
 
-export const usernameCacheTag = (username) =>
-  `talent-username:${String(username || "")
-    .trim()
-    .toLowerCase()}`;
-
-export const categoryTalentsCacheTag = (categoryId) =>
-  `category-talents:${String(categoryId || "")
-    .trim()
-    .toLowerCase()}`;
+function talentCacheTag(talentId) {
+  return `talent:${talentId}`;
+}
 
 /*
- * --------------------------------------------------
- * HELPERS
- * --------------------------------------------------
+ * =========================================================
+ * VALIDATION
+ * =========================================================
  */
 
-function normalizeString(value) {
-  return typeof value === "string"
-    ? value.trim()
-    : "";
-}
+function normalizeCategoryId(categoryId) {
+  if (typeof categoryId !== "string") {
+    throw new Error("Invalid category ID.");
+  }
 
-function normalizeLowercase(value) {
-  return normalizeString(value).toLowerCase();
-}
-
-function normalizeArray(value) {
-  return Array.isArray(value) ? value : [];
-}
-
-function normalizeBoolean(value) {
-  return value === true;
-}
-
-function normalizeNumber(value, fallback = 0) {
-  const number = Number(value);
-
-  return Number.isFinite(number)
-    ? number
-    : fallback;
-}
-
-function safeLimit(
-  value,
-  fallback,
-  maximum,
-) {
-  const number = Number(value);
+  const normalized = categoryId.trim();
 
   if (
-    !Number.isInteger(number) ||
-    number < 1
+    !normalized ||
+    normalized.length > MAX_CATEGORY_ID_LENGTH
   ) {
-    return fallback;
+    throw new Error("Invalid category ID.");
   }
 
-  return Math.min(number, maximum);
+  return normalized;
 }
 
-function emptyTalentResult() {
-  return {
-    talents: [],
-    nextCursor: null,
-    hasMore: false,
-  };
-}
-
-/*
- * --------------------------------------------------
- * SERVICES
- * --------------------------------------------------
- */
-
-function normalizeServices(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((service) => {
-      if (typeof service === "string") {
-        return service.trim();
-      }
-
-      if (
-        !service ||
-        typeof service !== "object"
-      ) {
-        return null;
-      }
-
-      return {
-        id: normalizeString(service.id),
-        name: normalizeString(service.name),
-        description: normalizeString(
-          service.description,
-        ),
-        price: normalizeString(service.price),
-      };
-    })
-    .filter(Boolean);
-}
-
-/*
- * --------------------------------------------------
- * SERIALIZATION
- * --------------------------------------------------
- */
-
-export function serializeTalent(
-  data,
-  id = "",
-) {
-  const talentId = normalizeString(
-    data?.uid ||
-    data?.id ||
-    id,
-  );
-
-  return {
-    id: talentId,
-    uid: talentId,
-
-    username: normalizeString(
-      data?.username,
-    ),
-
-    displayName: normalizeString(
-      data?.displayName,
-    ),
-
-    role: normalizeString(
-      data?.role,
-    ),
-
-    categoryId: normalizeString(
-      data?.categoryId,
-    ),
-
-    category: normalizeString(
-      data?.category,
-    ),
-
-    province: normalizeString(
-      data?.province,
-    ),
-
-    district: normalizeString(
-      data?.district,
-    ),
-
-    bio: normalizeString(
-      data?.bio,
-    ),
-
-    phone: normalizeString(
-      data?.phone,
-    ),
-
-    whatsapp: normalizeString(
-      data?.whatsapp,
-    ),
-
-    avatar: normalizeString(
-      data?.avatar,
-    ),
-
-    skills: normalizeArray(
-      data?.skills,
-    ),
-
-    services: normalizeServices(
-      data?.services,
-    ),
-
-    likes: Math.max(
-      0,
-      normalizeNumber(data?.likes),
-    ),
-
-    workCount: Math.max(
-      0,
-      normalizeNumber(data?.workCount),
-    ),
-
-    available: normalizeBoolean(
-      data?.available,
-    ),
-
-    verified: normalizeBoolean(
-      data?.verified,
-    ),
-  };
-}
-
-function serializeTalentDocument(
-  snapshot,
-) {
-  if (!snapshot.exists()) {
+function normalizeCursor(cursor) {
+  if (cursor === null || cursor === undefined || cursor === "") {
     return null;
   }
 
-  return serializeTalent(
-    snapshot.data(),
-    snapshot.id,
-  );
+  if (typeof cursor !== "string") {
+    throw new Error("Invalid pagination cursor.");
+  }
+
+  const normalized = cursor.trim();
+
+  if (
+    !normalized ||
+    normalized.length > MAX_CURSOR_LENGTH
+  ) {
+    throw new Error("Invalid pagination cursor.");
+  }
+
+  return normalized;
 }
 
 /*
- * --------------------------------------------------
- * CATEGORY TALENTS
- * --------------------------------------------------
- *
- * Real Firestore cursor pagination.
+ * =========================================================
+ * CURSOR HELPERS
+ * =========================================================
  *
  * Cursor format:
  *
  * {
- *   likes: number,
- *   createdAt: number,
- *   id: string
+ *   version: 1,
+ *   categoryId,
+ *   likes,
+ *   createdAt,
+ *   id
  * }
  *
- * Talents are ordered by:
+ * The cursor is NOT a secret.
+ * It only represents the position of the last Firestore
+ * document from the previous page.
  *
- *   1. likes DESC
- *   2. createdAt DESC
- *   3. document ID DESC
- *
- * We encode the cursor before returning it so
- * Firebase Timestamp objects never cross the
- * Server Component / Client Component boundary.
- *
- * --------------------------------------------------
+ * IMPORTANT:
+ * These helpers are only used by uncached pagination
+ * requests for load-more.
+ * =========================================================
  */
 
-function encodeCursor(
+function encodeCursor({
+  categoryId,
   likes,
   createdAt,
   id,
-) {
+}) {
   if (
-    !Number.isFinite(
-      Number(likes),
-    ) ||
-    !(createdAt instanceof Timestamp) ||
-    !normalizeString(id)
+    typeof categoryId !== "string" ||
+    !categoryId
   ) {
-    return null;
+    throw new Error("Cannot create pagination cursor.");
   }
 
+  if (!Number.isFinite(likes)) {
+    throw new Error("Cannot create pagination cursor.");
+  }
+
+  if (!(createdAt instanceof Timestamp)) {
+    throw new Error("Cannot create pagination cursor.");
+  }
+
+  if (typeof id !== "string" || !id) {
+    throw new Error("Cannot create pagination cursor.");
+  }
+
+  const payload = {
+    version: 1,
+    categoryId,
+    likes,
+    createdAt: createdAt.toMillis(),
+    id,
+  };
+
   return Buffer.from(
-    JSON.stringify({
-      likes: Number(likes),
-      createdAt:
-        createdAt.toMillis(),
-      id: normalizeString(id),
-    }),
+    JSON.stringify(payload),
+    "utf8",
   ).toString("base64url");
 }
 
-function decodeCursor(cursor) {
-  if (
-    !normalizeString(cursor)
-  ) {
+function decodeCursor(cursor, expectedCategoryId) {
+  const normalizedCursor = normalizeCursor(cursor);
+
+  if (!normalizedCursor) {
     return null;
   }
 
   try {
-    const decoded =
-      JSON.parse(
-        Buffer.from(
-          cursor,
-          "base64url",
-        ).toString("utf8"),
-      );
+    const decoded = Buffer.from(
+      normalizedCursor,
+      "base64url",
+    ).toString("utf8");
 
-    const likes =
-      Number(decoded?.likes);
-
-    const createdAt =
-      Number(decoded?.createdAt);
-
-    const id =
-      normalizeString(decoded?.id);
+    const payload = JSON.parse(decoded);
 
     if (
-      !Number.isFinite(likes) ||
-      !Number.isFinite(createdAt) ||
-      !id
+      payload?.version !== 1 ||
+      typeof payload?.categoryId !== "string" ||
+      payload.categoryId !== expectedCategoryId ||
+      !Number.isFinite(payload?.likes) ||
+      !Number.isFinite(payload?.createdAt) ||
+      typeof payload?.id !== "string" ||
+      !payload.id
     ) {
-      return null;
+      throw new Error("Invalid pagination cursor.");
     }
 
     return {
-      likes,
-      createdAt,
-      id,
+      categoryId: payload.categoryId,
+      likes: payload.likes,
+      createdAt: Timestamp.fromMillis(
+        payload.createdAt,
+      ),
+      id: payload.id,
     };
   } catch {
-    return null;
+    throw new Error("Invalid pagination cursor.");
   }
 }
+
+/*
+ * =========================================================
+ * TALENT SERIALIZATION
+ * =========================================================
+ */
+
+function serializeTalent(snapshot) {
+  const data = snapshot.data();
+
+  return {
+    id: snapshot.id,
+
+    uid: data.uid ?? snapshot.id,
+
+    username: data.username ?? "",
+    displayName: data.displayName ?? "",
+    email: data.email ?? "",
+
+    role: data.role ?? "",
+    categoryId: data.categoryId ?? "",
+    category: data.category ?? "",
+
+    province: data.province ?? "",
+    district: data.district ?? "",
+
+    bio: data.bio ?? "",
+
+    phone: data.phone ?? "",
+    whatsapp: data.whatsapp ?? "",
+
+    available: Boolean(data.available),
+    avatar: data.avatar ?? "",
+
+    skills: Array.isArray(data.skills)
+      ? data.skills
+      : [],
+
+    services: Array.isArray(data.services)
+      ? data.services
+      : [],
+
+    verified: Boolean(data.verified),
+
+    likes: Number.isFinite(data.likes)
+      ? data.likes
+      : 0,
+
+    workCount: Number.isFinite(data.workCount)
+      ? data.workCount
+      : 0,
+
+    createdAt:
+      data.createdAt instanceof Timestamp
+        ? data.createdAt.toMillis()
+        : null,
+
+    updatedAt:
+      data.updatedAt instanceof Timestamp
+        ? data.updatedAt.toMillis()
+        : null,
+  };
+}
+
+/*
+ * =========================================================
+ * CATEGORY PAGE QUERY
+ * =========================================================
+ *
+ * This is the actual Firestore pagination query.
+ *
+ * It does NOT use "use cache".
+ *
+ * Therefore:
+ *
+ * - cursor is not cached
+ * - nextCursor is not cached
+ * - every load-more request gets a fresh Firestore result
+ *
+ * =========================================================
+ */
 
 async function queryCategoryTalentsPage(
   db,
@@ -374,110 +300,120 @@ async function queryCategoryTalentsPage(
   } = {},
 ) {
   const normalizedCategoryId =
-    normalizeString(categoryId);
+    normalizeCategoryId(categoryId);
 
-  if (!normalizedCategoryId) {
-    return emptyTalentResult();
-  }
-
-  const safeCount = safeLimit(
-    limitCount,
-    TALENTS_PER_LOAD,
+  const safeLimit = Math.min(
+    Math.max(Number(limitCount) || TALENTS_PER_LOAD, 1),
     TALENTS_PER_LOAD,
   );
 
-  const talentsRef = collection(
-    db,
-    TALENTS_COLLECTION,
+  const decodedCursor = decodeCursor(
+    cursor,
+    normalizedCategoryId,
   );
 
-  const decodedCursor =
-    decodeCursor(cursor);
-
-  const queryConstraints = [
+  const constraints = [
     where(
       "categoryId",
       "==",
       normalizedCategoryId,
     ),
-    orderBy(
-      "likes",
-      "desc",
-    ),
 
-    orderBy(
-      "createdAt",
-      "desc",
-    ),
+    orderBy("likes", "desc"),
 
-    orderBy(
-      documentId(),
-      "desc",
-    ),
+    orderBy("createdAt", "desc"),
+
+    orderBy(documentId(), "desc"),
   ];
 
   if (decodedCursor) {
-    queryConstraints.push(
+    constraints.push(
       startAfter(
         decodedCursor.likes,
-
-        Timestamp.fromMillis(
-          decodedCursor.createdAt,
-        ),
-
+        decodedCursor.createdAt,
         decodedCursor.id,
       ),
     );
   }
 
-  queryConstraints.push(
-    firestoreLimit(safeCount),
+  constraints.push(
+    firestoreLimit(safeLimit),
   );
 
   const talentsQuery = query(
-    talentsRef,
-    ...queryConstraints,
+    collection(db, TALENTS_COLLECTION),
+    ...constraints,
   );
 
-  const snapshot =
-    await getDocs(talentsQuery);
+  const snapshot = await getDocs(talentsQuery);
 
-  const talents =
-    snapshot.docs
-      .map((document) =>
-        serializeTalentDocument(
-          document,
-        ),
-      )
-      .filter(Boolean);
+  const talents = snapshot.docs.map(
+    serializeTalent,
+  );
 
   const lastDocument =
-    snapshot.docs[
-      snapshot.docs.length - 1
-    ];
+    snapshot.docs.at(-1) ?? null;
 
-  const nextCursor =
-    lastDocument
-      ? encodeCursor(
-          lastDocument.data()?.likes,
-          lastDocument.data()?.createdAt,
-          lastDocument.id,
-        )
-      : null;
+  let nextCursor = null;
+  let lastItemId = null;
+
+  if (lastDocument) {
+    const lastData = lastDocument.data();
+
+    const likes = Number.isFinite(lastData.likes)
+      ? lastData.likes
+      : 0;
+
+    const createdAt =
+      lastData.createdAt instanceof Timestamp
+        ? lastData.createdAt
+        : null;
+
+    if (createdAt) {
+      nextCursor = encodeCursor({
+        categoryId: normalizedCategoryId,
+        likes,
+        createdAt,
+        id: lastDocument.id,
+      });
+
+      lastItemId = lastDocument.id;
+    }
+  }
+
+  /*
+   * With a page size of 8:
+   *
+   * 8 results means there MAY be another page.
+   * The next request will confirm whether anything remains.
+   *
+   * 0 results means pagination is finished.
+   */
+
+  const hasMore =
+    snapshot.docs.length === safeLimit;
 
   return {
     talents,
     nextCursor,
-    hasMore:
-      snapshot.docs.length ===
-      safeCount,
+    lastItemId,
+    hasMore,
   };
 }
 
 /*
- * --------------------------------------------------
- * INITIAL TALENTS
- * --------------------------------------------------
+ * =========================================================
+ * INITIAL TALENTS DATA
+ * =========================================================
+ *
+ * CACHED.
+ *
+ * Loads:
+ * - all categories
+ * - first 8 talents for the first 6 categories
+ *
+ * Other categories remain unloaded until requested.
+ * =========================================================
  */
 
 export async function getInitialTalentsData() {
@@ -485,12 +421,6 @@ export async function getInitialTalentsData() {
 
   cacheLife("minutes");
   cacheTag(TALENTS_CACHE_TAG);
-
-  /*
-   * --------------------------------------------------
-   * GET ALL CATEGORIES
-   * --------------------------------------------------
-   */
 
   const categories =
     await getCategories();
@@ -502,89 +432,31 @@ export async function getInitialTalentsData() {
     };
   }
 
-  /*
-   * --------------------------------------------------
-   * SORT ALL CATEGORIES
-   * --------------------------------------------------
-   *
-   * Categories with the most talents come first.
-   */
-
-  const sortedCategories =
-    [...categories].sort(
+  const sortedCategories = [...categories]
+    .filter(
+      (category) =>
+        Number(category.totalTalents) > 0,
+    )
+    .sort(
       (a, b) =>
-        normalizeNumber(
-          b.totalTalents,
-        ) -
-        normalizeNumber(
-          a.totalTalents,
-        ),
+        Number(b.totalTalents ?? 0) -
+        Number(a.totalTalents ?? 0),
     );
 
-  /*
-   * --------------------------------------------------
-   * TOP 6 CATEGORIES
-   * --------------------------------------------------
-   *
-   * Only these categories will fetch talents.
-   */
-
-  const topCategories =
+  const initialCategories =
     sortedCategories.slice(
       0,
       INITIAL_CATEGORIES_LIMIT,
     );
 
-  /*
-   * --------------------------------------------------
-   * REMAINING CATEGORIES
-   * --------------------------------------------------
-   *
-   * These categories will still be returned,
-   * but their talents will NOT be fetched.
-   */
-
-  const remainingCategories =
-    sortedCategories.slice(
-      INITIAL_CATEGORIES_LIMIT,
-    );
-
-  /*
-   * --------------------------------------------------
-   * PUBLIC FIREBASE
-   * --------------------------------------------------
-   *
-   * This function intentionally uses only the
-   * public Firebase instance.
-   *
-   * No current user is required.
-   * No authenticated user is read.
-   */
-
   const { db } =
-    await getPublicServerFirebase();
+    getPublicServerFirebase();
 
-  /*
-   * --------------------------------------------------
-   * FETCH TOP TALENTS FOR TOP 6 CATEGORIES
-   * --------------------------------------------------
-   *
-   * Each category gets up to 8 talents ordered by:
-   *
-   * likes DESC
-   * createdAt DESC
-   * document ID DESC
-   *
-   * Maximum:
-   *
-   * 6 × 8 = 48 talents
-   */
-
-  const topCategoryResults =
+  const initialResults =
     await Promise.all(
-      topCategories.map(
+      initialCategories.map(
         async (category) => {
-          const result =
+          const page =
             await queryCategoryTalentsPage(
               db,
               category.id,
@@ -595,94 +467,65 @@ export async function getInitialTalentsData() {
             );
 
           return {
-            ...category,
-
-            talents:
-              result.talents,
-
-            nextCursor:
-              result.nextCursor,
-
-            hasMore:
-              result.hasMore,
+            categoryId: category.id,
+            page,
           };
         },
       ),
     );
 
-  /*
-   * --------------------------------------------------
-   * REMAINING CATEGORIES
-   * --------------------------------------------------
-   *
-   * Keep all category information, including
-   * totalTalents, but don't fetch talents.
-   */
+  const resultMap = new Map(
+    initialResults.map((result) => [
+      result.categoryId,
+      result.page,
+    ]),
+  );
 
-  const remainingCategoryResults =
-    remainingCategories.map(
-      (category) => ({
-        ...category,
+  const categoriesWithTalents =
+    sortedCategories.map(
+      (category) => {
+        const result =
+          resultMap.get(category.id);
 
-        talents: [],
+        return {
+          ...category,
 
-        nextCursor: null,
+          talents:
+            result?.talents ?? [],
 
-        hasMore:
-          normalizeNumber(
-            category.totalTalents,
-          ) > 0,
-      }),
+          nextCursor:
+            result?.nextCursor ?? null,
+
+          lastItemId:
+            result?.lastItemId ?? null,
+
+          hasMore:
+            result?.hasMore ??
+            Number(category.totalTalents) > 0,
+        };
+      },
     );
-
-  /*
-   * --------------------------------------------------
-   * ALL CATEGORIES
-   * --------------------------------------------------
-   */
-
-  const categoryResults = [
-    ...topCategoryResults,
-    ...remainingCategoryResults,
-  ];
-
-  /*
-   * --------------------------------------------------
-   * FLAT TALENTS
-   * --------------------------------------------------
-   *
-   * Only talents from the first 6 categories
-   * are included here.
-   *
-   * Maximum:
-   *
-   * 6 categories × 8 talents = 48 talents
-   */
 
   const talents =
-    topCategoryResults.flatMap(
-      (category) =>
-        category.talents,
+    categoriesWithTalents.flatMap(
+      (category) => category.talents,
     );
 
-  /*
-   * --------------------------------------------------
-   * RETURN
-   * --------------------------------------------------
-   */
-
   return {
-    categories:
-      categoryResults,
-
+    categories: categoriesWithTalents,
     talents,
   };
 }
 
 /*
- * --------------------------------------------------
- * CATEGORY TALENTS
- * --------------------------------------------------
+ * =========================================================
+ * GET CATEGORY TALENTS
+ * =========================================================
+ *
+ * CACHED FIRST PAGE.
+ *
+ * No cursor is accepted here.
+ * =========================================================
  */
 
 export async function getCategoryTalents(
@@ -691,17 +534,9 @@ export async function getCategoryTalents(
   "use cache";
 
   const normalizedCategoryId =
-    normalizeString(categoryId);
-
-  if (!normalizedCategoryId) {
-    return emptyTalentResult();
-  }
+    normalizeCategoryId(categoryId);
 
   cacheLife("minutes");
-
-  cacheTag(
-    TALENTS_CACHE_TAG,
-  );
 
   cacheTag(
     categoryTalentsCacheTag(
@@ -710,253 +545,205 @@ export async function getCategoryTalents(
   );
 
   const { db } =
-    await getPublicServerFirebase();
-
-  const result =
-    await queryCategoryTalentsPage(
-      db,
-      normalizedCategoryId,
-      {
-        limitCount:
-          TALENTS_PER_LOAD,
-      },
-    );
-
-  return result;
-}
-
-/*
- * --------------------------------------------------
- * TALENTS BY CATEGORY
- * --------------------------------------------------
- */
-
-export async function getTalentsByCategory({
-  categoryId,
-  cursor = null,
-  limit = TALENTS_PER_LOAD,
-}) {
-  "use cache";
-
-  const normalizedCategoryId =
-    normalizeString(categoryId);
-
-  if (!normalizedCategoryId) {
-    return emptyTalentResult();
-  }
-
-  const safeLimitValue =
-    safeLimit(
-      limit,
-      TALENTS_PER_LOAD,
-      TALENTS_PER_LOAD,
-    );
-
-  cacheLife("minutes");
-
-  cacheTag(
-    TALENTS_CACHE_TAG,
-  );
-
-  cacheTag(
-    categoryTalentsCacheTag(
-      normalizedCategoryId,
-    ),
-  );
-
-  const { db } =
-    await getPublicServerFirebase();
+    getPublicServerFirebase();
 
   return queryCategoryTalentsPage(
     db,
     normalizedCategoryId,
     {
       limitCount:
-        safeLimitValue,
-
-      cursor,
+        TALENTS_PER_LOAD,
+      cursor: null,
     },
   );
 }
 
 /*
- * --------------------------------------------------
- * MORE TALENTS
- * --------------------------------------------------
+ * =========================================================
+ * LOAD MORE TALENTS
+ * =========================================================
+ *
+ * IMPORTANT:
+ *
+ * NO "use cache".
+ *
+ * This function is intentionally dynamic.
+ *
+ * The cursor is therefore:
+ *
+ * - NOT cached
+ * - NOT stored in Next.js Data Cache
+ * - NOT reused automatically
+ *
+ * Every call goes to Firestore using the cursor
+ * supplied by the client.
+ * =========================================================
  */
 
 export async function getMoreTalents({
   categoryId,
+  cursor,
+}) {
+  const normalizedCategoryId =
+    normalizeCategoryId(categoryId);
+
+  const normalizedCursor =
+    normalizeCursor(cursor);
+
+  if (!normalizedCursor) {
+    throw new Error(
+      "A pagination cursor is required.",
+    );
+  }
+
+  const { db } =
+    getPublicServerFirebase();
+
+  return queryCategoryTalentsPage(
+    db,
+    normalizedCategoryId,
+    {
+      limitCount:
+        TALENTS_PER_LOAD,
+      cursor: normalizedCursor,
+    },
+  );
+}
+
+/*
+ * =========================================================
+ * GENERIC CATEGORY PAGE
+ * =========================================================
+ *
+ * This is intentionally NOT cached when a cursor is used.
+ *
+ * First page:
+ *     getTalentsByCategory({
+ *       categoryId
+ *     })
+ *
+ * Load more:
+ *     getTalentsByCategory({
+ *       categoryId,
+ *       cursor
+ *     })
+ *
+ * =========================================================
+ */
+
+export async function getTalentsByCategory({
+  categoryId,
   cursor = null,
 }) {
-  return getTalentsByCategory({
-    categoryId,
-    cursor,
-    limit: TALENTS_PER_LOAD,
-  });
+  const normalizedCategoryId =
+    normalizeCategoryId(categoryId);
+
+  const normalizedCursor =
+    normalizeCursor(cursor);
+
+  if (normalizedCursor) {
+    return getMoreTalents({
+      categoryId:
+        normalizedCategoryId,
+      cursor:
+        normalizedCursor,
+    });
+  }
+
+  return getCategoryTalents(
+    normalizedCategoryId,
+  );
 }
 
 /*
- * --------------------------------------------------
+ * =========================================================
  * TOP TALENTS
- * --------------------------------------------------
+ * =========================================================
  */
 
-export async function getTopTalents(
-  limit = DISCOVER_TALENTS_LIMIT,
-) {
+export async function getTopTalents() {
   "use cache";
 
-  const safeLimitValue =
-    safeLimit(
-      limit,
-      DISCOVER_TALENTS_LIMIT,
-      DISCOVER_TALENTS_LIMIT,
-    );
-
   cacheLife("minutes");
-
-  cacheTag(
-    TALENTS_CACHE_TAG,
-  );
+  cacheTag(TALENTS_CACHE_TAG);
 
   const { db } =
-    await getPublicServerFirebase();
-
-  const talentsRef = collection(
-    db,
-    TALENTS_COLLECTION,
-  );
+    getPublicServerFirebase();
 
   const talentsQuery = query(
-    talentsRef,
-
-    orderBy(
-      "likes",
-      "desc",
-    ),
-
-    orderBy(
-      "createdAt",
-      "desc",
-    ),
-
-    orderBy(
-      documentId(),
-      "desc",
-    ),
-
-    firestoreLimit(
-      safeLimitValue,
-    ),
+    collection(db, TALENTS_COLLECTION),
+    orderBy("likes", "desc"),
+    orderBy("createdAt", "desc"),
+    orderBy(documentId(), "desc"),
+    firestoreLimit(DISCOVER_TALENTS_LIMIT),
   );
 
   const snapshot =
     await getDocs(talentsQuery);
 
-  return snapshot.docs
-    .map((document) =>
-      serializeTalentDocument(
-        document,
-      ),
-    )
-    .filter(Boolean);
+  return snapshot.docs.map(
+    serializeTalent,
+  );
 }
 
 /*
- * --------------------------------------------------
+ * =========================================================
  * NEW TALENTS
- * --------------------------------------------------
+ * =========================================================
  */
 
-export async function getNewTalents(
-  limit = DISCOVER_TALENTS_LIMIT,
-) {
+export async function getNewTalents() {
   "use cache";
 
-  const safeLimitValue =
-    safeLimit(
-      limit,
-      DISCOVER_TALENTS_LIMIT,
-      DISCOVER_TALENTS_LIMIT,
-    );
-
   cacheLife("minutes");
-
-  cacheTag(
-    TALENTS_CACHE_TAG,
-  );
+  cacheTag(TALENTS_CACHE_TAG);
 
   const { db } =
-    await getPublicServerFirebase();
-
-  const talentsRef = collection(
-    db,
-    TALENTS_COLLECTION,
-  );
+    getPublicServerFirebase();
 
   const talentsQuery = query(
-    talentsRef,
-
-    orderBy(
-      "createdAt",
-      "desc",
-    ),
-
-    orderBy(
-      documentId(),
-      "desc",
-    ),
-
-    firestoreLimit(
-      safeLimitValue,
-    ),
+    collection(db, TALENTS_COLLECTION),
+    orderBy("createdAt", "desc"),
+    orderBy(documentId(), "desc"),
+    firestoreLimit(DISCOVER_TALENTS_LIMIT),
   );
 
   const snapshot =
     await getDocs(talentsQuery);
 
-  return snapshot.docs
-    .map((document) =>
-      serializeTalentDocument(
-        document,
-      ),
-    )
-    .filter(Boolean);
+  return snapshot.docs.map(
+    serializeTalent,
+  );
 }
 
 /*
- * --------------------------------------------------
+ * =========================================================
  * GET TALENT BY ID
- * --------------------------------------------------
+ * =========================================================
  */
 
 export async function getTalentById(
-  id,
+  talentId,
 ) {
   "use cache";
 
-  const normalizedId =
-    normalizeString(id);
-
-  if (!normalizedId) {
+  if (
+    typeof talentId !== "string" ||
+    !talentId.trim()
+  ) {
     return null;
   }
 
+  const normalizedId =
+    talentId.trim();
+
   cacheLife("minutes");
-
   cacheTag(
-    TALENTS_CACHE_TAG,
-  );
-
-  cacheTag(
-    talentCacheTag(
-      normalizedId,
-    ),
+    talentCacheTag(normalizedId),
   );
 
   const { db } =
-    await getPublicServerFirebase();
+    getPublicServerFirebase();
 
   const talentRef = doc(
     db,
@@ -967,15 +754,17 @@ export async function getTalentById(
   const snapshot =
     await getDoc(talentRef);
 
-  return serializeTalentDocument(
-    snapshot,
-  );
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  return serializeTalent(snapshot);
 }
 
 /*
- * --------------------------------------------------
+ * =========================================================
  * GET TALENT BY USERNAME
- * --------------------------------------------------
+ * =========================================================
  */
 
 export async function getTalentByUsername(
@@ -983,29 +772,29 @@ export async function getTalentByUsername(
 ) {
   "use cache";
 
-  const normalizedUsername =
-    normalizeLowercase(
-      username,
-    );
+  if (
+    typeof username !== "string"
+  ) {
+    return null;
+  }
 
-  if (!normalizedUsername) {
+  const normalizedUsername =
+    username
+      .trim()
+      .toLowerCase();
+
+  if (
+    !normalizedUsername ||
+    normalizedUsername.length >
+      MAX_USERNAME_LENGTH
+  ) {
     return null;
   }
 
   cacheLife("minutes");
 
-  cacheTag(
-    TALENTS_CACHE_TAG,
-  );
-
-  cacheTag(
-    usernameCacheTag(
-      normalizedUsername,
-    ),
-  );
-
   const { db } =
-    await getPublicServerFirebase();
+    getPublicServerFirebase();
 
   const usernameRef = doc(
     db,
@@ -1024,17 +813,16 @@ export async function getTalentByUsername(
     usernameSnapshot.data();
 
   const uid =
-    normalizeString(
-      usernameData?.uid,
-    );
+    usernameData.uid;
 
-  if (!uid) {
+  if (
+    typeof uid !== "string" ||
+    !uid
+  ) {
     return null;
   }
 
-  cacheTag(
-    talentCacheTag(uid),
-  );
+  cacheTag(talentCacheTag(uid));
 
   const talentRef = doc(
     db,
@@ -1045,58 +833,50 @@ export async function getTalentByUsername(
   const talentSnapshot =
     await getDoc(talentRef);
 
-  return serializeTalentDocument(
+  if (!talentSnapshot.exists()) {
+    return null;
+  }
+
+  return serializeTalent(
     talentSnapshot,
   );
 }
 
 /*
- * --------------------------------------------------
- * GET CURRENT USER LIKE
- * --------------------------------------------------
- *
- * talentLikes/{userId}_{talentId}
- *
- * This function intentionally does NOT use
- * "use cache" because the result depends on
- * the currently authenticated user.
- *
- * --------------------------------------------------
+ * =========================================================
+ * GET CURRENT USER'S LIKE STATUS
+ * =========================================================
  */
 
 export async function getTalentLikeStatus(
   talentId,
 ) {
-  const normalizedTalentId =
-    normalizeString(talentId);
-
-  if (!normalizedTalentId) {
-    return false;
-  }
-
-  const {
-    db,
-    auth,
-  } = await getServerFirebase();
-
-  const currentUser =
-    auth?.currentUser;
-
-  if (!currentUser) {
-    return false;
-  }
-
-  const userId =
-    normalizeString(
-      currentUser.uid,
+  if (
+    typeof talentId !== "string" ||
+    !talentId.trim()
+  ) {
+    throw new Error(
+      "Invalid talent ID.",
     );
+  }
 
-  if (!userId) {
-    return false;
+  const normalizedTalentId =
+    talentId.trim();
+
+  const { auth, db } =
+    getServerFirebase();
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    return {
+      liked: false,
+      likes: null,
+    };
   }
 
   const likeId =
-    `${userId}_${normalizedTalentId}`;
+    `${user.uid}_${normalizedTalentId}`;
 
   const likeRef = doc(
     db,
@@ -1104,74 +884,93 @@ export async function getTalentLikeStatus(
     likeId,
   );
 
-  const snapshot =
-    await getDoc(likeRef);
+  const talentRef = doc(
+    db,
+    TALENTS_COLLECTION,
+    normalizedTalentId,
+  );
 
-  return snapshot.exists();
+  const [
+    likeSnapshot,
+    talentSnapshot,
+  ] = await Promise.all([
+    getDoc(likeRef),
+    getDoc(talentRef),
+  ]);
+
+  if (!talentSnapshot.exists()) {
+    throw new Error(
+      "Talent not found.",
+    );
+  }
+
+  const talentData =
+    talentSnapshot.data();
+
+  return {
+    liked: likeSnapshot.exists(),
+    likes: Math.max(
+      0,
+      Number.isFinite(talentData.likes)
+        ? talentData.likes
+        : 0,
+    ),
+  };
 }
 
 /*
- * --------------------------------------------------
+ * =========================================================
  * TOGGLE TALENT LIKE
- * --------------------------------------------------
+ * =========================================================
  *
- * One document per user/talent:
+ * Rules:
  *
- * talentLikes/{userId}_{talentId}
- *
- * The transaction guarantees that:
- *
- * LIKE:
- *   - like document is created
- *   - likes is incremented
- *
- * UNLIKE:
- *   - like document is deleted
- *   - likes is decremented
- *
- * --------------------------------------------------
+ * 1. User must be authenticated.
+ * 2. User ID comes from server authentication.
+ * 3. Client cannot choose userId.
+ * 4. One user can have one like per talent.
+ * 5. Self-likes are allowed.
+ * 6. Repeating an existing like does not increment.
+ * 7. Unliking removes the like.
+ * 8. Re-liking creates it again.
+ * 9. Likes cannot become negative.
+ * =========================================================
  */
 
 export async function toggleTalentLike({
   talentId,
   liked,
 }) {
+  if (
+    typeof talentId !== "string" ||
+    !talentId.trim()
+  ) {
+    throw new Error(
+      "Invalid talent ID.",
+    );
+  }
+
+  if (typeof liked !== "boolean") {
+    throw new Error(
+      "Invalid like state.",
+    );
+  }
+
   const normalizedTalentId =
-    normalizeString(talentId);
+    talentId.trim();
 
-  const desiredLiked =
-    liked === true;
+  const { auth, db } =
+    getServerFirebase();
 
-  if (!normalizedTalentId) {
+  const user = auth.currentUser;
+
+  if (!user) {
     throw new Error(
-      "Talent ID is required.",
+      "Authentication required.",
     );
   }
 
-  const {
-    db,
-    auth,
-  } = await getServerFirebase();
-
-  const currentUser =
-    auth?.currentUser;
-
-  if (!currentUser) {
-    throw new Error(
-      "You must be signed in to like a talent.",
-    );
-  }
-
-  const userId =
-    normalizeString(
-      currentUser.uid,
-    );
-
-  if (!userId) {
-    throw new Error(
-      "Authenticated user ID is missing.",
-    );
-  }
+  const userId = user.uid;
 
   const likeId =
     `${userId}_${normalizedTalentId}`;
@@ -1192,57 +991,58 @@ export async function toggleTalentLike({
     await runTransaction(
       db,
       async (transaction) => {
-        /*
-         * ALL reads happen before writes.
-         */
-
-        const [
-          talentSnapshot,
-          likeSnapshot,
-        ] = await Promise.all([
-          transaction.get(
+        const talentSnapshot =
+          await transaction.get(
             talentRef,
-          ),
+          );
 
-          transaction.get(
-            likeRef,
-          ),
-        ]);
-
-        if (
-          !talentSnapshot.exists()
-        ) {
+        if (!talentSnapshot.exists()) {
           throw new Error(
-            "Talent profile not found.",
+            "Talent not found.",
           );
         }
+
+        const likeSnapshot =
+          await transaction.get(
+            likeRef,
+          );
 
         const talentData =
           talentSnapshot.data();
 
+        const categoryId =
+          talentData.categoryId ?? null;
+
         const currentLikes =
           Math.max(
             0,
-            normalizeNumber(
-              talentData?.likes,
-            ),
+            Number.isFinite(
+              talentData.likes,
+            )
+              ? talentData.likes
+              : 0,
           );
 
         const alreadyLiked =
           likeSnapshot.exists();
 
         /*
-         * ------------------------------------------------
+         * -----------------------------------------------
          * LIKE
-         * ------------------------------------------------
+         * -----------------------------------------------
          */
 
-        if (
-          desiredLiked &&
-          !alreadyLiked
-        ) {
+        if (liked) {
+          if (alreadyLiked) {
+            return {
+              liked: true,
+              likes: currentLikes,
+              categoryId,
+            };
+          }
+
           const now =
-            new Date();
+            Timestamp.now();
 
           transaction.set(
             likeRef,
@@ -1259,7 +1059,8 @@ export async function toggleTalentLike({
             talentRef,
             {
               likes:
-                increment(1),
+                currentLikes + 1,
+              updatedAt: now,
             },
           );
 
@@ -1267,57 +1068,63 @@ export async function toggleTalentLike({
             liked: true,
             likes:
               currentLikes + 1,
+            categoryId,
           };
         }
 
         /*
-         * ------------------------------------------------
+         * -----------------------------------------------
          * UNLIKE
-         * ------------------------------------------------
+         * -----------------------------------------------
          */
 
-        if (
-          !desiredLiked &&
-          alreadyLiked
-        ) {
-          transaction.delete(
-            likeRef,
-          );
-
-          transaction.update(
-            talentRef,
-            {
-              likes:
-                increment(-1),
-            },
-          );
-
+        if (!alreadyLiked) {
           return {
             liked: false,
+            likes: currentLikes,
+            categoryId,
+          };
+        }
+
+        const now =
+          Timestamp.now();
+
+        transaction.delete(
+          likeRef,
+        );
+
+        transaction.update(
+          talentRef,
+          {
             likes: Math.max(
               0,
               currentLikes - 1,
             ),
-          };
-        }
-
-        /*
-         * ------------------------------------------------
-         * NO CHANGE
-         * ------------------------------------------------
-         */
+            updatedAt: now,
+          },
+        );
 
         return {
-          liked: alreadyLiked,
-          likes: currentLikes,
+          liked: false,
+          likes: Math.max(
+            0,
+            currentLikes - 1,
+          ),
+          categoryId,
         };
       },
     );
 
   /*
-   * ------------------------------------------------
+   * -----------------------------------------------
    * CACHE INVALIDATION
-   * ------------------------------------------------
+   * -----------------------------------------------
+   *
+   * Likes affect:
+   *
+   * - individual talent
+   * - category ordering
+   * - global talent lists
    */
 
   revalidateTag(
@@ -1332,5 +1139,17 @@ export async function toggleTalentLike({
     "max",
   );
 
-  return result;
+  if (result.categoryId) {
+    revalidateTag(
+      categoryTalentsCacheTag(
+        result.categoryId,
+      ),
+      "max",
+    );
+  }
+
+  return {
+    liked: result.liked,
+    likes: result.likes,
+  };
 }

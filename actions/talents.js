@@ -16,9 +16,10 @@ import {
  * =========================================================
  */
 
-const INITIAL_CATEGORY_LOAD = 8;
 const TALENTS_PER_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
+
+const MAX_CATEGORY_ID_LENGTH = 100;
 const MAX_TALENT_ID_LENGTH = 128;
 const MAX_CURSOR_LENGTH = 1000;
 
@@ -31,61 +32,40 @@ const MAX_CURSOR_LENGTH = 1000;
 const categoryIdSchema = z
   .string()
   .trim()
-  .min(
-    1,
-    "Category ID is required.",
-  )
+  .min(1, "Category ID is required.")
   .max(
-    100,
+    MAX_CATEGORY_ID_LENGTH,
     "Category ID is too long.",
   );
 
 const categoryTalentsSchema = z
   .object({
-    categoryId:
-      categoryIdSchema,
-
-    limit:
-      z
-        .number()
-        .int()
-        .min(1)
-        .max(
-          INITIAL_CATEGORY_LOAD,
-        ),
+    categoryId: categoryIdSchema,
   })
   .strict();
 
 const loadMoreTalentsSchema = z
   .object({
-    categoryId:
-      categoryIdSchema,
+    categoryId: categoryIdSchema,
 
-    cursor:
-      z
-        .string()
-        .trim()
-        .min(
-          1,
-          "Cursor is required.",
-        )
-        .max(
-          MAX_CURSOR_LENGTH,
-          "Cursor is too long.",
-        ),
+    cursor: z
+      .string()
+      .trim()
+      .min(1, "Cursor is required.")
+      .max(
+        MAX_CURSOR_LENGTH,
+        "Cursor is too long.",
+      ),
   })
   .strict();
 
 const discoverTalentsSchema = z
   .object({
-    limit:
-      z
-        .number()
-        .int()
-        .min(1)
-        .max(
-          DISCOVER_TALENTS_LIMIT,
-        ),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(DISCOVER_TALENTS_LIMIT),
   })
   .strict();
 
@@ -97,25 +77,23 @@ const discoverTalentsSchema = z
 
 const talentLikeSchema = z
   .object({
-    talentId:
-      z
-        .string()
-        .trim()
-        .min(
-          1,
-          "Talent ID is required.",
-        )
-        .max(
-          MAX_TALENT_ID_LENGTH,
-          "Talent ID is too long.",
-        )
-        .regex(
-          /^[A-Za-z0-9_-]+$/,
-          "Invalid talent ID.",
-        ),
+    talentId: z
+      .string()
+      .trim()
+      .min(
+        1,
+        "Talent ID is required.",
+      )
+      .max(
+        MAX_TALENT_ID_LENGTH,
+        "Talent ID is too long.",
+      )
+      .regex(
+        /^[A-Za-z0-9_-]+$/,
+        "Invalid talent ID.",
+      ),
 
-    liked:
-      z.boolean(),
+    liked: z.boolean(),
   })
   .strict();
 
@@ -151,9 +129,7 @@ function getErrorMessage(
   return fallback;
 }
 
-function normalizeTalents(
-  talents,
-) {
+function normalizeTalents(talents) {
   return Array.isArray(talents)
     ? talents
     : [];
@@ -164,13 +140,21 @@ function normalizeTalents(
  * CATEGORY TALENTS — INITIAL LOAD
  * =========================================================
  *
- * Receives only:
+ * First request:
  *
  * {
  *   categoryId
  * }
  *
- * The server controls the initial limit.
+ * The server always loads the first 8 talents.
+ *
+ * The data layer returns:
+ *
+ * {
+ *   talents,
+ *   nextCursor,
+ *   hasMore
+ * }
  */
 
 export async function loadCategoryTalentsAction(
@@ -183,9 +167,6 @@ export async function loadCategoryTalentsAction(
     categoryTalentsSchema.safeParse({
       categoryId:
         safeInput.categoryId,
-
-      limit:
-        INITIAL_CATEGORY_LOAD,
     });
 
   if (!validation.success) {
@@ -213,13 +194,10 @@ export async function loadCategoryTalentsAction(
         ),
 
       nextCursor:
-        result?.nextCursor ??
-        null,
+        result?.nextCursor ?? null,
 
       hasMore:
-        Boolean(
-          result?.hasMore,
-        ),
+        Boolean(result?.hasMore),
 
       error: null,
     };
@@ -243,31 +221,51 @@ export async function loadCategoryTalentsAction(
  * CATEGORY TALENTS — LOAD MORE
  * =========================================================
  *
- * Receives only:
+ * Cursor pagination:
  *
- * {
- *   categoryId,
- *   cursor
- * }
+ * First load:
  *
- * The client does NOT send the whole category document.
- * The client does NOT send loadedCount.
+ *   1 2 3 4 5 6 7 8
+ *                 ↑
+ *              cursor
+ *
+ * Load more sends that cursor.
+ *
+ * Server then loads:
+ *
+ *   9 10 11 12 13 14 15 16
+ *
+ * and returns another cursor.
+ *
+ * The next request uses that new cursor.
+ *
+ * This continues:
+ *
+ * 1–8
+ * 9–16
+ * 17–24
+ * 25–32
+ * ...
+ *
+ * until hasMore === false.
+ *
+ * The client NEVER sends the already-loaded talents.
+ * The client NEVER sends loadedCount.
  */
 
 export async function loadMoreTalentsAction(
-  input = {},
+  { id, nextCursor } = {}
 ) {
-  const safeInput =
-    normalizeInput(input);
 
   const validation =
     loadMoreTalentsSchema.safeParse({
       categoryId:
-        safeInput.categoryId,
+        id,
 
       cursor:
-        safeInput.cursor,
+        nextCursor,
     });
+
 
   if (!validation.success) {
     return {
@@ -287,6 +285,9 @@ export async function loadMoreTalentsAction(
 
         cursor:
           validation.data.cursor,
+
+        limit:
+          TALENTS_PER_LOAD,
       });
 
     return {
@@ -298,13 +299,10 @@ export async function loadMoreTalentsAction(
         ),
 
       nextCursor:
-        result?.nextCursor ??
-        null,
+        result?.nextCursor ?? null,
 
       hasMore:
-        Boolean(
-          result?.hasMore,
-        ),
+        Boolean(result?.hasMore),
 
       error: null,
     };
@@ -365,13 +363,9 @@ export async function toggleTalentLikeAction(
 
     if (
       !result ||
-      typeof result.liked !==
-        "boolean" ||
-      typeof result.likes !==
-        "number" ||
-      !Number.isFinite(
-        result.likes,
-      ) ||
+      typeof result.liked !== "boolean" ||
+      typeof result.likes !== "number" ||
+      !Number.isFinite(result.likes) ||
       result.likes < 0
     ) {
       return {

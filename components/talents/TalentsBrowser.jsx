@@ -53,9 +53,7 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const setTalentsLoading = useTalentsStore(
-    (state) => state.setTalentsLoading,
-  );
+  const setTalentsLoading = useTalentsStore((state) => state.setTalentsLoading);
 
   /*
    * =========================================================
@@ -77,14 +75,11 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const isSearching =
-    Boolean(browser.search?.trim());
+  const isSearching = Boolean(browser.search?.trim());
 
-  const hasVisibleCategories =
-    browser.visibleCategories.length > 0;
+  const hasVisibleCategories = browser.visibleCategories.length > 0;
 
-  const allCategoriesLoaded =
-    !browser.hasMoreCategories;
+  const allCategoriesLoaded = !browser.hasMoreCategories;
 
   /*
    * =========================================================
@@ -93,13 +88,10 @@ export default function TalentsContent({
    */
 
   const shouldShowNoCategoriesState =
-    !hasVisibleCategories &&
-    allCategoriesLoaded;
+    !hasVisibleCategories && allCategoriesLoaded;
 
   const shouldShowEmptyState =
-    hasVisibleCategories &&
-    browser.totalResults === 0;
-
+    !browser.category && hasVisibleCategories && browser.totalResults === 0;
   /*
    * =========================================================
    * LOAD MORE
@@ -124,7 +116,6 @@ export default function TalentsContent({
   return (
     <section>
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
-
         {/* ===================================================
             QUICK CATEGORIES
         =================================================== */}
@@ -166,10 +157,7 @@ export default function TalentsContent({
            * -------------------------------------------------
            */
 
-          <EmptyState
-            hasData={false}
-            onClear={browser.clearFilters}
-          />
+          <EmptyState hasData={false} onClear={browser.clearFilters} />
         ) : shouldShowEmptyState ? (
           /*
            * -------------------------------------------------
@@ -183,45 +171,31 @@ export default function TalentsContent({
           />
         ) : (
           <div className="mt-10 space-y-14">
-
             {/* ===============================================
                 CATEGORY SECTIONS
             =============================================== */}
 
-            {browser.visibleCategories.map(
-              (category) => (
-                <CategorySection
-                  key={category.id}
-                  category={category}
-                />
-              ),
-            )}
+            {browser.visibleCategories.map((category) => (
+              <CategorySection key={category.id} category={category} />
+            ))}
 
             {/* ===============================================
                 LOAD MORE CATEGORIES
             =============================================== */}
 
-            {!isSearching &&
-              browser.hasMoreCategories && (
-                <div className="flex justify-center pt-2">
-                  <button
-                    type="button"
-                    onClick={
-                      handleLoadMoreCategories
-                    }
-                    className="inline-flex h-11 min-w-37.5 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
-                  >
-                    <span>
-                      Load more categories
-                    </span>
+            {!isSearching && browser.hasMoreCategories && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleLoadMoreCategories}
+                  className="inline-flex h-11 min-w-37.5 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
+                >
+                  <span>Load more categories</span>
 
-                    <ChevronDown
-                      size={16}
-                      aria-hidden="true"
-                    />
-                  </button>
-                </div>
-              )}
+                  <ChevronDown size={16} aria-hidden="true" />
+                </button>
+              </div>
+            )}
 
             {/* ===============================================
                 ALL CATEGORIES COMPLETED
@@ -232,8 +206,7 @@ export default function TalentsContent({
               browser.totalResults > 0 && (
                 <div className="flex justify-center pt-2">
                   <p className="mt-0.5 text-xs leading-5 text-slate-500">
-                    You&apos;ve explored all available
-                    talent categories.
+                    You&apos;ve explored all available talent categories.
                   </p>
                 </div>
               )}
@@ -243,4 +216,3 @@ export default function TalentsContent({
     </section>
   );
 }
-

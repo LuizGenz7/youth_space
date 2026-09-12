@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 
-import {
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   ChevronDown,
@@ -55,20 +52,18 @@ export default function CategorySection({
     category?.name || "Talents";
 
   const totalTalents =
-    Number(
-      category?.totalTalents || 0,
-    );
+    Number(category?.totalTalents || 0);
 
   /*
    * =======================================================
    * INITIAL TALENTS
    * =======================================================
    *
-   * The first categories may already have talents
-   * supplied by the server.
+   * Categories included in the initial server response
+   * already have their first 8 talents.
    *
-   * Categories loaded later may have [] and will
-   * fetch through React Query.
+   * Categories revealed later have no initial talents
+   * and will fetch their first page.
    */
 
   const initialTalents =
@@ -79,18 +74,15 @@ export default function CategorySection({
   const hasInitialTalents =
     initialTalents.length > 0;
 
+  const shouldFetchCategory =
+    Boolean(categoryId) &&
+    totalTalents > 0 &&
+    initialTalents.length === 0;
+
   /*
    * =======================================================
    * QUERY KEY
    * =======================================================
-   *
-   * Each category gets its own React Query cache.
-   *
-   * Example:
-   *
-   * ["talents", "music"]
-   * ["talents", "photography"]
-   * ["talents", "web-development"]
    */
 
   const queryKey = [
@@ -102,6 +94,19 @@ export default function CategorySection({
    * =======================================================
    * INITIAL DATA
    * =======================================================
+   *
+   * IMPORTANT:
+   *
+   * The cursor is stored together with the React Query
+   * page state.
+   *
+   * This means:
+   *
+   * Page 1 -> cursor A
+   * Page 2 -> cursor B
+   * Page 3 -> cursor C
+   *
+   * The component always uses the latest cursor.
    */
 
   const initialData =
@@ -109,28 +114,25 @@ export default function CategorySection({
       ? {
           talents: initialTalents,
 
+          nextCursor:
+            category?.nextCursor ?? null,
+
+          lastItemId:
+            category?.lastItemId ?? null,
+
           hasMore:
-            initialTalents.length <
-            totalTalents,
+            Boolean(
+              category?.hasMore ??
+                initialTalents.length <
+                  totalTalents,
+            ),
         }
       : undefined;
 
   /*
    * =======================================================
-   * CATEGORY QUERY
+   * REACT QUERY
    * =======================================================
-   *
-   * IMPORTANT:
-   *
-   * If initial talents exist:
-   *
-   *   React Query uses initialData.
-   *
-   * If initial talents do NOT exist:
-   *
-   *   React Query fetches the category.
-   *
-   * This gives us lazy category loading.
    */
 
   const {
@@ -154,35 +156,40 @@ export default function CategorySection({
       }
 
       return {
-        talents:
-          Array.isArray(
-            result.talents,
-          )
-            ? result.talents
-            : [],
+        talents: Array.isArray(
+          result.talents,
+        )
+          ? result.talents
+          : [],
+
+        nextCursor:
+          result.nextCursor ?? null,
+
+        lastItemId:
+          result.lastItemId ?? null,
 
         hasMore:
-          Boolean(
-            result.hasMore,
-          ),
+          Boolean(result.hasMore),
       };
     },
 
     initialData,
 
     /*
-     * Only fetch when this category does
-     * not already have initial talents.
+     * Lazy loading:
+     *
+     * Initial server data:
+     *     -> don't fetch
+     *
+     * No initial data + talents exist:
+     *     -> fetch first page
+     *
+     * No talents:
+     *     -> don't fetch
      */
 
     enabled:
-      Boolean(categoryId) &&
-      totalTalents > 0 &&
-      !hasInitialTalents,
-
-    /*
-     * Cache settings.
-     */
+      shouldFetchCategory,
 
     staleTime:
       QUERY_STALE_TIME,
@@ -190,12 +197,13 @@ export default function CategorySection({
     gcTime:
       QUERY_GC_TIME,
 
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus:
+      false,
   });
 
   /*
    * =======================================================
-   * TALENTS
+   * CURRENT QUERY STATE
    * =======================================================
    */
 
@@ -204,6 +212,21 @@ export default function CategorySection({
       ? data.talents
       : [];
 
+  /*
+   * THIS IS THE CURRENT CURSOR.
+   *
+   * It is NOT category?.nextCursor.
+   *
+   * React Query updates it after every successful
+   * load-more request.
+   */
+
+  const nextCursor =
+    data?.nextCursor ?? null;
+
+  const lastItemId =
+    data?.lastItemId ?? null;
+
   const hasMore =
     Boolean(data?.hasMore);
 
@@ -211,13 +234,6 @@ export default function CategorySection({
    * =======================================================
    * INITIAL LOADING
    * =======================================================
-   *
-   * When a category has no initial data:
-   *
-   *   isPending = true
-   *   talents = []
-   *
-   * Therefore the skeleton is displayed.
    */
 
   const loading =
@@ -230,49 +246,25 @@ export default function CategorySection({
    * =======================================================
    */
 
-  const [
-    loadingMore,
-    setLoadingMore,
-  ] = useState(false);
+  const [loadingMore, setLoadingMore] =
+    useState(false);
 
   /*
    * =======================================================
    * SHOULD LOAD MORE
    * =======================================================
    *
-   * The Load More button should appear only when:
+   * A cursor is required.
    *
-   * - category isn't initially loading
-   * - there isn't an error
-   * - at least one talent is loaded
-   * - Firebase says more talents exist
+   * If there is no cursor, don't send a load-more request.
    */
 
   const shouldLoadMore =
     !loading &&
     !isError &&
     talents.length > 0 &&
-    hasMore;
-
-  /*
-   * =======================================================
-   * LOAD MORE DEBUG
-   * =======================================================
-   */
-
-  console.log(
-    `[CategorySection] ${categoryName} → shouldLoadMore: ${shouldLoadMore}`,
-    {
-      categoryId,
-      totalTalents,
-      loadedTalents:
-        talents.length,
-      hasMore,
-      loading,
-      loadingMore,
-      isError,
-    },
-  );
+    hasMore &&
+    Boolean(nextCursor);
 
   /*
    * =======================================================
@@ -285,17 +277,38 @@ export default function CategorySection({
       loading ||
       loadingMore ||
       !hasMore ||
-      !categoryId
+      !categoryId ||
+      !nextCursor
     ) {
       return;
     }
 
     setLoadingMore(true);
 
+    /*
+     * IMPORTANT:
+     *
+     * Capture the CURRENT cursor.
+     *
+     * This is the cursor returned by the previous page.
+     *
+     * Example:
+     *
+     * Page 1 -> nextCursor = A
+     * Page 2 request uses A
+     * Page 2 -> nextCursor = B
+     * Page 3 request uses B
+     */
+
+    const cursorForRequest =
+      nextCursor;
+
     try {
       const result =
         await loadMoreTalentsAction({
-          categoryId,
+          id: categoryId,
+          nextCursor:
+            cursorForRequest,
         });
 
       if (!result?.success) {
@@ -303,11 +316,21 @@ export default function CategorySection({
       }
 
       const newTalents =
-        Array.isArray(
-          result.talents,
-        )
+        Array.isArray(result.talents)
           ? result.talents
           : [];
+
+      /*
+       * ===================================================
+       * UPDATE REACT QUERY
+       * ===================================================
+       *
+       * IMPORTANT:
+       *
+       * Store the NEW cursor returned by the server.
+       *
+       * Do not keep using category.nextCursor.
+       */
 
       queryClient.setQueryData(
         queryKey,
@@ -320,7 +343,9 @@ export default function CategorySection({
               : [];
 
           /*
-           * No more data.
+           * No new talents.
+           *
+           * The server says pagination is finished.
            */
 
           if (
@@ -329,6 +354,14 @@ export default function CategorySection({
             return {
               talents:
                 currentTalents,
+
+              nextCursor:
+                result.nextCursor ??
+                null,
+
+              lastItemId:
+                result.lastItemId ??
+                null,
 
               hasMore: false,
             };
@@ -358,9 +391,9 @@ export default function CategorySection({
             );
 
           /*
-           * If Firebase returned only
-           * duplicates, don't accidentally
-           * keep showing Load More forever.
+           * Firebase returned only duplicates.
+           *
+           * Still advance to the NEW cursor.
            */
 
           if (
@@ -370,6 +403,14 @@ export default function CategorySection({
               talents:
                 currentTalents,
 
+              nextCursor:
+                result.nextCursor ??
+                null,
+
+              lastItemId:
+                result.lastItemId ??
+                null,
+
               hasMore:
                 Boolean(
                   result.hasMore,
@@ -377,11 +418,25 @@ export default function CategorySection({
             };
           }
 
+          /*
+           * Successful next page.
+           *
+           * Replace cursor A with cursor B.
+           */
+
           return {
             talents: [
               ...currentTalents,
               ...uniqueTalents,
             ],
+
+            nextCursor:
+              result.nextCursor ??
+              null,
+
+            lastItemId:
+              result.lastItemId ??
+              null,
 
             hasMore:
               Boolean(
@@ -400,35 +455,11 @@ export default function CategorySection({
    * FILTERED TALENTS
    * =======================================================
    *
-   * If the browser supplied a filtered list,
-   * use it.
-   *
-   * Otherwise use the React Query data.
+   * React Query is the source of truth.
    */
 
   const filteredTalents =
-    Array.isArray(
-      category?.filteredTalents,
-    )
-      ? category.filteredTalents
-      : talents;
-
-  /*
-   * =======================================================
-   * HIDE CATEGORY
-   * =======================================================
-   *
-   * Don't display a category when filters are active
-   * and nothing matches.
-   */
-
-  if (
-    !loading &&
-    talents.length > 0 &&
-    filteredTalents.length === 0
-  ) {
-    return null;
-  }
+    talents;
 
   /*
    * =======================================================
@@ -524,7 +555,9 @@ export default function CategorySection({
                   username={
                     talent.username
                   }
-                  avatar={talent.avatar}
+                  avatar={
+                    talent.avatar
+                  }
                   displayName={
                     talent.displayName
                   }
@@ -538,7 +571,9 @@ export default function CategorySection({
                   district={
                     talent.district
                   }
-                  skills={talent.skills}
+                  skills={
+                    talent.skills
+                  }
                   likes={talent.likes}
                   workCount={
                     talent.workCount
@@ -566,8 +601,12 @@ export default function CategorySection({
             onClick={
               handleLoadMore
             }
-            disabled={loadingMore}
-            aria-busy={loadingMore}
+            disabled={
+              loadingMore
+            }
+            aria-busy={
+              loadingMore
+            }
             className="inline-flex h-11 min-w-[150px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loadingMore ? (
@@ -623,8 +662,7 @@ export default function CategorySection({
         totalTalents === 0 && (
           <div className="mt-5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">
             <p className="text-sm font-medium text-slate-500">
-              No talents found in this
-              category.
+              No talents found in this category.
             </p>
           </div>
         )}
