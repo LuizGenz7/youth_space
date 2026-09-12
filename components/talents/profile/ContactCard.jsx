@@ -11,7 +11,7 @@ export default function ContactCard({ talent }) {
   const phone = talent.phone || talent.whatsapp;
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <div className="rounded-3xl border  border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white">
         <MessageCircle size={18} />
       </div>
