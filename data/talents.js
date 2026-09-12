@@ -400,7 +400,6 @@ async function queryCategoryTalentsPage(
       "==",
       normalizedCategoryId,
     ),
-
     orderBy(
       "likes",
       "desc",
