@@ -8,6 +8,12 @@ import {
   useSearchParams,
 } from "next/navigation";
 
+/*
+ * =========================================================
+ * CONFIG
+ * =========================================================
+ */
+
 const INITIAL_CATEGORY_COUNT = 6;
 const CATEGORIES_PER_LOAD = 6;
 
@@ -32,7 +38,7 @@ function normalize(value) {
 
 /*
  * =========================================================
- * SEARCH MATCH
+ * SEARCH
  * =========================================================
  */
 
@@ -57,31 +63,26 @@ function matchesSearch(talent, search) {
       : []),
 
     ...(Array.isArray(talent.services)
-      ? talent.services.map(
-          (service) =>
-            typeof service === "string"
-              ? service
-              : service?.name,
+      ? talent.services.map((service) =>
+          typeof service === "string"
+            ? service
+            : service?.name,
         )
       : []),
   ];
 
-  return searchableFields.some(
-    (value) =>
-      normalize(value).includes(query),
+  return searchableFields.some((value) =>
+    normalize(value).includes(query),
   );
 }
 
 /*
  * =========================================================
- * PROVINCE MATCH
+ * PROVINCE
  * =========================================================
  */
 
-function matchesProvince(
-  talent,
-  province,
-) {
+function matchesProvince(talent, province) {
   if (
     !province ||
     province === "All provinces"
@@ -97,14 +98,11 @@ function matchesProvince(
 
 /*
  * =========================================================
- * DISTRICT MATCH
+ * DISTRICT
  * =========================================================
  */
 
-function matchesDistrict(
-  talent,
-  district,
-) {
+function matchesDistrict(talent, district) {
   if (
     !district ||
     district === "All districts"
@@ -124,31 +122,16 @@ function matchesDistrict(
  * =========================================================
  */
 
-function sortTalents(
-  talentList,
-  sort,
-) {
+function sortTalents(talentList, sort) {
   const result = [...talentList];
 
   switch (sort) {
-    /*
-     * -------------------------------------------------------
-     * RECOMMENDED
-     * -------------------------------------------------------
-     */
-
     case "Recommended":
       return result.sort(
         (a, b) =>
           Number(b.likes || 0) -
           Number(a.likes || 0),
       );
-
-    /*
-     * -------------------------------------------------------
-     * NEWEST
-     * -------------------------------------------------------
-     */
 
     case "Newest":
       return result.sort((a, b) => {
@@ -163,38 +146,19 @@ function sortTalents(
         return dateB - dateA;
       });
 
-    /*
-     * -------------------------------------------------------
-     * A-Z
-     * -------------------------------------------------------
-     */
-
     case "A-Z":
       return result.sort((a, b) =>
         normalize(
           a.displayName,
         ).localeCompare(
-          normalize(
-            b.displayName,
-          ),
+          normalize(b.displayName),
         ),
       );
 
-    /*
-     * -------------------------------------------------------
-     * AVAILABLE NOW
-     * -------------------------------------------------------
-     */
-
     case "Available now":
       return result.sort((a, b) => {
-        if (
-          a.available !==
-          b.available
-        ) {
-          return a.available
-            ? -1
-            : 1;
+        if (a.available !== b.available) {
+          return a.available ? -1 : 1;
         }
 
         return (
@@ -202,12 +166,6 @@ function sortTalents(
           Number(a.likes || 0)
         );
       });
-
-    /*
-     * -------------------------------------------------------
-     * DEFAULT
-     * -------------------------------------------------------
-     */
 
     default:
       return result.sort(
@@ -229,26 +187,13 @@ export default function useTalentBrowser({
   categories = [],
 }) {
   const router = useRouter();
-
-  const pathname =
-    usePathname();
-
-  const searchParams =
-    useSearchParams();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   /*
    * =======================================================
    * URL FILTER STATE
    * =======================================================
-   *
-   * URL is the source of truth.
-   *
-   * Example:
-   *
-   * /talents?
-   * category=Hair+%26+Beauty
-   * &province=Central
-   * &district=Kabwe
    */
 
   const search =
@@ -273,6 +218,16 @@ export default function useTalentBrowser({
    * =======================================================
    * CATEGORY PAGINATION
    * =======================================================
+   *
+   * Normal behavior:
+   *
+   *   6
+   *   12
+   *   18
+   *   ...
+   *
+   * This controls how many categories are normally
+   * revealed by "Load more categories".
    */
 
   const [
@@ -286,25 +241,30 @@ export default function useTalentBrowser({
    * =======================================================
    * AVAILABLE CATEGORIES
    * =======================================================
+   *
+   * IMPORTANT:
+   *
+   * This must contain ALL categories received from
+   * the server.
+   *
+   * We do NOT slice here.
+   *
+   * Only categories with talents are included.
    */
 
-  const availableCategories =
-    useMemo(() => {
-      return categories.filter(
-        (category) =>
-          Number(
-            category.totalTalents || 0,
-          ) > 0,
-      );
-    }, [categories]);
+  const availableCategories = useMemo(() => {
+    return categories.filter(
+      (category) =>
+        Number(
+          category?.totalTalents || 0,
+        ) > 0,
+    );
+  }, [categories]);
 
   /*
    * =======================================================
    * PROVINCES
    * =======================================================
-   *
-   * Creates the province filter options
-   * directly from the talent data.
    */
 
   const provinces = useMemo(() => {
@@ -328,15 +288,6 @@ export default function useTalentBrowser({
    * =======================================================
    * DISTRICTS
    * =======================================================
-   *
-   * If a province is selected:
-   *
-   *     show only districts
-   *     belonging to that province.
-   *
-   * If no province is selected:
-   *
-   *     show all districts.
    */
 
   const districts = useMemo(() => {
@@ -351,13 +302,12 @@ export default function useTalentBrowser({
               normalize(province),
           );
 
-    const values =
-      sourceTalents
-        .map(
-          (talent) =>
-            talent?.district,
-        )
-        .filter(Boolean);
+    const values = sourceTalents
+      .map(
+        (talent) =>
+          talent?.district,
+      )
+      .filter(Boolean);
 
     return [
       ...new Set(values),
@@ -366,48 +316,34 @@ export default function useTalentBrowser({
         String(b),
       ),
     );
-  }, [
-    talents,
-    province,
-  ]);
+  }, [talents, province]);
 
   /*
    * =======================================================
    * ACTIVE CATEGORY
    * =======================================================
-   *
-   * URL stores the category NAME.
-   *
-   * Example:
-   *
-   * ?category=Hair+%26+Beauty
-   *
-   * We resolve it to the category object,
-   * then use category.id for talent matching.
    */
 
-  const activeCategory =
-    useMemo(() => {
-      if (!categoryParam) {
-        return null;
-      }
+  const activeCategory = useMemo(() => {
+    if (!categoryParam) {
+      return null;
+    }
 
-      const normalizedParam =
-        normalize(categoryParam);
+    const normalizedParam =
+      normalize(categoryParam);
 
-      return (
-        availableCategories.find(
-          (category) =>
-            normalize(
-              category.name,
-            ) ===
-            normalizedParam,
-        ) || null
-      );
-    }, [
-      availableCategories,
-      categoryParam,
-    ]);
+    return (
+      availableCategories.find(
+        (category) =>
+          normalize(
+            category?.name,
+          ) === normalizedParam,
+      ) || null
+    );
+  }, [
+    availableCategories,
+    categoryParam,
+  ]);
 
   const activeCategoryId =
     activeCategory?.id || "";
@@ -419,194 +355,152 @@ export default function useTalentBrowser({
    * =======================================================
    * CATEGORY SECTIONS
    * =======================================================
+   *
+   * Every available category gets a lightweight
+   * section object.
+   *
+   * IMPORTANT:
+   *
+   * A category can have:
+   *
+   *   talents: []
+   *
+   * when its talents were NOT part of the initial
+   * server payload.
+   *
+   * CategorySection will then use React Query to
+   * fetch that category's talents when it is rendered.
    */
 
-  const categorySections =
-    useMemo(() => {
-      return availableCategories.map(
-        (category) => {
-          /*
-           * -------------------------------------------------
-           * CATEGORY
-           * -------------------------------------------------
-           */
+  const categorySections = useMemo(() => {
+    return availableCategories.map(
+      (category) => {
+        const categoryTalents =
+          talents.filter(
+            (talent) =>
+              talent?.categoryId ===
+              category?.id,
+          );
 
-          const categoryTalents =
-            talents.filter(
-              (talent) =>
-                talent.categoryId ===
-                category.id,
-            );
+        const searchFiltered =
+          categoryTalents.filter(
+            (talent) =>
+              matchesSearch(
+                talent,
+                search,
+              ),
+          );
 
-          /*
-           * -------------------------------------------------
-           * SEARCH
-           * -------------------------------------------------
-           */
+        const provinceFiltered =
+          searchFiltered.filter(
+            (talent) =>
+              matchesProvince(
+                talent,
+                province,
+              ),
+          );
 
-          const searchFiltered =
-            categoryTalents.filter(
-              (talent) =>
-                matchesSearch(
-                  talent,
-                  search,
-                ),
-            );
+        const districtFiltered =
+          provinceFiltered.filter(
+            (talent) =>
+              matchesDistrict(
+                talent,
+                district,
+              ),
+          );
 
-          /*
-           * -------------------------------------------------
-           * PROVINCE
-           * -------------------------------------------------
-           */
+        const filteredTalents =
+          sortTalents(
+            districtFiltered,
+            sort,
+          );
 
-          const provinceFiltered =
-            searchFiltered.filter(
-              (talent) =>
-                matchesProvince(
-                  talent,
-                  province,
-                ),
-            );
-
-          /*
-           * -------------------------------------------------
-           * DISTRICT
-           * -------------------------------------------------
-           */
-
-          const districtFiltered =
-            provinceFiltered.filter(
-              (talent) =>
-                matchesDistrict(
-                  talent,
-                  district,
-                ),
-            );
+        return {
+          ...category,
 
           /*
-           * -------------------------------------------------
-           * SORT
-           * -------------------------------------------------
+           * Initial talents only.
+           *
+           * If this category wasn't included
+           * in the server's initial talent payload,
+           * this will be [].
            */
 
-          const filteredTalents =
-            sortTalents(
-              districtFiltered,
-              sort,
-            );
+          talents: categoryTalents,
 
-          return {
-            ...category,
+          /*
+           * Initial filtered talents.
+           */
 
-            /*
-             * All talents in category.
-             */
-            talents:
-              categoryTalents,
+          filteredTalents,
 
-            /*
-             * Filtered talents.
-             */
-            filteredTalents,
-
-            /*
-             * Number after filters.
-             */
-            filteredCount:
-              filteredTalents.length,
-          };
-        },
-      );
-    }, [
-      availableCategories,
-      talents,
-      search,
-      province,
-      district,
-      sort,
-    ]);
+          filteredCount:
+            filteredTalents.length,
+        };
+      },
+    );
+  }, [
+    availableCategories,
+    talents,
+    search,
+    province,
+    district,
+    sort,
+  ]);
 
   /*
    * =======================================================
    * GLOBAL FILTERED TALENTS
    * =======================================================
-   *
-   * Applies:
-   *
-   * category
-   * search
-   * province
-   * district
-   * sort
    */
 
-  const filteredTalents =
-    useMemo(() => {
-      const result =
-        talents.filter((talent) => {
-          /*
-           * CATEGORY
-           */
+  const filteredTalents = useMemo(() => {
+    const result = talents.filter(
+      (talent) => {
+        const categoryMatches =
+          !activeCategoryId ||
+          talent?.categoryId ===
+            activeCategoryId;
 
-          const categoryMatches =
-            !activeCategoryId ||
-            talent.categoryId ===
-              activeCategoryId;
-
-          /*
-           * SEARCH
-           */
-
-          const searchMatches =
-            matchesSearch(
-              talent,
-              search,
-            );
-
-          /*
-           * PROVINCE
-           */
-
-          const provinceMatches =
-            matchesProvince(
-              talent,
-              province,
-            );
-
-          /*
-           * DISTRICT
-           */
-
-          const districtMatches =
-            matchesDistrict(
-              talent,
-              district,
-            );
-
-          return (
-            categoryMatches &&
-            searchMatches &&
-            provinceMatches &&
-            districtMatches
+        const searchMatches =
+          matchesSearch(
+            talent,
+            search,
           );
-        });
 
-      /*
-       * Sort after filtering.
-       */
+        const provinceMatches =
+          matchesProvince(
+            talent,
+            province,
+          );
 
-      return sortTalents(
-        result,
-        sort,
-      );
-    }, [
-      talents,
-      activeCategoryId,
-      search,
-      province,
-      district,
+        const districtMatches =
+          matchesDistrict(
+            talent,
+            district,
+          );
+
+        return (
+          categoryMatches &&
+          searchMatches &&
+          provinceMatches &&
+          districtMatches
+        );
+      },
+    );
+
+    return sortTalents(
+      result,
       sort,
-    ]);
+    );
+  }, [
+    talents,
+    activeCategoryId,
+    search,
+    province,
+    district,
+    sort,
+  ]);
 
   /*
    * =======================================================
@@ -614,9 +508,7 @@ export default function useTalentBrowser({
    * =======================================================
    */
 
-  function updateParams(
-    updates = {},
-  ) {
+  function updateParams(updates = {}) {
     const params =
       new URLSearchParams(
         searchParams.toString(),
@@ -697,9 +589,7 @@ export default function useTalentBrowser({
    * =======================================================
    */
 
-  function changeCategory(
-    value,
-  ) {
+  function changeCategory(value) {
     updateParams({
       category: value,
     });
@@ -711,21 +601,9 @@ export default function useTalentBrowser({
    * =======================================================
    * PROVINCE
    * =======================================================
-   *
-   * Changing province clears district.
-   *
-   * Example:
-   *
-   * Central + Kabwe
-   *        ↓
-   * Lusaka
-   *        ↓
-   * Lusaka + All districts
    */
 
-  function changeProvince(
-    value,
-  ) {
+  function changeProvince(value) {
     updateParams({
       province: value,
       district: null,
@@ -740,9 +618,7 @@ export default function useTalentBrowser({
    * =======================================================
    */
 
-  function changeDistrict(
-    value,
-  ) {
+  function changeDistrict(value) {
     updateParams({
       district: value,
     });
@@ -811,21 +687,68 @@ export default function useTalentBrowser({
 
   /*
    * =======================================================
+   * NORMAL VISIBLE CATEGORIES
+   * =======================================================
+   *
+   * Normally we only render the first N categories.
+   *
+   * This is what makes category loading lazy.
+   */
+
+  const paginatedCategories =
+    useMemo(() => {
+      return categorySections.slice(
+        0,
+        visibleCategoryCount,
+      );
+    }, [
+      categorySections,
+      visibleCategoryCount,
+    ]);
+
+  /*
+   * =======================================================
    * VISIBLE CATEGORIES
    * =======================================================
+   *
+   * IMPORTANT BEHAVIOR:
+   *
+   * 1. No category selected:
+   *
+   *      render first 6
+   *
+   * 2. Category selected:
+   *
+   *      render ONLY selected category
+   *
+   * Even if selected category is category #15,
+   * it is rendered immediately.
+   *
+   * CategorySection then fetches its talents because
+   * that category has no initial talents.
    */
 
   const visibleCategories =
-    activeCategoryId
-      ? categorySections.filter(
-          (category) =>
-            category.id ===
-            activeCategoryId,
-        )
-      : categorySections.slice(
-          0,
-          visibleCategoryCount,
-        );
+    useMemo(() => {
+      if (activeCategoryId) {
+        const selectedCategory =
+          categorySections.find(
+            (category) =>
+              category?.id ===
+              activeCategoryId,
+          );
+
+        return selectedCategory
+          ? [selectedCategory]
+          : [];
+      }
+
+      return paginatedCategories;
+    }, [
+      categorySections,
+      paginatedCategories,
+      activeCategoryId,
+    ]);
 
   /*
    * =======================================================
@@ -905,6 +828,8 @@ export default function useTalentBrowser({
 
     categorySections,
 
+    paginatedCategories,
+
     visibleCategories,
 
     activeCategory,
@@ -942,6 +867,8 @@ export default function useTalentBrowser({
     /*
      * Pagination
      */
+
+    visibleCategoryCount,
 
     hasMoreCategories,
 

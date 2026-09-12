@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import {
   ChevronDown,
@@ -21,38 +24,51 @@ import { TalentCardSkeletonGrid } from "./TalentsLoading";
 
 /*
  * =========================================================
+ * CONFIG
+ * =========================================================
+ */
+
+const QUERY_STALE_TIME = 5 * 60 * 1000;
+const QUERY_GC_TIME = 30 * 60 * 1000;
+
+/*
+ * =========================================================
  * COMPONENT
  * =========================================================
- *
- * CategorySection is responsible for:
- *
- * - Loading category talents
- * - Loading more talents
- * - Displaying talents
- *
- * Filtering is handled by useTalentBrowser.
  */
 
 export default function CategorySection({
   category,
 }) {
-  const categoryId = category?.id;
+  const queryClient = useQueryClient();
+
+  /*
+   * =======================================================
+   * CATEGORY
+   * =======================================================
+   */
+
+  const categoryId =
+    category?.id || "";
 
   const categoryName =
     category?.name || "Talents";
 
-  /*
-   * =========================================================
-   * QUERY CLIENT
-   * =========================================================
-   */
-
-  const queryClient = useQueryClient();
+  const totalTalents =
+    Number(
+      category?.totalTalents || 0,
+    );
 
   /*
-   * =========================================================
-   * INITIAL DATA
-   * =========================================================
+   * =======================================================
+   * INITIAL TALENTS
+   * =======================================================
+   *
+   * The first categories may already have talents
+   * supplied by the server.
+   *
+   * Categories loaded later may have [] and will
+   * fetch through React Query.
    */
 
   const initialTalents =
@@ -60,22 +76,21 @@ export default function CategorySection({
       ? category.talents
       : [];
 
-  /*
-   * IMPORTANT:
-   *
-   * totalTalents is the real total for this category.
-   *
-   * This value is also what we display in the
-   * black counter.
-   */
-
-  const totalTalents =
-    Number(category?.totalTalents || 0);
+  const hasInitialTalents =
+    initialTalents.length > 0;
 
   /*
-   * =========================================================
+   * =======================================================
    * QUERY KEY
-   * =========================================================
+   * =======================================================
+   *
+   * Each category gets its own React Query cache.
+   *
+   * Example:
+   *
+   * ["talents", "music"]
+   * ["talents", "photography"]
+   * ["talents", "web-development"]
    */
 
   const queryKey = [
@@ -84,28 +99,44 @@ export default function CategorySection({
   ];
 
   /*
-   * =========================================================
-   * INITIAL LOAD
-   * =========================================================
+   * =======================================================
+   * INITIAL DATA
+   * =======================================================
    */
 
-  const shouldLoadInitial =
-    Boolean(categoryId) &&
-    (
-      initialTalents.length === 0
-        ? totalTalents > 0
-        : true
-    );
+  const initialData =
+    hasInitialTalents
+      ? {
+          talents: initialTalents,
+
+          hasMore:
+            initialTalents.length <
+            totalTalents,
+        }
+      : undefined;
 
   /*
-   * =========================================================
-   * TANSTACK QUERY
-   * =========================================================
+   * =======================================================
+   * CATEGORY QUERY
+   * =======================================================
+   *
+   * IMPORTANT:
+   *
+   * If initial talents exist:
+   *
+   *   React Query uses initialData.
+   *
+   * If initial talents do NOT exist:
+   *
+   *   React Query fetches the category.
+   *
+   * This gives us lazy category loading.
    */
 
   const {
-    data: queryData,
-    isLoading,
+    data,
+    isPending,
+    isError,
   } = useQuery({
     queryKey,
 
@@ -118,95 +149,85 @@ export default function CategorySection({
       if (!result?.success) {
         throw new Error(
           result?.error ||
-            `Failed to load ${categoryName} talents`,
+            `Failed to load ${categoryName} talents.`,
         );
       }
 
       return {
         talents:
-          Array.isArray(result.talents)
+          Array.isArray(
+            result.talents,
+          )
             ? result.talents
             : [],
 
         hasMore:
-          Boolean(result.hasMore),
+          Boolean(
+            result.hasMore,
+          ),
       };
     },
 
-    /*
-     * Use supplied talents immediately.
-     */
-
-    initialData:
-      initialTalents.length > 0
-        ? {
-            talents: initialTalents,
-
-            hasMore:
-              initialTalents.length <
-              totalTalents,
-          }
-        : undefined,
+    initialData,
 
     /*
-     * Do not fetch empty categories.
+     * Only fetch when this category does
+     * not already have initial talents.
      */
 
     enabled:
-      shouldLoadInitial,
+      Boolean(categoryId) &&
+      totalTalents > 0 &&
+      !hasInitialTalents,
 
     /*
-     * Keep category data fresh
-     * for five minutes.
+     * Cache settings.
      */
 
     staleTime:
-      5 * 60 * 1000,
-
-    /*
-     * Keep unused category data
-     * for thirty minutes.
-     */
+      QUERY_STALE_TIME,
 
     gcTime:
-      30 * 60 * 1000,
+      QUERY_GC_TIME,
 
-    /*
-     * Avoid unnecessary refetches
-     * when the browser regains focus.
-     */
-
-    refetchOnWindowFocus:
-      false,
+    refetchOnWindowFocus: false,
   });
 
   /*
-   * =========================================================
-   * CATEGORY DATA
-   * =========================================================
+   * =======================================================
+   * TALENTS
+   * =======================================================
    */
 
-  const loadedTalents =
-    queryData?.talents ||
-    initialTalents;
+  const talents =
+    Array.isArray(data?.talents)
+      ? data.talents
+      : [];
 
   const hasMore =
-    queryData?.hasMore ?? false;
+    Boolean(data?.hasMore);
 
   /*
-   * =========================================================
-   * LOADING
-   * =========================================================
+   * =======================================================
+   * INITIAL LOADING
+   * =======================================================
+   *
+   * When a category has no initial data:
+   *
+   *   isPending = true
+   *   talents = []
+   *
+   * Therefore the skeleton is displayed.
    */
 
   const loading =
-    isLoading &&
-    loadedTalents.length === 0;
+    isPending &&
+    talents.length === 0;
 
   /*
-   * =========================================================
+   * =======================================================
    * LOAD MORE STATE
-   * =========================================================
+   * =======================================================
    */
 
   const [
@@ -215,33 +236,48 @@ export default function CategorySection({
   ] = useState(false);
 
   /*
-   * =========================================================
-   * FILTERED TALENTS
-   * =========================================================
+   * =======================================================
+   * SHOULD LOAD MORE
+   * =======================================================
    *
-   * useTalentBrowser handles:
+   * The Load More button should appear only when:
    *
-   * - Search
-   * - Province
-   * - District
-   * - Category
-   * - Sorting
-   *
-   * CategorySection simply displays the
-   * already-filtered result.
+   * - category isn't initially loading
+   * - there isn't an error
+   * - at least one talent is loaded
+   * - Firebase says more talents exist
    */
 
-  const filteredTalents =
-    Array.isArray(
-      category?.filteredTalents,
-    )
-      ? category.filteredTalents
-      : loadedTalents;
+  const shouldLoadMore =
+    !loading &&
+    !isError &&
+    talents.length > 0 &&
+    hasMore;
 
   /*
-   * =========================================================
-   * LOAD MORE TALENTS
-   * =========================================================
+   * =======================================================
+   * LOAD MORE DEBUG
+   * =======================================================
+   */
+
+  console.log(
+    `[CategorySection] ${categoryName} → shouldLoadMore: ${shouldLoadMore}`,
+    {
+      categoryId,
+      totalTalents,
+      loadedTalents:
+        talents.length,
+      hasMore,
+      loading,
+      loadingMore,
+      isError,
+    },
+  );
+
+  /*
+   * =======================================================
+   * LOAD MORE
+   * =======================================================
    */
 
   async function handleLoadMore() {
@@ -259,7 +295,7 @@ export default function CategorySection({
     try {
       const result =
         await loadMoreTalentsAction({
-          category,
+          categoryId,
         });
 
       if (!result?.success) {
@@ -267,48 +303,49 @@ export default function CategorySection({
       }
 
       const newTalents =
-        Array.isArray(result.talents)
+        Array.isArray(
+          result.talents,
+        )
           ? result.talents
           : [];
-
-      /*
-       * -----------------------------------------------------
-       * NO MORE DATA
-       * -----------------------------------------------------
-       */
-
-      if (newTalents.length === 0) {
-        queryClient.setQueryData(
-          queryKey,
-          (current) => ({
-            talents:
-              current?.talents || [],
-
-            hasMore: false,
-          }),
-        );
-
-        return;
-      }
-
-      /*
-       * -----------------------------------------------------
-       * UPDATE CACHE
-       * -----------------------------------------------------
-       */
 
       queryClient.setQueryData(
         queryKey,
         (current) => {
           const currentTalents =
-            current?.talents || [];
+            Array.isArray(
+              current?.talents,
+            )
+              ? current.talents
+              : [];
+
+          /*
+           * No more data.
+           */
+
+          if (
+            newTalents.length === 0
+          ) {
+            return {
+              talents:
+                currentTalents,
+
+              hasMore: false,
+            };
+          }
+
+          /*
+           * Prevent duplicate talents.
+           */
 
           const existingIds =
             new Set(
-              currentTalents.map(
-                (talent) =>
-                  talent.id,
-              ),
+              currentTalents
+                .map(
+                  (talent) =>
+                    talent?.id,
+                )
+                .filter(Boolean),
             );
 
           const uniqueTalents =
@@ -319,6 +356,26 @@ export default function CategorySection({
                   talent.id,
                 ),
             );
+
+          /*
+           * If Firebase returned only
+           * duplicates, don't accidentally
+           * keep showing Load More forever.
+           */
+
+          if (
+            uniqueTalents.length === 0
+          ) {
+            return {
+              talents:
+                currentTalents,
+
+              hasMore:
+                Boolean(
+                  result.hasMore,
+                ),
+            };
+          }
 
           return {
             talents: [
@@ -333,50 +390,59 @@ export default function CategorySection({
           };
         },
       );
-    } catch (error) {
-      console.error(
-        `Failed to load more ${categoryName} talents:`,
-        error,
-      );
     } finally {
       setLoadingMore(false);
     }
   }
 
   /*
-   * =========================================================
-   * FILTER EMPTY STATE
-   * =========================================================
+   * =======================================================
+   * FILTERED TALENTS
+   * =======================================================
    *
-   * Hide this category when it has talents but
-   * the current filters produce no matches.
+   * If the browser supplied a filtered list,
+   * use it.
+   *
+   * Otherwise use the React Query data.
    */
 
-  const hasLoadedTalents =
-    loadedTalents.length > 0;
+  const filteredTalents =
+    Array.isArray(
+      category?.filteredTalents,
+    )
+      ? category.filteredTalents
+      : talents;
 
-  const hasNoFilterMatches =
+  /*
+   * =======================================================
+   * HIDE CATEGORY
+   * =======================================================
+   *
+   * Don't display a category when filters are active
+   * and nothing matches.
+   */
+
+  if (
     !loading &&
-    hasLoadedTalents &&
-    filteredTalents.length === 0;
-
-  if (hasNoFilterMatches) {
+    talents.length > 0 &&
+    filteredTalents.length === 0
+  ) {
     return null;
   }
 
   /*
-   * =========================================================
+   * =======================================================
    * RENDER
-   * =========================================================
+   * =======================================================
    */
 
   return (
     <section
       aria-labelledby={`category-${categoryId}`}
     >
-      {/* ===================================================
+      {/* =================================================
           CATEGORY HEADER
-      =================================================== */}
+      ================================================= */}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-center gap-3">
@@ -399,19 +465,6 @@ export default function CategorySection({
                 {categoryName}
               </h2>
 
-              {/* =================================================
-                  TOTAL CATEGORY COUNT
-                  =================================================
-                  
-                  Always show the category's total talent count.
-                  
-                  Example:
-                  Hair & Beauty  [68]
-                  
-                  Even if filters reduce the visible results
-                  to 4, this remains 68.
-              */}
-
               <span
                 className="rounded-lg bg-slate-950 px-2.5 py-1 text-[10px] font-bold text-white"
                 aria-label={`${totalTalents} total ${categoryName.toLowerCase()} talents`}
@@ -428,9 +481,9 @@ export default function CategorySection({
         </div>
       </div>
 
-      {/* ===================================================
+      {/* =================================================
           INITIAL LOADING
-      =================================================== */}
+      ================================================= */}
 
       {loading && (
         <TalentCardSkeletonGrid
@@ -438,11 +491,28 @@ export default function CategorySection({
         />
       )}
 
-      {/* ===================================================
-          TALENTS
-      =================================================== */}
+      {/* =================================================
+          ERROR
+      ================================================= */}
 
       {!loading &&
+        isError &&
+        talents.length === 0 &&
+        totalTalents > 0 && (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">
+            <p className="text-sm font-medium text-slate-500">
+              Unable to load talents for{" "}
+              {categoryName}.
+            </p>
+          </div>
+        )}
+
+      {/* =================================================
+          TALENTS
+      ================================================= */}
+
+      {!loading &&
+        !isError &&
         filteredTalents.length > 0 && (
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {filteredTalents.map(
@@ -454,15 +524,11 @@ export default function CategorySection({
                   username={
                     talent.username
                   }
-                  avatar={
-                    talent.avatar
-                  }
+                  avatar={talent.avatar}
                   displayName={
                     talent.displayName
                   }
-                  role={
-                    talent.role
-                  }
+                  role={talent.role}
                   category={
                     talent.category
                   }
@@ -472,12 +538,8 @@ export default function CategorySection({
                   district={
                     talent.district
                   }
-                  skills={
-                    talent.skills
-                  }
-                  likes={
-                    talent.likes
-                  }
+                  skills={talent.skills}
+                  likes={talent.likes}
                   workCount={
                     talent.workCount
                   }
@@ -493,62 +555,57 @@ export default function CategorySection({
           </div>
         )}
 
-      {/* ===================================================
+      {/* =================================================
           LOAD MORE
-      =================================================== */}
+      ================================================= */}
+
+      {shouldLoadMore && (
+        <div className="mt-7 flex justify-center">
+          <button
+            type="button"
+            onClick={
+              handleLoadMore
+            }
+            disabled={loadingMore}
+            aria-busy={loadingMore}
+            className="inline-flex h-11 min-w-[150px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loadingMore ? (
+              <>
+                <LoaderCircle
+                  size={16}
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
+
+                <span>
+                  Loading...
+                </span>
+              </>
+            ) : (
+              <>
+                <span>
+                  Load more{" "}
+                  {categoryName.toLowerCase()}
+                </span>
+
+                <ChevronDown
+                  size={16}
+                  aria-hidden="true"
+                />
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* =================================================
+          END
+      ================================================= */}
 
       {!loading &&
-        loadedTalents.length > 0 &&
-        hasMore && (
-          <div className="mt-7 flex justify-center">
-            <button
-              type="button"
-              onClick={
-                handleLoadMore
-              }
-              disabled={
-                loadingMore
-              }
-              aria-busy={
-                loadingMore
-              }
-              className="inline-flex h-11 min-w-[150px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loadingMore ? (
-                <>
-                  <LoaderCircle
-                    size={16}
-                    className="animate-spin"
-                    aria-hidden="true"
-                  />
-
-                  <span>
-                    Loading...
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span>
-                    Load more{" "}
-                    {categoryName.toLowerCase()}
-                  </span>
-
-                  <ChevronDown
-                    size={16}
-                    aria-hidden="true"
-                  />
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-      {/* ===================================================
-          END OF CATEGORY
-      =================================================== */}
-
-      {!loading &&
-        loadedTalents.length > 0 &&
+        !isError &&
+        talents.length > 0 &&
         !hasMore && (
           <p className="mt-6 text-center text-xs font-medium text-slate-400">
             You&apos;ve reached the end of{" "}
@@ -556,32 +613,18 @@ export default function CategorySection({
           </p>
         )}
 
-      {/* ===================================================
+      {/* =================================================
           EMPTY CATEGORY
-      =================================================== */}
+      ================================================= */}
 
       {!loading &&
-        loadedTalents.length === 0 &&
+        !isError &&
+        talents.length === 0 &&
         totalTalents === 0 && (
           <div className="mt-5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">
             <p className="text-sm font-medium text-slate-500">
               No talents found in this
               category.
-            </p>
-          </div>
-        )}
-
-      {/* ===================================================
-          FAILED INITIAL LOAD
-      =================================================== */}
-
-      {!loading &&
-        loadedTalents.length === 0 &&
-        totalTalents > 0 && (
-          <div className="mt-5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">
-            <p className="text-sm font-medium text-slate-500">
-              Unable to load talents for
-              this category.
             </p>
           </div>
         )}

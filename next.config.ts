@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { hostname } from "os";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -20,6 +21,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "www.bbcchildreninneed.co.uk",
+      },
+      {
+        protocol: "https",
+        hostname: "i.pravatar.cc",
       },
       {
         protocol: "https",

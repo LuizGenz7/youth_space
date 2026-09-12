@@ -17,9 +17,10 @@ import {
  */
 
 const INITIAL_CATEGORY_LOAD = 8;
+const TALENTS_PER_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
-const MAX_LOADED_COUNT = 1000;
 const MAX_TALENT_ID_LENGTH = 128;
+const MAX_CURSOR_LENGTH = 1000;
 
 /*
  * =========================================================
@@ -39,40 +40,52 @@ const categoryIdSchema = z
     "Category ID is too long.",
   );
 
-const categoryLimitSchema = z
-  .number()
-  .int()
-  .min(1)
-  .max(INITIAL_CATEGORY_LOAD);
-
 const categoryTalentsSchema = z
   .object({
-    categoryId: categoryIdSchema,
+    categoryId:
+      categoryIdSchema,
 
     limit:
-      categoryLimitSchema.optional(),
+      z
+        .number()
+        .int()
+        .min(1)
+        .max(
+          INITIAL_CATEGORY_LOAD,
+        ),
   })
   .strict();
 
 const loadMoreTalentsSchema = z
   .object({
-    categoryId: categoryIdSchema,
+    categoryId:
+      categoryIdSchema,
 
-    loadedCount: z
-      .number()
-      .int()
-      .min(0)
-      .max(MAX_LOADED_COUNT),
+    cursor:
+      z
+        .string()
+        .trim()
+        .min(
+          1,
+          "Cursor is required.",
+        )
+        .max(
+          MAX_CURSOR_LENGTH,
+          "Cursor is too long.",
+        ),
   })
   .strict();
 
 const discoverTalentsSchema = z
   .object({
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(DISCOVER_TALENTS_LIMIT),
+    limit:
+      z
+        .number()
+        .int()
+        .min(1)
+        .max(
+          DISCOVER_TALENTS_LIMIT,
+        ),
   })
   .strict();
 
@@ -80,34 +93,29 @@ const discoverTalentsSchema = z
  * =========================================================
  * LIKE SCHEMA
  * =========================================================
- *
- * The client may request a desired state.
- *
- * The server DOES NOT trust that state blindly.
- * toggleTalentLike() verifies the authenticated user
- * and the existing talentLikes document inside a
- * Firestore transaction.
  */
 
 const talentLikeSchema = z
   .object({
-    talentId: z
-      .string()
-      .trim()
-      .min(
-        1,
-        "Talent ID is required.",
-      )
-      .max(
-        MAX_TALENT_ID_LENGTH,
-        "Talent ID is too long.",
-      )
-      .regex(
-        /^[A-Za-z0-9_-]+$/,
-        "Invalid talent ID.",
-      ),
+    talentId:
+      z
+        .string()
+        .trim()
+        .min(
+          1,
+          "Talent ID is required.",
+        )
+        .max(
+          MAX_TALENT_ID_LENGTH,
+          "Talent ID is too long.",
+        )
+        .regex(
+          /^[A-Za-z0-9_-]+$/,
+          "Invalid talent ID.",
+        ),
 
-    liked: z.boolean(),
+    liked:
+      z.boolean(),
   })
   .strict();
 
@@ -143,7 +151,9 @@ function getErrorMessage(
   return fallback;
 }
 
-function normalizeTalents(talents) {
+function normalizeTalents(
+  talents,
+) {
   return Array.isArray(talents)
     ? talents
     : [];
@@ -151,8 +161,16 @@ function normalizeTalents(talents) {
 
 /*
  * =========================================================
- * CATEGORY TALENTS
+ * CATEGORY TALENTS — INITIAL LOAD
  * =========================================================
+ *
+ * Receives only:
+ *
+ * {
+ *   categoryId
+ * }
+ *
+ * The server controls the initial limit.
  */
 
 export async function loadCategoryTalentsAction(
@@ -167,7 +185,6 @@ export async function loadCategoryTalentsAction(
         safeInput.categoryId,
 
       limit:
-        safeInput.limit ??
         INITIAL_CATEGORY_LOAD,
     });
 
@@ -223,8 +240,18 @@ export async function loadCategoryTalentsAction(
 
 /*
  * =========================================================
- * LOAD MORE CATEGORY TALENTS
+ * CATEGORY TALENTS — LOAD MORE
  * =========================================================
+ *
+ * Receives only:
+ *
+ * {
+ *   categoryId,
+ *   cursor
+ * }
+ *
+ * The client does NOT send the whole category document.
+ * The client does NOT send loadedCount.
  */
 
 export async function loadMoreTalentsAction(
@@ -233,30 +260,13 @@ export async function loadMoreTalentsAction(
   const safeInput =
     normalizeInput(input);
 
-  const category =
-    safeInput.category;
-
-  const safeCategory =
-    category &&
-    typeof category === "object" &&
-    !Array.isArray(category)
-      ? category
-      : {};
-
-  const categoryId =
-    safeCategory.id;
-
-  const loadedCount =
-    Array.isArray(
-      safeCategory.talents,
-    )
-      ? safeCategory.talents.length
-      : 0;
-
   const validation =
     loadMoreTalentsSchema.safeParse({
-      categoryId,
-      loadedCount,
+      categoryId:
+        safeInput.categoryId,
+
+      cursor:
+        safeInput.cursor,
     });
 
   if (!validation.success) {
@@ -276,7 +286,7 @@ export async function loadMoreTalentsAction(
           validation.data.categoryId,
 
         cursor:
-          validation.data.loadedCount,
+          validation.data.cursor,
       });
 
     return {
@@ -317,28 +327,6 @@ export async function loadMoreTalentsAction(
  * =========================================================
  * TALENT LIKE
  * =========================================================
- *
- * SECURITY:
- *
- * 1. Input is validated with Zod.
- * 2. Unknown fields are rejected.
- * 3. Talent ID format is validated.
- * 4. Authentication is checked inside
- *    toggleTalentLike().
- * 5. The server obtains the authenticated UID.
- * 6. The client cannot choose another user's ID.
- * 7. Firestore transaction checks the actual
- *    talentLikes/{userId}_{talentId} document.
- * 8. The likes counter is changed only when the
- *    actual like state changes.
- *
- * The client-provided `liked` means:
- *
- * "I want this state."
- *
- * It does NOT mean:
- *
- * "The database is currently in this state."
  */
 
 export async function toggleTalentLikeAction(
@@ -381,7 +369,9 @@ export async function toggleTalentLikeAction(
         "boolean" ||
       typeof result.likes !==
         "number" ||
-      !Number.isFinite(result.likes) ||
+      !Number.isFinite(
+        result.likes,
+      ) ||
       result.likes < 0
     ) {
       return {

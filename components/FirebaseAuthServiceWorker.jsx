@@ -14,10 +14,7 @@ export default function FirebaseAuthServiceWorker() {
         type: "module",
       })
       .then((registration) => {
-        console.log(
-          "Firebase Auth Service Worker registered:",
-          registration.scope,
-        );
+     
       })
       .catch((error) => {
         console.error(

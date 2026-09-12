@@ -70,20 +70,12 @@ let currentIdToken = null;
 onAuthStateChanged(
   auth,
   async (user) => {
-    console.log(
-      "[AUTH SW] Auth state changed:",
-      user
-        ? user.uid
-        : "SIGNED OUT",
-    );
+   
 
     if (!user) {
       currentIdToken = null;
 
-      console.log(
-        "[AUTH SW] ID token cleared",
-      );
-
+    
       return;
     }
 
@@ -91,14 +83,9 @@ onAuthStateChanged(
       currentIdToken =
         await getIdToken(user);
 
-      console.log(
-        "[AUTH SW] ID token available",
-      );
+    
     } catch (error) {
-      console.error(
-        "[AUTH SW] Failed to get ID token:",
-        error,
-      );
+
 
       currentIdToken = null;
     }
@@ -144,13 +131,6 @@ self.addEventListener(
      * --------------------------------------------------
      */
 
-    console.log(
-      "[AUTH SW] FETCH:",
-      request.method,
-      url.pathname,
-      "TOKEN:",
-      Boolean(currentIdToken),
-    );
 
 
     /*
@@ -190,10 +170,7 @@ self.addEventListener(
      */
 
     if (!currentIdToken) {
-      console.log(
-        "[AUTH SW] No token. Passing request through.",
-      );
-
+    
       return;
     }
 
@@ -222,11 +199,6 @@ self.addEventListener(
     );
 
 
-    console.log(
-      "[AUTH SW] ATTACHING TOKEN:",
-      request.method,
-      url.pathname,
-    );
 
 
     /*

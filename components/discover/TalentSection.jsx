@@ -78,7 +78,6 @@ export default async function TalentSection({
   ? result.talents
   : [];
 
-console.log("TalentSection talents:", talents);
   /*
    * --------------------------------------------------
    * EMPTY
