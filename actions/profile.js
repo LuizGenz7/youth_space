@@ -261,20 +261,66 @@ const updateProfileSchema =
                     )
                     .optional(),
 
+            /*
+             * Services are stored as objects by
+             * the data layer.
+             */
             services:
                 z
                     .array(
                         z
-                            .string()
-                            .trim()
-                            .min(
-                                1,
-                                "Service cannot be empty."
-                            )
-                            .max(
-                                100,
-                                "Service is too long."
-                            )
+                            .object({
+                                id:
+                                    z
+                                        .string()
+                                        .trim()
+                                        .min(
+                                            1,
+                                            "Service ID cannot be empty."
+                                        ),
+
+                                name:
+                                    z
+                                        .string()
+                                        .trim()
+                                        .min(
+                                            1,
+                                            "Service name cannot be empty."
+                                        )
+                                        .max(
+                                            100,
+                                            "Service name is too long."
+                                        ),
+
+                                description:
+                                    z
+                                        .string()
+                                        .trim()
+                                        .max(
+                                            500,
+                                            "Service description is too long."
+                                        )
+                                        .optional(),
+
+                                price:
+                                    z
+                                        .union([
+                                            z.string().trim(),
+                                            z.number(),
+                                        ])
+                                        .optional(),
+
+                                image:
+                                    z
+                                        .string()
+                                        .trim()
+                                        .url(
+                                            "Please provide a valid service image URL."
+                                        )
+                                        .nullable()
+                                        .optional(),
+                            })
+                            .strict()
                     )
                     .max(
                         20,
@@ -323,7 +369,7 @@ async function validateCategory(
  * - category counter
  * - cache invalidation
  *
- * This action only handles:
+ * This action handles:
  *
  * - validation
  * - authentication
@@ -410,6 +456,15 @@ export async function completeProfileAction(
  * ==================================================
  * GET MY PROFILE
  * ==================================================
+ *
+ * Used after authentication to determine whether
+ * the authenticated Firebase user has a Youth Space
+ * profile in talents/{uid}.
+ *
+ * PROFILE_NOT_FOUND is intentionally returned as a
+ * code so the client can distinguish a missing profile
+ * from a genuine server/database failure.
+ * ==================================================
  */
 
 export async function getMyProfileAction() {
@@ -426,6 +481,8 @@ export async function getMyProfileAction() {
             return {
                 success: false,
                 profile: null,
+                code:
+                    "PROFILE_NOT_FOUND",
                 error:
                     "Profile not found.",
             };
@@ -434,12 +491,16 @@ export async function getMyProfileAction() {
         return {
             success: true,
             profile,
+            code: null,
             error: null,
         };
     } catch (error) {
         return {
             success: false,
             profile: null,
+            code:
+                error?.message ||
+                "PROFILE_LOAD_FAILED",
             error:
                 getProfileErrorMessage(
                     error
@@ -600,6 +661,8 @@ export async function updateProfileAction(
             return {
                 success: false,
                 profile: null,
+                code:
+                    "PROFILE_NOT_FOUND",
                 error:
                     "Your profile could not be found.",
             };
@@ -608,8 +671,9 @@ export async function updateProfileAction(
         /*
          * UX validation.
          *
-         * updateProfile() performs its
-         * own authoritative category check.
+         * updateProfileWithUsername()
+         * performs its own authoritative
+         * category validation.
          */
 
         if (
@@ -628,6 +692,7 @@ export async function updateProfileAction(
         return {
             success: true,
             profile,
+            code: null,
             error: null,
         };
     } catch (error) {
@@ -680,6 +745,8 @@ export async function updateUsernameAction(
             return {
                 success: false,
                 username: null,
+                code:
+                    "PROFILE_NOT_FOUND",
                 error:
                     "Your profile could not be found.",
             };
@@ -694,6 +761,7 @@ export async function updateUsernameAction(
             success: true,
             username:
                 profile.username,
+            code: null,
             error: null,
         };
     } catch (error) {

@@ -28,9 +28,14 @@ import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 import {
   signInWithEmail,
   signInWithGoogle,
+  logout,
 } from "@/lib/auth";
 
-import { auth } from "@/lib/client"; 
+import { auth } from "@/lib/client";
+
+import {
+  getMyProfileAction,
+} from "@/actions/profile";
 
 import { useSnackbarStore } from "@/stores/useSnackbarStore";
 
@@ -106,6 +111,104 @@ export default function LoginPage() {
         ? browserLocalPersistence
         : browserSessionPersistence,
     );
+  }
+
+  /*
+   * --------------------------------------------------
+   * RESOLVE USER AFTER LOGIN
+   * --------------------------------------------------
+   *
+   * Firebase Authentication confirms that the user
+   * exists.
+   *
+   * Youth Space then checks whether the application
+   * profile exists:
+   *
+   *     talents/{uid}
+   *
+   * Flow:
+   *
+   * Firebase Auth
+   *      ↓
+   * authenticated user
+   *      ↓
+   * getMyProfileAction()
+   *      ↓
+   * talents/{uid}
+   *      ↓
+   * profile exists?
+   *
+   * YES → /discover
+   *
+   * NO  → logout → /login
+   *
+   * A server/database error does NOT automatically
+   * log the user out.
+   *
+   * --------------------------------------------------
+   */
+
+  async function resolveUserAfterLogin() {
+    const result =
+      await getMyProfileAction();
+
+    /*
+     * ------------------------------------------------
+     * PROFILE DOES NOT EXIST
+     * ------------------------------------------------
+     *
+     * Firebase account exists, but the Youth Space
+     * application profile does not.
+     *
+     * Remove the Firebase authentication state.
+     * ------------------------------------------------
+     */
+
+    if (
+      result?.code ===
+      "PROFILE_NOT_FOUND"
+    ) {
+      await logout();
+
+      showError(
+        "Your Youth Space profile could not be found. Please create your profile again.",
+      );
+
+      router.replace(
+        "/login",
+      );
+
+      return false;
+    }
+
+    /*
+     * ------------------------------------------------
+     * OTHER PROFILE LOAD FAILURE
+     * ------------------------------------------------
+     *
+     * Do not log the user out for a temporary server,
+     * network, FirebaseServerApp, or Firestore issue.
+     * ------------------------------------------------
+     */
+
+    if (!result?.success) {
+      throw new Error(
+        result?.error ||
+          "Unable to load your Youth Space profile.",
+      );
+    }
+
+    /*
+     * ------------------------------------------------
+     * PROFILE EXISTS
+     * ------------------------------------------------
+     */
+
+    router.replace(
+      "/discover",
+    );
+
+    return true;
   }
 
   /*
@@ -186,19 +289,29 @@ export default function LoginPage() {
 
       /*
        * ------------------------------------------------
-       * SUCCESS
+       * LOAD YOUTH SPACE PROFILE
        * ------------------------------------------------
        */
 
-      showSnackbar({
-        type: "success",
-        message:
-          "Welcome back. You are now signed in.",
-      });
+      const profileResolved =
+        await resolveUserAfterLogin();
 
-      router.replace(
-        "/discover",
-      );
+      /*
+       * ------------------------------------------------
+       * SUCCESS
+       * ------------------------------------------------
+       *
+       * Only show success when the profile was found.
+       * ------------------------------------------------
+       */
+
+      if (profileResolved) {
+        showSnackbar({
+          type: "success",
+          message:
+            "Welcome back. You are now signed in.",
+        });
+      }
     } catch (error) {
       showError(
         getFirebaseAuthError(
@@ -249,19 +362,26 @@ export default function LoginPage() {
 
       /*
        * ------------------------------------------------
+       * LOAD YOUTH SPACE PROFILE
+       * ------------------------------------------------
+       */
+
+      const profileResolved =
+        await resolveUserAfterLogin();
+
+      /*
+       * ------------------------------------------------
        * SUCCESS
        * ------------------------------------------------
        */
 
-      showSnackbar({
-        type: "success",
-        message:
-          "Welcome back. You are now signed in.",
-      });
-
-      router.replace(
-        "/discover",
-      );
+      if (profileResolved) {
+        showSnackbar({
+          type: "success",
+          message:
+            "Welcome back. You are now signed in.",
+        });
+      }
     } catch (error) {
       showError(
         getFirebaseAuthError(
@@ -796,7 +916,10 @@ function getFirebaseAuthError(error) {
       return "This sign-in method is currently unavailable.";
 
     default:
-      return "Unable to sign you in. Please try again.";
+      return (
+        error?.message ||
+        "Unable to sign you in. Please try again."
+      );
   }
 }
 

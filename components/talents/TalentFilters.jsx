@@ -1,13 +1,14 @@
 "use client";
 
-import {
-  ArrowDownAZ,
-  MapPin,
-  MapPinned,
-} from "lucide-react";
+import { ArrowDownAZ, MapPin, MapPinned } from "lucide-react";
 
 import FilterButton from "@/components/talents/FilterButton";
 import FilterChip from "@/components/talents/FilterChip";
+
+import {
+  ZAMBIA_PROVINCES,
+  getDistrictsByProvince,
+} from "@/data/zambia-locations";
 
 /*
  * =========================================================
@@ -25,10 +26,6 @@ export default function TalentFilters({
   province = "All provinces",
 
   district = "All districts",
-
-  provinces = [],
-
-  districts = [],
 
   sort = "Recommended",
 
@@ -52,19 +49,30 @@ export default function TalentFilters({
    * =======================================================
    */
 
-  const normalizedSearch =
-    search?.trim() || "";
+  const normalizedSearch = search?.trim() || "";
 
-  const normalizedCategory =
-    activeCategory?.trim() || "";
+  const normalizedCategory = activeCategory?.trim() || "";
 
-  const normalizedProvince =
-    province?.trim() ||
-    "All provinces";
+  const normalizedProvince = province?.trim() || "All provinces";
 
-  const normalizedDistrict =
-    district?.trim() ||
-    "All districts";
+  const normalizedDistrict = district?.trim() || "All districts";
+
+  /*
+   * =======================================================
+   * LOCATION OPTIONS
+   * =======================================================
+   *
+   * Provinces and districts come directly from the
+   * centralized Zambia locations data.
+   *
+   * No location arrays are received through props.
+   * =======================================================
+   */
+
+  const districts =
+    normalizedProvince === "All provinces"
+      ? []
+      : getDistrictsByProvince(normalizedProvince);
 
   /*
    * =======================================================
@@ -72,29 +80,18 @@ export default function TalentFilters({
    * =======================================================
    */
 
-  const hasSearch =
-    Boolean(normalizedSearch);
+  const hasSearch = Boolean(normalizedSearch);
 
-  const hasCategory =
-    Boolean(normalizedCategory);
+  const hasCategory = Boolean(normalizedCategory);
 
-  const hasProvince =
-    normalizedProvince !==
-    "All provinces";
+  const hasProvince = normalizedProvince !== "All provinces";
 
-  const hasDistrict =
-    normalizedDistrict !==
-    "All districts";
+  const hasDistrict = normalizedDistrict !== "All districts";
 
-  const hasSort =
-    sort !== "Recommended";
+  const hasSort = sort !== "Recommended";
 
   const hasFilters =
-    hasSearch ||
-    hasCategory ||
-    hasProvince ||
-    hasDistrict ||
-    hasSort;
+    hasSearch || hasCategory || hasProvince || hasDistrict || hasSort;
 
   /*
    * =======================================================
@@ -111,104 +108,71 @@ export default function TalentFilters({
    * -------------------------------------------------------
    */
 
-  if (
-    hasSearch &&
-    (hasProvince || hasDistrict)
-  ) {
-    const locationText =
-      hasDistrict
-        ? `${normalizedDistrict}${
-            hasProvince
-              ? `, ${normalizedProvince}`
-              : ""
-          }`
-        : normalizedProvince;
+  if (hasSearch && (hasProvince || hasDistrict)) {
+    const locationText = hasDistrict
+      ? `${normalizedDistrict}${hasProvince ? `, ${normalizedProvince}` : ""}`
+      : normalizedProvince;
 
     description = `Explore talent matching "${normalizedSearch}" in ${locationText}.`;
-  }
+  } else if (hasSearch) {
+    /*
+     * -----------------------------------------------------
+     * SEARCH
+     * -----------------------------------------------------
+     */
 
-  /*
-   * -------------------------------------------------------
-   * SEARCH
-   * -------------------------------------------------------
-   */
-
-  else if (hasSearch) {
     description = `Discover talented people whose skills match "${normalizedSearch}".`;
-  }
+  } else if (hasCategory && (hasProvince || hasDistrict)) {
+    /*
+     * -----------------------------------------------------
+     * CATEGORY + PROVINCE / DISTRICT
+     * -----------------------------------------------------
+     */
 
-  /*
-   * -------------------------------------------------------
-   * CATEGORY + PROVINCE / DISTRICT
-   * -------------------------------------------------------
-   */
-
-  else if (
-    hasCategory &&
-    (hasProvince || hasDistrict)
-  ) {
-    const locationText =
-      hasDistrict
-        ? `${normalizedDistrict}${
-            hasProvince
-              ? `, ${normalizedProvince}`
-              : ""
-          }`
-        : normalizedProvince;
+    const locationText = hasDistrict
+      ? `${normalizedDistrict}${hasProvince ? `, ${normalizedProvince}` : ""}`
+      : normalizedProvince;
 
     description = `Discover ${normalizedCategory.toLowerCase()} talent in ${locationText}.`;
-  }
+  } else if (hasCategory) {
+    /*
+     * -----------------------------------------------------
+     * CATEGORY
+     * -----------------------------------------------------
+     */
 
-  /*
-   * -------------------------------------------------------
-   * CATEGORY
-   * -------------------------------------------------------
-   */
-
-  else if (hasCategory) {
     description = `Discover talented people turning ${normalizedCategory.toLowerCase()} into skills, services, and opportunities.`;
-  }
+  } else if (hasDistrict && hasProvince) {
+    /*
+     * -----------------------------------------------------
+     * DISTRICT + PROVINCE
+     * -----------------------------------------------------
+     */
 
-  /*
-   * -------------------------------------------------------
-   * DISTRICT + PROVINCE
-   * -------------------------------------------------------
-   */
-
-  else if (
-    hasDistrict &&
-    hasProvince
-  ) {
     description = `Discover talented people in ${normalizedDistrict}, ${normalizedProvince} and see what they can create.`;
-  }
+  } else if (hasDistrict) {
+    /*
+     * -----------------------------------------------------
+     * DISTRICT
+     * -----------------------------------------------------
+     */
 
-  /*
-   * -------------------------------------------------------
-   * DISTRICT
-   * -------------------------------------------------------
-   */
-
-  else if (hasDistrict) {
     description = `Discover talented people in ${normalizedDistrict} and see what they can create.`;
-  }
+  } else if (hasProvince) {
+    /*
+     * -----------------------------------------------------
+     * PROVINCE
+     * -----------------------------------------------------
+     */
 
-  /*
-   * -------------------------------------------------------
-   * PROVINCE
-   * -------------------------------------------------------
-   */
-
-  else if (hasProvince) {
     description = `Discover talented people in ${normalizedProvince} and see what they can create.`;
-  }
+  } else if (hasSort) {
+    /*
+     * -----------------------------------------------------
+     * SORT
+     * -----------------------------------------------------
+     */
 
-  /*
-   * -------------------------------------------------------
-   * SORT
-   * -------------------------------------------------------
-   */
-
-  else if (hasSort) {
     description =
       "Explore talented people, sorted to help you find what you're looking for faster.";
   }
@@ -240,11 +204,7 @@ export default function TalentFilters({
           </p>
 
           <p className="mt-2 text-xs font-semibold text-slate-400">
-            {totalResults}{" "}
-            {totalResults === 1
-              ? "talent"
-              : "talents"}{" "}
-            found
+            {totalResults} {totalResults === 1 ? "talent" : "talents"} found
           </p>
         </div>
 
@@ -259,14 +219,9 @@ export default function TalentFilters({
 
           <FilterButton
             icon={MapPin}
-            options={[
-              "All provinces",
-              ...provinces,
-            ]}
+            options={["All provinces", ...ZAMBIA_PROVINCES]}
             value={normalizedProvince}
-            onChange={
-              onProvinceChange
-            }
+            onChange={onProvinceChange}
           />
 
           {/* -----------------------------------------------
@@ -275,14 +230,9 @@ export default function TalentFilters({
 
           <FilterButton
             icon={MapPinned}
-            options={[
-              "All districts",
-              ...districts,
-            ]}
+            options={["All districts", ...districts]}
             value={normalizedDistrict}
-            onChange={
-              onDistrictChange
-            }
+            onChange={onDistrictChange}
           />
 
           {/* -----------------------------------------------
@@ -315,9 +265,7 @@ export default function TalentFilters({
           {hasSearch && (
             <FilterChip
               label={`"${normalizedSearch}"`}
-              onRemove={() =>
-                onSearchChange("")
-              }
+              onRemove={() => onSearchChange("")}
             />
           )}
 
@@ -327,14 +275,8 @@ export default function TalentFilters({
 
           {hasCategory && (
             <FilterChip
-              label={
-                normalizedCategory
-              }
-              onRemove={() =>
-                onCategoryChange(
-                  "All",
-                )
-              }
+              label={normalizedCategory}
+              onRemove={() => onCategoryChange("All")}
             />
           )}
 
@@ -345,11 +287,7 @@ export default function TalentFilters({
           {hasProvince && (
             <FilterChip
               label={normalizedProvince}
-              onRemove={() =>
-                onProvinceChange(
-                  "All provinces",
-                )
-              }
+              onRemove={() => onProvinceChange("All provinces")}
             />
           )}
 
@@ -360,11 +298,7 @@ export default function TalentFilters({
           {hasDistrict && (
             <FilterChip
               label={normalizedDistrict}
-              onRemove={() =>
-                onDistrictChange(
-                  "All districts",
-                )
-              }
+              onRemove={() => onDistrictChange("All districts")}
             />
           )}
 
@@ -375,11 +309,7 @@ export default function TalentFilters({
           {hasSort && (
             <FilterChip
               label={sort}
-              onRemove={() =>
-                onSortChange(
-                  "Recommended",
-                )
-              }
+              onRemove={() => onSortChange("Recommended")}
             />
           )}
 

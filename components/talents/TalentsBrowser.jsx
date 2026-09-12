@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  ChevronDown,
-  LoaderCircle,
-} from "lucide-react";
+import { ChevronDown, LoaderCircle } from "lucide-react";
 
 import QuickCategories from "@/components/talents/QuickCategories";
 import TalentFilters from "@/components/talents/TalentFilters";
@@ -27,8 +24,7 @@ export default function TalentsContent({
    * Keep the initial server data stable for this component.
    */
 
-  const [talents] =
-    useState(initialTalents);
+  const [talents] = useState(initialTalents);
 
   /*
    * =========================================================
@@ -36,10 +32,7 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const [
-    loadingCategories,
-    setLoadingCategories,
-  ] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   /*
    * =========================================================
@@ -54,15 +47,13 @@ export default function TalentsContent({
    * - district
    * - sort
    * - URL state
-   * - province/district options
    * - category pagination
    */
 
-  const browser =
-    useTalentBrowser({
-      talents,
-      categories,
-    });
+  const browser = useTalentBrowser({
+    talents,
+    categories,
+  });
 
   /*
    * =========================================================
@@ -70,11 +61,7 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const setTalentsLoading =
-    useTalentsStore(
-      (state) =>
-        state.setTalentsLoading,
-    );
+  const setTalentsLoading = useTalentsStore((state) => state.setTalentsLoading);
 
   /*
    * =========================================================
@@ -88,9 +75,7 @@ export default function TalentsContent({
     return () => {
       setTalentsLoading(true);
     };
-  }, [
-    setTalentsLoading,
-  ]);
+  }, [setTalentsLoading]);
 
   /*
    * =========================================================
@@ -99,10 +84,7 @@ export default function TalentsContent({
    */
 
   function handleLoadMoreCategories() {
-    if (
-      loadingCategories ||
-      !browser.hasMoreCategories
-    ) {
+    if (loadingCategories || !browser.hasMoreCategories) {
       return;
     }
 
@@ -111,10 +93,7 @@ export default function TalentsContent({
     try {
       browser.loadMoreCategories();
     } catch (error) {
-      console.error(
-        "Failed to load more categories:",
-        error,
-      );
+      console.error("Failed to load more categories:", error);
     } finally {
       setLoadingCategories(false);
     }
@@ -126,17 +105,11 @@ export default function TalentsContent({
    * =========================================================
    */
 
-  const isSearching =
-    Boolean(
-      browser.search?.trim(),
-    );
+  const isSearching = Boolean(browser.search?.trim());
 
-  const hasVisibleCategories =
-    browser.visibleCategories
-      .length > 0;
+  const hasVisibleCategories = browser.visibleCategories.length > 0;
 
-  const allCategoriesLoaded =
-    !browser.hasMoreCategories;
+  const allCategoriesLoaded = !browser.hasMoreCategories;
 
   /*
    * =========================================================
@@ -145,12 +118,10 @@ export default function TalentsContent({
    */
 
   const shouldShowNoCategoriesState =
-    !hasVisibleCategories &&
-    allCategoriesLoaded;
+    !hasVisibleCategories && allCategoriesLoaded;
 
   const shouldShowEmptyState =
-    hasVisibleCategories &&
-    browser.totalResults === 0;
+    hasVisibleCategories && browser.totalResults === 0;
 
   /*
    * =========================================================
@@ -166,15 +137,9 @@ export default function TalentsContent({
         =================================================== */}
 
         <QuickCategories
-          categories={
-            browser.availableCategories
-          }
-          activeCategory={
-            browser.category
-          }
-          onCategoryChange={
-            browser.changeCategory
-          }
+          categories={browser.availableCategories}
+          activeCategory={browser.category}
+          onCategoryChange={browser.changeCategory}
         />
 
         {/* ===================================================
@@ -188,89 +153,37 @@ export default function TalentsContent({
            * -----------------------------------------------
            */
 
-          totalResults={
-            browser.totalResults
-          }
-
+          totalResults={browser.totalResults}
           /*
            * -----------------------------------------------
            * CURRENT FILTERS
            * -----------------------------------------------
            */
 
-          activeCategory={
-            browser.category
-          }
-
-          search={
-            browser.search
-          }
-
-          province={
-            browser.province
-          }
-
-          district={
-            browser.district
-          }
-
-          sort={
-            browser.sort
-          }
-
-          /*
-           * -----------------------------------------------
-           * PROVINCE / DISTRICT OPTIONS
-           * -----------------------------------------------
-           */
-
-          provinces={
-            browser.provinces
-          }
-
-          districts={
-            browser.districts
-          }
-
+          activeCategory={browser.category}
+          search={browser.search}
+          province={browser.province}
+          district={browser.district}
+          sort={browser.sort}
           /*
            * -----------------------------------------------
            * SORT OPTIONS
            * -----------------------------------------------
            */
 
-          sortOptions={
-            browser.sortOptions
-          }
-
+          sortOptions={browser.sortOptions}
           /*
            * -----------------------------------------------
            * ACTIONS
            * -----------------------------------------------
            */
 
-          onProvinceChange={
-            browser.changeProvince
-          }
-
-          onDistrictChange={
-            browser.changeDistrict
-          }
-
-          onSortChange={
-            browser.changeSort
-          }
-
-          onSearchChange={
-            browser.changeSearch
-          }
-
-          onCategoryChange={
-            browser.changeCategory
-          }
-
-          onClear={
-            browser.clearFilters
-          }
+          onProvinceChange={browser.changeProvince}
+          onDistrictChange={browser.changeDistrict}
+          onSortChange={browser.changeSort}
+          onSearchChange={browser.changeSearch}
+          onCategoryChange={browser.changeCategory}
+          onClear={browser.clearFilters}
         />
 
         {/* ===================================================
@@ -284,12 +197,7 @@ export default function TalentsContent({
            * -------------------------------------------------
            */
 
-          <EmptyState
-            hasData={false}
-            onClear={
-              browser.clearFilters
-            }
-          />
+          <EmptyState hasData={false} onClear={browser.clearFilters} />
         ) : shouldShowEmptyState ? (
           /*
            * -------------------------------------------------
@@ -298,12 +206,8 @@ export default function TalentsContent({
            */
 
           <EmptyState
-            hasData={
-              talents.length > 0
-            }
-            onClear={
-              browser.clearFilters
-            }
+            hasData={talents.length > 0}
+            onClear={browser.clearFilters}
           />
         ) : (
           <div className="mt-10 space-y-14">
@@ -311,62 +215,43 @@ export default function TalentsContent({
                 CATEGORY SECTIONS
             =============================================== */}
 
-            {browser.visibleCategories.map(
-              (category) => (
-                <CategorySection
-                  key={category.id}
-                  category={category}
-                />
-              ),
-            )}
+            {browser.visibleCategories.map((category) => (
+              <CategorySection key={category.id} category={category} />
+            ))}
 
             {/* ===============================================
                 LOAD MORE CATEGORIES
             =============================================== */}
 
-            {!isSearching &&
-              browser.hasMoreCategories && (
-                <div className="flex justify-center pt-2">
-                  <button
-                    type="button"
-                    onClick={
-                      handleLoadMoreCategories
-                    }
-                    disabled={
-                      loadingCategories
-                    }
-                    aria-busy={
-                      loadingCategories
-                    }
-                    className="inline-flex h-11 min-w-37.5 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {loadingCategories ? (
-                      <>
-                        <LoaderCircle
-                          size={16}
-                          className="animate-spin"
-                          aria-hidden="true"
-                        />
+            {!isSearching && browser.hasMoreCategories && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleLoadMoreCategories}
+                  disabled={loadingCategories}
+                  aria-busy={loadingCategories}
+                  className="inline-flex h-11 min-w-37.5 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loadingCategories ? (
+                    <>
+                      <LoaderCircle
+                        size={16}
+                        className="animate-spin"
+                        aria-hidden="true"
+                      />
 
-                        <span>
-                          Loading categories...
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span>
-                          Load more categories
-                        </span>
+                      <span>Loading categories...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Load more categories</span>
 
-                        <ChevronDown
-                          size={16}
-                          aria-hidden="true"
-                        />
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+                      <ChevronDown size={16} aria-hidden="true" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* ===============================================
                 ALL CATEGORIES COMPLETED
@@ -377,9 +262,7 @@ export default function TalentsContent({
               browser.totalResults > 0 && (
                 <div className="flex justify-center pt-2">
                   <p className="mt-0.5 text-xs leading-5 text-slate-500">
-                    You&apos;ve explored all
-                    available talent
-                    categories.
+                    You&apos;ve explored all available talent categories.
                   </p>
                 </div>
               )}
