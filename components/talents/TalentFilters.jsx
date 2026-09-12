@@ -230,6 +230,7 @@ export default function TalentFilters({
               ----------------------------------------------- */}
 
           <FilterButton
+          right
             icon={MapPinned}
             options={["All districts", ...districts]}
             value={normalizedDistrict}
@@ -241,7 +242,7 @@ export default function TalentFilters({
               ----------------------------------------------- */}
 
           <FilterButton
-          right
+          
             icon={ArrowDownAZ}
             options={sortOptions}
             value={sort}
