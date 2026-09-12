@@ -1,28 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-} from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
 export default function FilterButton({
   icon: Icon,
   options = [],
   value = "",
   full = false,
+  right = false,
   placeholder = "Select option",
   onChange,
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
-  const selectedOption = options.find(
-    (option) => option === value,
-  );
+  const selectedOption = options.find((option) => option === value);
 
-  const displayValue =
-    selectedOption || placeholder;
+  const displayValue = selectedOption || placeholder;
 
   const hasValue = Boolean(selectedOption);
 
@@ -30,24 +25,16 @@ export default function FilterButton({
     function handlePointerDown(event) {
       if (
         containerRef.current &&
-        !containerRef.current.contains(
-          event.target,
-        )
+        !containerRef.current.contains(event.target)
       ) {
         setOpen(false);
       }
     }
 
-    document.addEventListener(
-      "pointerdown",
-      handlePointerDown,
-    );
+    document.addEventListener("pointerdown", handlePointerDown);
 
     return () => {
-      document.removeEventListener(
-        "pointerdown",
-        handlePointerDown,
-      );
+      document.removeEventListener("pointerdown", handlePointerDown);
     };
   }, []);
 
@@ -57,24 +44,15 @@ export default function FilterButton({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative ${
-        full ? "w-full" : ""
-      }`}
-    >
+    <div ref={containerRef} className={`relative ${full ? "w-full" : ""}`}>
       {/* Trigger */}
       <button
         type="button"
-        onClick={() =>
-          setOpen((current) => !current)
-        }
+        onClick={() => setOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={open}
         className={`flex h-10 items-center gap-2 rounded-xl border bg-white px-3 text-xs font-bold outline-none transition ${
-          full
-            ? "w-full justify-between"
-            : ""
+          full ? "w-full justify-between" : ""
         } ${
           open
             ? "border-slate-400 ring-4 ring-slate-100"
@@ -89,9 +67,7 @@ export default function FilterButton({
 
         <span
           className={`min-w-0 flex-1 truncate text-left ${
-            hasValue
-              ? "text-slate-700"
-              : "text-slate-400"
+            hasValue ? "text-slate-700" : "text-slate-400"
           }`}
         >
           {displayValue}
@@ -109,10 +85,8 @@ export default function FilterButton({
       {/* Dropdown */}
       {open && (
         <div
-          className={`absolute top-[calc(100%+8px)] z-50 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-300/30 ${
-            full
-              ? "left-0"
-              : "right-0"
+          className={`absolute top-[calc(100%+8px)] z-50 w-56 overflow-hidden rounded-2xl border border-slate-200  bg-white p-1.5 shadow-2xl shadow-slate-300/30 ${
+            right ? "right-0" : "left-0"
           }`}
         >
           <div
@@ -122,8 +96,7 @@ export default function FilterButton({
           >
             {options.length > 0 ? (
               options.map((option) => {
-                const selected =
-                  option === value;
+                const selected = option === value;
 
                 return (
                   <button
@@ -131,13 +104,9 @@ export default function FilterButton({
                     type="button"
                     role="option"
                     aria-selected={selected}
-                    onClick={() =>
-                      handleSelect(option)
-                    }
+                    onClick={() => handleSelect(option)}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition ${
-                      selected
-                        ? "bg-slate-100"
-                        : "hover:bg-slate-50"
+                      selected ? "bg-slate-100" : "hover:bg-slate-50"
                     }`}
                   >
                     <div className="flex min-w-0 items-center gap-3">
@@ -148,17 +117,12 @@ export default function FilterButton({
                             : "bg-slate-100 text-slate-500"
                         }`}
                       >
-                        <Icon
-                          size={14}
-                          aria-hidden="true"
-                        />
+                        <Icon size={14} aria-hidden="true" />
                       </div>
 
                       <span
                         className={`min-w-0 truncate text-xs font-bold ${
-                          selected
-                            ? "text-slate-950"
-                            : "text-slate-700"
+                          selected ? "text-slate-950" : "text-slate-700"
                         }`}
                       >
                         {option}
@@ -183,8 +147,7 @@ export default function FilterButton({
                 </p>
 
                 <p className="mt-1 text-[11px] leading-5 text-slate-400">
-                  There are no options available
-                  for this filter.
+                  There are no options available for this filter.
                 </p>
               </div>
             )}

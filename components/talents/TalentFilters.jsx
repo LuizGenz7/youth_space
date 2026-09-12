@@ -218,6 +218,7 @@ export default function TalentFilters({
               ----------------------------------------------- */}
 
           <FilterButton
+          
             icon={MapPin}
             options={["All provinces", ...ZAMBIA_PROVINCES]}
             value={normalizedProvince}
@@ -240,6 +241,7 @@ export default function TalentFilters({
               ----------------------------------------------- */}
 
           <FilterButton
+          right
             icon={ArrowDownAZ}
             options={sortOptions}
             value={sort}

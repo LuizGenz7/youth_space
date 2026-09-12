@@ -7,6 +7,7 @@ import {
   getMoreTalents,
   getTopTalents,
   getNewTalents,
+  toggleTalentLike,
 } from "@/data/talents";
 
 /*
@@ -18,6 +19,7 @@ import {
 const INITIAL_CATEGORY_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
 const MAX_LOADED_COUNT = 1000;
+const MAX_TALENT_ID_LENGTH = 128;
 
 /*
  * =========================================================
@@ -25,70 +27,89 @@ const MAX_LOADED_COUNT = 1000;
  * =========================================================
  */
 
-const categoryIdSchema =
-  z
-    .string()
-    .trim()
-    .min(
-      1,
-      "Category ID is required."
-    )
-    .max(
-      100,
-      "Category ID is too long."
-    );
+const categoryIdSchema = z
+  .string()
+  .trim()
+  .min(
+    1,
+    "Category ID is required.",
+  )
+  .max(
+    100,
+    "Category ID is too long.",
+  );
 
-const categoryLimitSchema =
-  z
-    .number()
-    .int()
-    .min(1)
-    .max(
-      INITIAL_CATEGORY_LOAD
-    );
+const categoryLimitSchema = z
+  .number()
+  .int()
+  .min(1)
+  .max(INITIAL_CATEGORY_LOAD);
 
-const categoryTalentsSchema =
-  z
-    .object({
-      categoryId:
-        categoryIdSchema,
+const categoryTalentsSchema = z
+  .object({
+    categoryId: categoryIdSchema,
 
-      limit:
-        categoryLimitSchema
-          .optional(),
-    })
-    .strict();
+    limit:
+      categoryLimitSchema.optional(),
+  })
+  .strict();
 
-const loadMoreTalentsSchema =
-  z
-    .object({
-      categoryId:
-        categoryIdSchema,
+const loadMoreTalentsSchema = z
+  .object({
+    categoryId: categoryIdSchema,
 
-      loadedCount:
-        z
-          .number()
-          .int()
-          .min(0)
-          .max(
-            MAX_LOADED_COUNT
-          ),
-    })
-    .strict();
+    loadedCount: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_LOADED_COUNT),
+  })
+  .strict();
 
-const discoverTalentsSchema =
-  z
-    .object({
-      limit:
-        z
-          .number()
-          .int()
-          .min(1)
-          .max(
-            DISCOVER_TALENTS_LIMIT
-          ),
-    })
-    .strict();
+const discoverTalentsSchema = z
+  .object({
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(DISCOVER_TALENTS_LIMIT),
+  })
+  .strict();
+
+/*
+ * =========================================================
+ * LIKE SCHEMA
+ * =========================================================
+ *
+ * The client may request a desired state.
+ *
+ * The server DOES NOT trust that state blindly.
+ * toggleTalentLike() verifies the authenticated user
+ * and the existing talentLikes document inside a
+ * Firestore transaction.
+ */
+
+const talentLikeSchema = z
+  .object({
+    talentId: z
+      .string()
+      .trim()
+      .min(
+        1,
+        "Talent ID is required.",
+      )
+      .max(
+        MAX_TALENT_ID_LENGTH,
+        "Talent ID is too long.",
+      )
+      .regex(
+        /^[A-Za-z0-9_-]+$/,
+        "Invalid talent ID.",
+      ),
+
+    liked: z.boolean(),
+  })
+  .strict();
 
 /*
  * =========================================================
@@ -110,7 +131,7 @@ function normalizeInput(input) {
 
 function getErrorMessage(
   error,
-  fallback
+  fallback,
 ) {
   if (
     error instanceof Error &&
@@ -122,9 +143,7 @@ function getErrorMessage(
   return fallback;
 }
 
-function normalizeTalents(
-  talents
-) {
+function normalizeTalents(talents) {
   return Array.isArray(talents)
     ? talents
     : [];
@@ -137,7 +156,7 @@ function normalizeTalents(
  */
 
 export async function loadCategoryTalentsAction(
-  input = {}
+  input = {},
 ) {
   const safeInput =
     normalizeInput(input);
@@ -164,20 +183,16 @@ export async function loadCategoryTalentsAction(
 
   try {
     const result =
-      await getCategoryTalents({
-        categoryId:
-          validation.data.categoryId,
-
-        limit:
-          validation.data.limit,
-      });
+      await getCategoryTalents(
+        validation.data.categoryId,
+      );
 
     return {
       success: true,
 
       talents:
         normalizeTalents(
-          result?.talents
+          result?.talents,
         ),
 
       nextCursor:
@@ -186,7 +201,7 @@ export async function loadCategoryTalentsAction(
 
       hasMore:
         Boolean(
-          result?.hasMore
+          result?.hasMore,
         ),
 
       error: null,
@@ -200,7 +215,7 @@ export async function loadCategoryTalentsAction(
       error:
         getErrorMessage(
           error,
-          "Unable to load category talents."
+          "Unable to load category talents.",
         ),
     };
   }
@@ -210,23 +225,10 @@ export async function loadCategoryTalentsAction(
  * =========================================================
  * LOAD MORE CATEGORY TALENTS
  * =========================================================
- *
- * Client sends:
- *
- * {
- *   category: {
- *     id,
- *     talents
- *   }
- * }
- *
- * The action extracts only the information
- * required by the data layer.
- * =========================================================
  */
 
 export async function loadMoreTalentsAction(
-  input = {}
+  input = {},
 ) {
   const safeInput =
     normalizeInput(input);
@@ -246,7 +248,7 @@ export async function loadMoreTalentsAction(
 
   const loadedCount =
     Array.isArray(
-      safeCategory.talents
+      safeCategory.talents,
     )
       ? safeCategory.talents.length
       : 0;
@@ -282,7 +284,7 @@ export async function loadMoreTalentsAction(
 
       talents:
         normalizeTalents(
-          result?.talents
+          result?.talents,
         ),
 
       nextCursor:
@@ -291,7 +293,7 @@ export async function loadMoreTalentsAction(
 
       hasMore:
         Boolean(
-          result?.hasMore
+          result?.hasMore,
         ),
 
       error: null,
@@ -305,7 +307,117 @@ export async function loadMoreTalentsAction(
       error:
         getErrorMessage(
           error,
-          "Unable to load more talents."
+          "Unable to load more talents.",
+        ),
+    };
+  }
+}
+
+/*
+ * =========================================================
+ * TALENT LIKE
+ * =========================================================
+ *
+ * SECURITY:
+ *
+ * 1. Input is validated with Zod.
+ * 2. Unknown fields are rejected.
+ * 3. Talent ID format is validated.
+ * 4. Authentication is checked inside
+ *    toggleTalentLike().
+ * 5. The server obtains the authenticated UID.
+ * 6. The client cannot choose another user's ID.
+ * 7. Firestore transaction checks the actual
+ *    talentLikes/{userId}_{talentId} document.
+ * 8. The likes counter is changed only when the
+ *    actual like state changes.
+ *
+ * The client-provided `liked` means:
+ *
+ * "I want this state."
+ *
+ * It does NOT mean:
+ *
+ * "The database is currently in this state."
+ */
+
+export async function toggleTalentLikeAction(
+  input = {},
+) {
+  const safeInput =
+    normalizeInput(input);
+
+  const validation =
+    talentLikeSchema.safeParse({
+      talentId:
+        safeInput.talentId,
+
+      liked:
+        safeInput.liked,
+    });
+
+  if (!validation.success) {
+    return {
+      success: false,
+      liked: false,
+      likes: null,
+      error: "Invalid request.",
+    };
+  }
+
+  try {
+    const result =
+      await toggleTalentLike({
+        talentId:
+          validation.data.talentId,
+
+        liked:
+          validation.data.liked,
+      });
+
+    if (
+      !result ||
+      typeof result.liked !==
+        "boolean" ||
+      typeof result.likes !==
+        "number" ||
+      !Number.isFinite(result.likes) ||
+      result.likes < 0
+    ) {
+      return {
+        success: false,
+        liked: false,
+        likes: null,
+        error:
+          "Unable to verify like state.",
+      };
+    }
+
+    return {
+      success: true,
+
+      liked:
+        result.liked,
+
+      likes:
+        Math.max(
+          0,
+          Math.floor(
+            result.likes,
+          ),
+        ),
+
+      error: null,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      liked: false,
+      likes: null,
+      error:
+        getErrorMessage(
+          error,
+          "Unable to update talent like.",
         ),
     };
   }
@@ -318,7 +430,7 @@ export async function loadMoreTalentsAction(
  */
 
 export async function getTopTalentsAction(
-  input = {}
+  input = {},
 ) {
   const safeInput =
     normalizeInput(input);
@@ -341,7 +453,7 @@ export async function getTopTalentsAction(
   try {
     const talents =
       await getTopTalents(
-        validation.data.limit
+        validation.data.limit,
       );
 
     return {
@@ -349,7 +461,7 @@ export async function getTopTalentsAction(
 
       talents:
         normalizeTalents(
-          talents
+          talents,
         ),
 
       error: null,
@@ -361,7 +473,7 @@ export async function getTopTalentsAction(
       error:
         getErrorMessage(
           error,
-          "Unable to load top talents."
+          "Unable to load top talents.",
         ),
     };
   }
@@ -374,7 +486,7 @@ export async function getTopTalentsAction(
  */
 
 export async function getNewTalentsAction(
-  input = {}
+  input = {},
 ) {
   const safeInput =
     normalizeInput(input);
@@ -397,7 +509,7 @@ export async function getNewTalentsAction(
   try {
     const talents =
       await getNewTalents(
-        validation.data.limit
+        validation.data.limit,
       );
 
     return {
@@ -405,7 +517,7 @@ export async function getNewTalentsAction(
 
       talents:
         normalizeTalents(
-          talents
+          talents,
         ),
 
       error: null,
@@ -417,7 +529,7 @@ export async function getNewTalentsAction(
       error:
         getErrorMessage(
           error,
-          "Unable to load newest talents."
+          "Unable to load newest talents.",
         ),
     };
   }
