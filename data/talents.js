@@ -10,7 +10,6 @@ import {
   documentId,
   getDoc,
   getDocs,
-  increment,
   limit as firestoreLimit,
   orderBy,
   query,
@@ -34,8 +33,6 @@ import { getCategories } from "@/data/categories";
  */
 
 const TALENTS_COLLECTION = "talents";
-const TALENT_LIKES_COLLECTION = "talentLikes";
-const CATEGORIES_COLLECTION = "categories";
 const USERNAMES_COLLECTION = "usernames";
 
 const INITIAL_CATEGORIES_LIMIT = 6;
@@ -85,8 +82,23 @@ function normalizeCategoryId(categoryId) {
   return normalized;
 }
 
+function normalizeTalentId(talentId) {
+  if (
+    typeof talentId !== "string" ||
+    !talentId.trim()
+  ) {
+    throw new Error("Invalid talent ID.");
+  }
+
+  return talentId.trim();
+}
+
 function normalizeCursor(cursor) {
-  if (cursor === null || cursor === undefined || cursor === "") {
+  if (
+    cursor === null ||
+    cursor === undefined ||
+    cursor === ""
+  ) {
     return null;
   }
 
@@ -110,25 +122,6 @@ function normalizeCursor(cursor) {
  * =========================================================
  * CURSOR HELPERS
  * =========================================================
- *
- * Cursor format:
- *
- * {
- *   version: 1,
- *   categoryId,
- *   likes,
- *   createdAt,
- *   id
- * }
- *
- * The cursor is NOT a secret.
- * It only represents the position of the last Firestore
- * document from the previous page.
- *
- * IMPORTANT:
- * These helpers are only used by uncached pagination
- * requests for load-more.
- * =========================================================
  */
 
 function encodeCursor({
@@ -141,19 +134,30 @@ function encodeCursor({
     typeof categoryId !== "string" ||
     !categoryId
   ) {
-    throw new Error("Cannot create pagination cursor.");
+    throw new Error(
+      "Cannot create pagination cursor.",
+    );
   }
 
   if (!Number.isFinite(likes)) {
-    throw new Error("Cannot create pagination cursor.");
+    throw new Error(
+      "Cannot create pagination cursor.",
+    );
   }
 
   if (!(createdAt instanceof Timestamp)) {
-    throw new Error("Cannot create pagination cursor.");
+    throw new Error(
+      "Cannot create pagination cursor.",
+    );
   }
 
-  if (typeof id !== "string" || !id) {
-    throw new Error("Cannot create pagination cursor.");
+  if (
+    typeof id !== "string" ||
+    !id
+  ) {
+    throw new Error(
+      "Cannot create pagination cursor.",
+    );
   }
 
   const payload = {
@@ -170,8 +174,12 @@ function encodeCursor({
   ).toString("base64url");
 }
 
-function decodeCursor(cursor, expectedCategoryId) {
-  const normalizedCursor = normalizeCursor(cursor);
+function decodeCursor(
+  cursor,
+  expectedCategoryId,
+) {
+  const normalizedCursor =
+    normalizeCursor(cursor);
 
   if (!normalizedCursor) {
     return null;
@@ -194,7 +202,9 @@ function decodeCursor(cursor, expectedCategoryId) {
       typeof payload?.id !== "string" ||
       !payload.id
     ) {
-      throw new Error("Invalid pagination cursor.");
+      throw new Error(
+        "Invalid pagination cursor.",
+      );
     }
 
     return {
@@ -206,8 +216,77 @@ function decodeCursor(cursor, expectedCategoryId) {
       id: payload.id,
     };
   } catch {
-    throw new Error("Invalid pagination cursor.");
+    throw new Error(
+      "Invalid pagination cursor.",
+    );
   }
+}
+
+/*
+ * =========================================================
+ * LIKE HELPERS
+ * =========================================================
+ *
+ * Firestore:
+ *
+ * talents/{talentId}
+ *
+ * {
+ *   likes: [
+ *     {
+ *       userId: "xyz",
+ *       createdAt: Timestamp,
+ *       updatedAt: Timestamp
+ *     }
+ *   ]
+ * }
+ *
+ * The UI receives:
+ *
+ * likes: 1
+ *
+ * while Firestore stores:
+ *
+ * likes: [
+ *   {
+ *     userId: "xyz",
+ *     ...
+ *   }
+ * ]
+ * =========================================================
+ */
+
+function normalizeLikesArray(likes) {
+  if (!Array.isArray(likes)) {
+    return [];
+  }
+
+  return likes.filter(
+    (like) =>
+      like &&
+      typeof like === "object" &&
+      typeof like.userId === "string" &&
+      like.userId.trim(),
+  );
+}
+
+function getLikeCount(likes) {
+  return normalizeLikesArray(likes).length;
+}
+
+function hasUserLiked(likes, userId) {
+  if (
+    !Array.isArray(likes) ||
+    !userId
+  ) {
+    return false;
+  }
+
+  return likes.some(
+    (like) =>
+      like &&
+      like.userId === userId,
+  );
 }
 
 /*
@@ -219,28 +298,51 @@ function decodeCursor(cursor, expectedCategoryId) {
 function serializeTalent(snapshot) {
   const data = snapshot.data();
 
+  /*
+   * New structure:
+   *
+   * likes = [
+   *   { userId: "...", ... },
+   *   { userId: "...", ... }
+   * ]
+   *
+   * The public object exposes only the count.
+   */
+
+  const storedLikes =
+    normalizeLikesArray(data.likes);
+
   return {
     id: snapshot.id,
-
     uid: data.uid ?? snapshot.id,
 
     username: data.username ?? "",
-    displayName: data.displayName ?? "",
+    displayName:
+      data.displayName ?? "",
     email: data.email ?? "",
 
     role: data.role ?? "",
-    categoryId: data.categoryId ?? "",
-    category: data.category ?? "",
 
-    province: data.province ?? "",
-    district: data.district ?? "",
+    categoryId:
+      data.categoryId ?? "",
+
+    category:
+      data.category ?? "",
+
+    province:
+      data.province ?? "",
+
+    district:
+      data.district ?? "",
 
     bio: data.bio ?? "",
 
     phone: data.phone ?? "",
     whatsapp: data.whatsapp ?? "",
 
-    available: Boolean(data.available),
+    available:
+      Boolean(data.available),
+
     avatar: data.avatar ?? "",
 
     skills: Array.isArray(data.skills)
@@ -251,15 +353,18 @@ function serializeTalent(snapshot) {
       ? data.services
       : [],
 
-    verified: Boolean(data.verified),
+    verified:
+      Boolean(data.verified),
 
-    likes: Number.isFinite(data.likes)
-      ? data.likes
-      : 0,
+    likes: storedLikes.length,
 
-    workCount: Number.isFinite(data.workCount)
-      ? data.workCount
-      : 0,
+    workCount:
+      Number.isFinite(data.workCount)
+        ? Math.max(
+          0,
+          Math.floor(data.workCount),
+        )
+        : 0,
 
     createdAt:
       data.createdAt instanceof Timestamp
@@ -277,18 +382,6 @@ function serializeTalent(snapshot) {
  * =========================================================
  * CATEGORY PAGE QUERY
  * =========================================================
- *
- * This is the actual Firestore pagination query.
- *
- * It does NOT use "use cache".
- *
- * Therefore:
- *
- * - cursor is not cached
- * - nextCursor is not cached
- * - every load-more request gets a fresh Firestore result
- *
- * =========================================================
  */
 
 async function queryCategoryTalentsPage(
@@ -303,14 +396,19 @@ async function queryCategoryTalentsPage(
     normalizeCategoryId(categoryId);
 
   const safeLimit = Math.min(
-    Math.max(Number(limitCount) || TALENTS_PER_LOAD, 1),
+    Math.max(
+      Number(limitCount) ||
+        TALENTS_PER_LOAD,
+      1,
+    ),
     TALENTS_PER_LOAD,
   );
 
-  const decodedCursor = decodeCursor(
-    cursor,
-    normalizedCategoryId,
-  );
+  const decodedCursor =
+    decodeCursor(
+      cursor,
+      normalizedCategoryId,
+    );
 
   const constraints = [
     where(
@@ -319,11 +417,30 @@ async function queryCategoryTalentsPage(
       normalizedCategoryId,
     ),
 
-    orderBy("likes", "desc"),
+    /*
+     * IMPORTANT:
+     *
+     * Firestore cannot order by
+     * array length.
+     *
+     * Therefore category/top talent
+     * ordering should use a separate
+     * numeric field.
+     *
+     * We keep `likeCount` for querying.
+     */
 
-    orderBy("createdAt", "desc"),
+    orderBy("likeCount", "desc"),
 
-    orderBy(documentId(), "desc"),
+    orderBy(
+      "createdAt",
+      "desc",
+    ),
+
+    orderBy(
+      documentId(),
+      "desc",
+    ),
   ];
 
   if (decodedCursor) {
@@ -341,15 +458,20 @@ async function queryCategoryTalentsPage(
   );
 
   const talentsQuery = query(
-    collection(db, TALENTS_COLLECTION),
+    collection(
+      db,
+      TALENTS_COLLECTION,
+    ),
     ...constraints,
   );
 
-  const snapshot = await getDocs(talentsQuery);
+  const snapshot =
+    await getDocs(talentsQuery);
 
-  const talents = snapshot.docs.map(
-    serializeTalent,
-  );
+  const talents =
+    snapshot.docs.map(
+      serializeTalent,
+    );
 
   const lastDocument =
     snapshot.docs.at(-1) ?? null;
@@ -358,61 +480,61 @@ async function queryCategoryTalentsPage(
   let lastItemId = null;
 
   if (lastDocument) {
-    const lastData = lastDocument.data();
+    const lastData =
+      lastDocument.data();
 
-    const likes = Number.isFinite(lastData.likes)
-      ? lastData.likes
-      : 0;
+    const likes =
+      Number.isFinite(
+        lastData.likeCount,
+      )
+        ? Math.max(
+          0,
+          Math.floor(
+            lastData.likeCount,
+          ),
+        )
+        : normalizeLikesArray(
+          lastData.likes,
+        ).length;
 
     const createdAt =
-      lastData.createdAt instanceof Timestamp
+      lastData.createdAt instanceof
+      Timestamp
         ? lastData.createdAt
         : null;
 
     if (createdAt) {
-      nextCursor = encodeCursor({
-        categoryId: normalizedCategoryId,
-        likes,
-        createdAt,
-        id: lastDocument.id,
-      });
+      nextCursor =
+        encodeCursor({
+          categoryId:
+            normalizedCategoryId,
 
-      lastItemId = lastDocument.id;
+          likes,
+
+          createdAt,
+
+          id: lastDocument.id,
+        });
+
+      lastItemId =
+        lastDocument.id;
     }
   }
-
-  /*
-   * With a page size of 8:
-   *
-   * 8 results means there MAY be another page.
-   * The next request will confirm whether anything remains.
-   *
-   * 0 results means pagination is finished.
-   */
-
-  const hasMore =
-    snapshot.docs.length === safeLimit;
 
   return {
     talents,
     nextCursor,
     lastItemId,
-    hasMore,
+
+    hasMore:
+      snapshot.docs.length ===
+      safeLimit,
   };
 }
 
 /*
  * =========================================================
  * INITIAL TALENTS DATA
- * =========================================================
- *
- * CACHED.
- *
- * Loads:
- * - all categories
- * - first 8 talents for the first 6 categories
- *
- * Other categories remain unloaded until requested.
  * =========================================================
  */
 
@@ -432,16 +554,23 @@ export async function getInitialTalentsData() {
     };
   }
 
-  const sortedCategories = [...categories]
-    .filter(
-      (category) =>
-        Number(category.totalTalents) > 0,
-    )
-    .sort(
-      (a, b) =>
-        Number(b.totalTalents ?? 0) -
-        Number(a.totalTalents ?? 0),
-    );
+  const sortedCategories =
+    [...categories]
+      .filter(
+        (category) =>
+          Number(
+            category.totalTalents,
+          ) > 0,
+      )
+      .sort(
+        (a, b) =>
+          Number(
+            b.totalTalents ?? 0,
+          ) -
+          Number(
+            a.totalTalents ?? 0,
+          ),
+      );
 
   const initialCategories =
     sortedCategories.slice(
@@ -467,7 +596,8 @@ export async function getInitialTalentsData() {
             );
 
           return {
-            categoryId: category.id,
+            categoryId:
+              category.id,
             page,
           };
         },
@@ -475,17 +605,21 @@ export async function getInitialTalentsData() {
     );
 
   const resultMap = new Map(
-    initialResults.map((result) => [
-      result.categoryId,
-      result.page,
-    ]),
+    initialResults.map(
+      (result) => [
+        result.categoryId,
+        result.page,
+      ],
+    ),
   );
 
   const categoriesWithTalents =
     sortedCategories.map(
       (category) => {
         const result =
-          resultMap.get(category.id);
+          resultMap.get(
+            category.id,
+          );
 
         return {
           ...category,
@@ -501,18 +635,23 @@ export async function getInitialTalentsData() {
 
           hasMore:
             result?.hasMore ??
-            Number(category.totalTalents) > 0,
+            Number(
+              category.totalTalents,
+            ) > 0,
         };
       },
     );
 
   const talents =
     categoriesWithTalents.flatMap(
-      (category) => category.talents,
+      (category) =>
+        category.talents,
     );
 
   return {
-    categories: categoriesWithTalents,
+    categories:
+      categoriesWithTalents,
+
     talents,
   };
 }
@@ -520,11 +659,6 @@ export async function getInitialTalentsData() {
 /*
  * =========================================================
  * GET CATEGORY TALENTS
- * =========================================================
- *
- * CACHED FIRST PAGE.
- *
- * No cursor is accepted here.
  * =========================================================
  */
 
@@ -562,22 +696,6 @@ export async function getCategoryTalents(
  * =========================================================
  * LOAD MORE TALENTS
  * =========================================================
- *
- * IMPORTANT:
- *
- * NO "use cache".
- *
- * This function is intentionally dynamic.
- *
- * The cursor is therefore:
- *
- * - NOT cached
- * - NOT stored in Next.js Data Cache
- * - NOT reused automatically
- *
- * Every call goes to Firestore using the cursor
- * supplied by the client.
- * =========================================================
  */
 
 export async function getMoreTalents({
@@ -605,7 +723,8 @@ export async function getMoreTalents({
     {
       limitCount:
         TALENTS_PER_LOAD,
-      cursor: normalizedCursor,
+      cursor:
+        normalizedCursor,
     },
   );
 }
@@ -613,21 +732,6 @@ export async function getMoreTalents({
 /*
  * =========================================================
  * GENERIC CATEGORY PAGE
- * =========================================================
- *
- * This is intentionally NOT cached when a cursor is used.
- *
- * First page:
- *     getTalentsByCategory({
- *       categoryId
- *     })
- *
- * Load more:
- *     getTalentsByCategory({
- *       categoryId,
- *       cursor
- *     })
- *
  * =========================================================
  */
 
@@ -645,6 +749,7 @@ export async function getTalentsByCategory({
     return getMoreTalents({
       categoryId:
         normalizedCategoryId,
+
       cursor:
         normalizedCursor,
     });
@@ -671,11 +776,29 @@ export async function getTopTalents() {
     getPublicServerFirebase();
 
   const talentsQuery = query(
-    collection(db, TALENTS_COLLECTION),
-    orderBy("likes", "desc"),
-    orderBy("createdAt", "desc"),
-    orderBy(documentId(), "desc"),
-    firestoreLimit(DISCOVER_TALENTS_LIMIT),
+    collection(
+      db,
+      TALENTS_COLLECTION,
+    ),
+
+    orderBy(
+      "likeCount",
+      "desc",
+    ),
+
+    orderBy(
+      "createdAt",
+      "desc",
+    ),
+
+    orderBy(
+      documentId(),
+      "desc",
+    ),
+
+    firestoreLimit(
+      DISCOVER_TALENTS_LIMIT,
+    ),
   );
 
   const snapshot =
@@ -702,10 +825,24 @@ export async function getNewTalents() {
     getPublicServerFirebase();
 
   const talentsQuery = query(
-    collection(db, TALENTS_COLLECTION),
-    orderBy("createdAt", "desc"),
-    orderBy(documentId(), "desc"),
-    firestoreLimit(DISCOVER_TALENTS_LIMIT),
+    collection(
+      db,
+      TALENTS_COLLECTION,
+    ),
+
+    orderBy(
+      "createdAt",
+      "desc",
+    ),
+
+    orderBy(
+      documentId(),
+      "desc",
+    ),
+
+    firestoreLimit(
+      DISCOVER_TALENTS_LIMIT,
+    ),
   );
 
   const snapshot =
@@ -727,17 +864,19 @@ export async function getTalentById(
 ) {
   "use cache";
 
+  const normalizedId =
+    talentId?.trim();
+
   if (
-    typeof talentId !== "string" ||
-    !talentId.trim()
+    typeof normalizedId !==
+      "string" ||
+    !normalizedId
   ) {
     return null;
   }
 
-  const normalizedId =
-    talentId.trim();
-
   cacheLife("minutes");
+
   cacheTag(
     talentCacheTag(normalizedId),
   );
@@ -758,7 +897,9 @@ export async function getTalentById(
     return null;
   }
 
-  return serializeTalent(snapshot);
+  return serializeTalent(
+    snapshot,
+  );
 }
 
 /*
@@ -822,7 +963,9 @@ export async function getTalentByUsername(
     return null;
   }
 
-  cacheTag(talentCacheTag(uid));
+  cacheTag(
+    talentCacheTag(uid),
+  );
 
   const talentRef = doc(
     db,
@@ -844,45 +987,37 @@ export async function getTalentByUsername(
 
 /*
  * =========================================================
- * GET CURRENT USER'S LIKE STATUS
+ * GET CURRENT USER LIKE STATUS
+ * =========================================================
+ *
+ * Reads the `likes` array from:
+ *
+ * talents/{talentId}
+ *
+ * Example:
+ *
+ * likes: [
+ *   {
+ *     userId: "xyz"
+ *   }
+ * ]
+ *
+ * If current user's UID is "xyz":
+ *
+ * liked === true
  * =========================================================
  */
 
 export async function getTalentLikeStatus(
   talentId,
 ) {
-  if (
-    typeof talentId !== "string" ||
-    !talentId.trim()
-  ) {
-    throw new Error(
-      "Invalid talent ID.",
-    );
-  }
-
   const normalizedTalentId =
-    talentId.trim();
+    normalizeTalentId(talentId);
 
   const { auth, db } =
-    getServerFirebase();
+    await getServerFirebase();
 
-  const user = auth.currentUser;
-
-  if (!user) {
-    return {
-      liked: false,
-      likes: null,
-    };
-  }
-
-  const likeId =
-    `${user.uid}_${normalizedTalentId}`;
-
-  const likeRef = doc(
-    db,
-    TALENT_LIKES_COLLECTION,
-    likeId,
-  );
+  await auth.authStateReady();
 
   const talentRef = doc(
     db,
@@ -890,13 +1025,8 @@ export async function getTalentLikeStatus(
     normalizedTalentId,
   );
 
-  const [
-    likeSnapshot,
-    talentSnapshot,
-  ] = await Promise.all([
-    getDoc(likeRef),
-    getDoc(talentRef),
-  ]);
+  const talentSnapshot =
+    await getDoc(talentRef);
 
   if (!talentSnapshot.exists()) {
     throw new Error(
@@ -907,14 +1037,31 @@ export async function getTalentLikeStatus(
   const talentData =
     talentSnapshot.data();
 
+  const likesArray =
+    normalizeLikesArray(
+      talentData.likes,
+    );
+
+  const likes =
+    likesArray.length;
+
+  const user =
+    auth.currentUser;
+
+  if (!user) {
+    return {
+      liked: false,
+      likes,
+    };
+  }
+
   return {
-    liked: likeSnapshot.exists(),
-    likes: Math.max(
-      0,
-      Number.isFinite(talentData.likes)
-        ? talentData.likes
-        : 0,
+    liked: hasUserLiked(
+      likesArray,
+      user.uid,
     ),
+
+    likes,
   };
 }
 
@@ -923,17 +1070,25 @@ export async function getTalentLikeStatus(
  * TOGGLE TALENT LIKE
  * =========================================================
  *
- * Rules:
+ * Firestore result:
  *
- * 1. User must be authenticated.
- * 2. User ID comes from server authentication.
- * 3. Client cannot choose userId.
- * 4. One user can have one like per talent.
- * 5. Self-likes are allowed.
- * 6. Repeating an existing like does not increment.
- * 7. Unliking removes the like.
- * 8. Re-liking creates it again.
- * 9. Likes cannot become negative.
+ * talents/{talentId}
+ *
+ * {
+ *   likes: [
+ *     {
+ *       userId: "xyz",
+ *       createdAt: Timestamp,
+ *       updatedAt: Timestamp
+ *     }
+ *   ],
+ *
+ *   likeCount: 1
+ * }
+ *
+ * `likeCount` is required because Firestore
+ * cannot order a query by the length of
+ * an array.
  * =========================================================
  */
 
@@ -941,14 +1096,8 @@ export async function toggleTalentLike({
   talentId,
   liked,
 }) {
-  if (
-    typeof talentId !== "string" ||
-    !talentId.trim()
-  ) {
-    throw new Error(
-      "Invalid talent ID.",
-    );
-  }
+  const normalizedTalentId =
+    normalizeTalentId(talentId);
 
   if (typeof liked !== "boolean") {
     throw new Error(
@@ -956,13 +1105,13 @@ export async function toggleTalentLike({
     );
   }
 
-  const normalizedTalentId =
-    talentId.trim();
-
   const { auth, db } =
-    getServerFirebase();
+    await getServerFirebase();
 
-  const user = auth.currentUser;
+  await auth.authStateReady();
+
+  const user =
+    auth.currentUser;
 
   if (!user) {
     throw new Error(
@@ -972,25 +1121,20 @@ export async function toggleTalentLike({
 
   const userId = user.uid;
 
-  const likeId =
-    `${userId}_${normalizedTalentId}`;
-
   const talentRef = doc(
     db,
     TALENTS_COLLECTION,
     normalizedTalentId,
   );
 
-  const likeRef = doc(
-    db,
-    TALENT_LIKES_COLLECTION,
-    likeId,
-  );
-
   const result =
     await runTransaction(
       db,
       async (transaction) => {
+        /*
+         * READ
+         */
+
         const talentSnapshot =
           await transaction.get(
             talentRef,
@@ -1002,41 +1146,38 @@ export async function toggleTalentLike({
           );
         }
 
-        const likeSnapshot =
-          await transaction.get(
-            likeRef,
-          );
-
         const talentData =
           talentSnapshot.data();
 
         const categoryId =
-          talentData.categoryId ?? null;
+          talentData.categoryId ??
+          null;
 
         const currentLikes =
-          Math.max(
-            0,
-            Number.isFinite(
-              talentData.likes,
-            )
-              ? talentData.likes
-              : 0,
+          normalizeLikesArray(
+            talentData.likes,
           );
 
         const alreadyLiked =
-          likeSnapshot.exists();
+          hasUserLiked(
+            currentLikes,
+            userId,
+          );
 
         /*
-         * -----------------------------------------------
+         * =============================================
          * LIKE
-         * -----------------------------------------------
+         * =============================================
          */
 
         if (liked) {
           if (alreadyLiked) {
             return {
               liked: true,
-              likes: currentLikes,
+
+              likes:
+                currentLikes.length,
+
               categoryId,
             };
           }
@@ -1044,44 +1185,59 @@ export async function toggleTalentLike({
           const now =
             Timestamp.now();
 
-          transaction.set(
-            likeRef,
-            {
-              userId,
-              talentId:
-                normalizedTalentId,
-              createdAt: now,
-              updatedAt: now,
-            },
-          );
+          const newLike = {
+            userId,
+
+            createdAt: now,
+
+            updatedAt: now,
+          };
+
+          const nextLikes = [
+            ...currentLikes,
+            newLike,
+          ];
 
           transaction.update(
             talentRef,
             {
-              likes:
-                currentLikes + 1,
+              likes: nextLikes,
+
+              /*
+               * Keep a numeric count for
+               * Firestore ordering.
+               */
+
+              likeCount:
+                nextLikes.length,
+
               updatedAt: now,
             },
           );
 
           return {
             liked: true,
+
             likes:
-              currentLikes + 1,
+              nextLikes.length,
+
             categoryId,
           };
         }
 
         /*
-         * -----------------------------------------------
+         * =============================================
          * UNLIKE
-         * -----------------------------------------------
+         * =============================================
          */
 
         if (!alreadyLiked) {
           return {
             liked: false,
-            likes: currentLikes,
+
+            likes:
+              currentLikes.length,
+
             categoryId,
           };
         }
@@ -1089,42 +1245,40 @@ export async function toggleTalentLike({
         const now =
           Timestamp.now();
 
-        transaction.delete(
-          likeRef,
-        );
+        const nextLikes =
+          currentLikes.filter(
+            (like) =>
+              like.userId !==
+              userId,
+          );
 
         transaction.update(
           talentRef,
           {
-            likes: Math.max(
-              0,
-              currentLikes - 1,
-            ),
+            likes: nextLikes,
+
+            likeCount:
+              nextLikes.length,
+
             updatedAt: now,
           },
         );
 
         return {
           liked: false,
-          likes: Math.max(
-            0,
-            currentLikes - 1,
-          ),
+
+          likes:
+            nextLikes.length,
+
           categoryId,
         };
       },
     );
 
   /*
-   * -----------------------------------------------
+   * =============================================
    * CACHE INVALIDATION
-   * -----------------------------------------------
-   *
-   * Likes affect:
-   *
-   * - individual talent
-   * - category ordering
-   * - global talent lists
+   * =============================================
    */
 
   revalidateTag(
@@ -1148,8 +1302,123 @@ export async function toggleTalentLike({
     );
   }
 
+  /*
+   * =============================================
+   * RESPONSE
+   * =============================================
+   */
+
   return {
-    liked: result.liked,
-    likes: result.likes,
+    success: true,
+
+    liked:
+      result.liked,
+
+    likes:
+      result.likes,
   };
+}
+
+/*
+ * =========================================================
+ * GET CURRENT USER LIKE STATES
+ * =========================================================
+ *
+ * Returns:
+ *
+ * Set {
+ *   "talent123",
+ *   "talent456"
+ * }
+ *
+ * It checks the `likes` array inside
+ * each talent document.
+ * =========================================================
+ */
+
+export async function getCurrentUserTalentLikes(
+  talentIds = [],
+) {
+  if (
+    !Array.isArray(talentIds) ||
+    !talentIds.length
+  ) {
+    return new Set();
+  }
+
+  const { auth, db } =
+    await getServerFirebase();
+
+  await auth.authStateReady();
+
+  const user =
+    auth.currentUser;
+
+  if (!user) {
+    return new Set();
+  }
+
+  const normalizedIds = [
+    ...new Set(
+      talentIds
+        .filter(
+          (id) =>
+            typeof id === "string" &&
+            id.trim(),
+        )
+        .map((id) =>
+          id.trim(),
+        ),
+    ),
+  ];
+
+  if (!normalizedIds.length) {
+    return new Set();
+  }
+
+  const talentSnapshots =
+    await Promise.all(
+      normalizedIds.map(
+        (talentId) =>
+          getDoc(
+            doc(
+              db,
+              TALENTS_COLLECTION,
+              talentId,
+            ),
+          ),
+      ),
+    );
+
+  const likedIds =
+    new Set();
+
+  talentSnapshots.forEach(
+    (snapshot, index) => {
+      if (!snapshot.exists()) {
+        return;
+      }
+
+      const data =
+        snapshot.data();
+
+      const likes =
+        normalizeLikesArray(
+          data.likes,
+        );
+
+      if (
+        hasUserLiked(
+          likes,
+          user.uid,
+        )
+      ) {
+        likedIds.add(
+          normalizedIds[index],
+        );
+      }
+    },
+  );
+
+  return likedIds;
 }

@@ -20,6 +20,7 @@ import {
 import {
   browserLocalPersistence,
   browserSessionPersistence,
+  getIdToken,
   setPersistence,
 } from "firebase/auth";
 
@@ -33,9 +34,7 @@ import {
 
 import { auth } from "@/lib/client";
 
-import {
-  getMyProfileAction,
-} from "@/actions/profile";
+import { getMyProfileAction } from "@/actions/profile";
 
 import { useSnackbarStore } from "@/stores/useSnackbarStore";
 
@@ -45,50 +44,38 @@ const LOGIN_IMAGE =
 export default function LoginPage() {
   const router = useRouter();
 
-  const showSnackbar =
-    useSnackbarStore(
-      (state) => state.showSnackbar,
-    );
+  const showSnackbar = useSnackbarStore(
+    (state) => state.showSnackbar,
+  );
 
   /*
-   * --------------------------------------------------
+   * ==================================================
    * STATE
-   * --------------------------------------------------
+   * ==================================================
    */
 
-  const [
-    showPassword,
-    setShowPassword,
-  ] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-  const [
-    rememberMe,
-    setRememberMe,
-  ] = useState(false);
+  const [rememberMe, setRememberMe] =
+    useState(false);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [
-    googleLoading,
-    setGoogleLoading,
-  ] = useState(false);
+  const [googleLoading, setGoogleLoading] =
+    useState(false);
 
-  const [
-    imageError,
-    setImageError,
-  ] = useState(false);
+  const [imageError, setImageError] =
+    useState(false);
 
   const isLoading =
-    loading ||
-    googleLoading;
+    loading || googleLoading;
 
   /*
-   * --------------------------------------------------
+   * ==================================================
    * ERROR
-   * --------------------------------------------------
+   * ==================================================
    */
 
   function showError(message) {
@@ -99,9 +86,9 @@ export default function LoginPage() {
   }
 
   /*
-   * --------------------------------------------------
+   * ==================================================
    * FIREBASE AUTH PERSISTENCE
-   * --------------------------------------------------
+   * ==================================================
    */
 
   async function configurePersistence() {
@@ -114,53 +101,252 @@ export default function LoginPage() {
   }
 
   /*
-   * --------------------------------------------------
+   * ==================================================
+   * SYNC AUTH TOKEN TO SERVICE WORKER
+   * ==================================================
+   *
+   * IMPORTANT:
+   *
+   * We do NOT use the `user` returned by
+   * signInWithEmail/signInWithGoogle here.
+   *
+   * We read the authenticated Firebase User
+   * directly from the same `auth` instance used
+   * throughout the application.
+   * ==================================================
+   */
+
+  async function syncAuthTokenToServiceWorker() {
+    if (
+      typeof window === "undefined" ||
+      !("serviceWorker" in navigator)
+    ) {
+      return;
+    }
+
+    /*
+     * ------------------------------------------------
+     * GET THE REAL FIREBASE USER
+     * ------------------------------------------------
+     */
+
+    const user = auth.currentUser;
+
+    if (!user) {
+      throw new Error(
+        "Authentication session was not established.",
+      );
+    }
+
+    /*
+     * ------------------------------------------------
+     * GET FRESH ID TOKEN
+     * ------------------------------------------------
+     *
+     * true forces Firebase to refresh the token.
+     *
+     * This guarantees that the service worker gets
+     * a valid token immediately after login.
+     * ------------------------------------------------
+     */
+
+    const token = await getIdToken(
+      user,
+      true,
+    );
+
+    if (!token) {
+      throw new Error(
+        "Unable to establish your authentication session.",
+      );
+    }
+
+    /*
+     * ------------------------------------------------
+     * WAIT FOR SERVICE WORKER
+     * ------------------------------------------------
+     */
+
+    const registration =
+      await navigator.serviceWorker.ready;
+
+    /*
+     * ------------------------------------------------
+     * GET ACTIVE CONTROLLER
+     * ------------------------------------------------
+     *
+     * controller:
+     *   Current page controller.
+     *
+     * active:
+     *   Active worker from registration.
+     * ------------------------------------------------
+     */
+
+    const worker =
+      navigator.serviceWorker.controller ||
+      registration.active;
+
+    if (!worker) {
+      throw new Error(
+        "Authentication service is not ready. Please refresh the page and try again.",
+      );
+    }
+
+    /*
+     * ------------------------------------------------
+     * SEND TOKEN TO SERVICE WORKER
+     * ------------------------------------------------
+     */
+
+    await new Promise(
+      (resolve, reject) => {
+        const channel =
+          new MessageChannel();
+
+        const timeout =
+          setTimeout(() => {
+            reject(
+              new Error(
+                "Authentication service did not respond. Please refresh the page and try again.",
+              ),
+            );
+          }, 5000);
+
+        channel.port1.onmessage =
+          (event) => {
+            clearTimeout(timeout);
+
+            if (
+              event.data?.type ===
+              "AUTH_TOKEN_SYNCED"
+            ) {
+              resolve();
+              return;
+            }
+
+            reject(
+              new Error(
+                "Unable to synchronize your authentication session.",
+              ),
+            );
+          };
+
+        try {
+          worker.postMessage(
+            {
+              type: "SET_AUTH_TOKEN",
+              token,
+            },
+            [channel.port2],
+          );
+        } catch (error) {
+          clearTimeout(timeout);
+          reject(error);
+        }
+      },
+    );
+  }
+
+  /*
+   * ==================================================
+   * CLEAR SERVICE WORKER AUTH
+   * ==================================================
+   */
+
+  async function clearServiceWorkerAuth() {
+    if (
+      typeof window === "undefined" ||
+      !("serviceWorker" in navigator)
+    ) {
+      return;
+    }
+
+    try {
+      const registration =
+        await navigator.serviceWorker.ready;
+
+      const worker =
+        navigator.serviceWorker.controller ||
+        registration.active;
+
+      if (!worker) {
+        return;
+      }
+
+      await new Promise(
+        (resolve) => {
+          const channel =
+            new MessageChannel();
+
+          const timeout =
+            setTimeout(() => {
+              resolve();
+            }, 2000);
+
+          channel.port1.onmessage =
+            () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+
+          try {
+            worker.postMessage(
+              {
+                type: "CLEAR_AUTH_TOKEN",
+              },
+              [channel.port2],
+            );
+          } catch {
+            clearTimeout(timeout);
+            resolve();
+          }
+        },
+      );
+    } catch {
+      /*
+       * Service-worker cleanup must never prevent
+       * Firebase logout.
+       */
+    }
+  }
+
+  /*
+   * ==================================================
    * RESOLVE USER AFTER LOGIN
-   * --------------------------------------------------
-   *
-   * Firebase Authentication confirms that the user
-   * exists.
-   *
-   * Youth Space then checks whether the application
-   * profile exists:
-   *
-   *     talents/{uid}
-   *
-   * Flow:
-   *
-   * Firebase Auth
-   *      ↓
-   * authenticated user
-   *      ↓
-   * getMyProfileAction()
-   *      ↓
-   * talents/{uid}
-   *      ↓
-   * profile exists?
-   *
-   * YES → /discover
-   *
-   * NO  → logout → /login
-   *
-   * A server/database error does NOT automatically
-   * log the user out.
-   *
-   * --------------------------------------------------
+   * ==================================================
    */
 
   async function resolveUserAfterLogin() {
+    /*
+     * ------------------------------------------------
+     * STEP 1
+     * ------------------------------------------------
+     *
+     * Synchronize Firebase authentication with the
+     * service worker.
+     * ------------------------------------------------
+     */
+
+    await syncAuthTokenToServiceWorker();
+
+    /*
+     * ------------------------------------------------
+     * STEP 2
+     * ------------------------------------------------
+     *
+     * The Server Action can now receive:
+     *
+     * Authorization: Bearer <Firebase ID token>
+     * ------------------------------------------------
+     */
+
     const result =
       await getMyProfileAction();
 
     /*
      * ------------------------------------------------
-     * PROFILE DOES NOT EXIST
-     * ------------------------------------------------
-     *
-     * Firebase account exists, but the Youth Space
-     * application profile does not.
-     *
-     * Remove the Firebase authentication state.
+     * PROFILE NOT FOUND
      * ------------------------------------------------
      */
 
@@ -168,26 +354,25 @@ export default function LoginPage() {
       result?.code ===
       "PROFILE_NOT_FOUND"
     ) {
+      await clearServiceWorkerAuth();
+
       await logout();
 
       showError(
         "Your Youth Space profile could not be found. Please create your profile again.",
       );
 
-      router.replace(
-        "/login",
-      );
+      router.replace("/login");
 
       return false;
     }
 
     /*
      * ------------------------------------------------
-     * OTHER PROFILE LOAD FAILURE
+     * SERVER / DATABASE FAILURE
      * ------------------------------------------------
      *
-     * Do not log the user out for a temporary server,
-     * network, FirebaseServerApp, or Firestore issue.
+     * Keep the user authenticated.
      * ------------------------------------------------
      */
 
@@ -200,21 +385,19 @@ export default function LoginPage() {
 
     /*
      * ------------------------------------------------
-     * PROFILE EXISTS
+     * SUCCESS
      * ------------------------------------------------
      */
 
-    router.replace(
-      "/discover",
-    );
+    router.replace("/discover");
 
     return true;
   }
 
   /*
-   * --------------------------------------------------
+   * ==================================================
    * EMAIL / PASSWORD LOGIN
-   * --------------------------------------------------
+   * ==================================================
    */
 
   async function handleSubmit(event) {
@@ -246,7 +429,7 @@ export default function LoginPage() {
 
     /*
      * ------------------------------------------------
-     * BASIC VALIDATION
+     * VALIDATION
      * ------------------------------------------------
      */
 
@@ -263,7 +446,7 @@ export default function LoginPage() {
     try {
       /*
        * ------------------------------------------------
-       * AUTH PERSISTENCE
+       * PERSISTENCE
        * ------------------------------------------------
        */
 
@@ -289,21 +472,17 @@ export default function LoginPage() {
 
       /*
        * ------------------------------------------------
-       * LOAD YOUTH SPACE PROFILE
+       * PROFILE
+       * ------------------------------------------------
+       *
+       * We intentionally don't pass `user`.
+       *
+       * resolveUserAfterLogin() uses auth.currentUser.
        * ------------------------------------------------
        */
 
       const profileResolved =
         await resolveUserAfterLogin();
-
-      /*
-       * ------------------------------------------------
-       * SUCCESS
-       * ------------------------------------------------
-       *
-       * Only show success when the profile was found.
-       * ------------------------------------------------
-       */
 
       if (profileResolved) {
         showSnackbar({
@@ -313,10 +492,13 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
+      console.error(
+        "Login error:",
+        error,
+      );
+
       showError(
-        getFirebaseAuthError(
-          error,
-        ),
+        getFirebaseAuthError(error),
       );
     } finally {
       setLoading(false);
@@ -324,9 +506,9 @@ export default function LoginPage() {
   }
 
   /*
-   * --------------------------------------------------
+   * ==================================================
    * GOOGLE LOGIN
-   * --------------------------------------------------
+   * ==================================================
    */
 
   async function handleGoogleSignIn() {
@@ -339,7 +521,7 @@ export default function LoginPage() {
     try {
       /*
        * ------------------------------------------------
-       * AUTH PERSISTENCE
+       * PERSISTENCE
        * ------------------------------------------------
        */
 
@@ -347,7 +529,7 @@ export default function LoginPage() {
 
       /*
        * ------------------------------------------------
-       * GOOGLE LOGIN
+       * GOOGLE AUTH
        * ------------------------------------------------
        */
 
@@ -362,18 +544,12 @@ export default function LoginPage() {
 
       /*
        * ------------------------------------------------
-       * LOAD YOUTH SPACE PROFILE
+       * PROFILE
        * ------------------------------------------------
        */
 
       const profileResolved =
         await resolveUserAfterLogin();
-
-      /*
-       * ------------------------------------------------
-       * SUCCESS
-       * ------------------------------------------------
-       */
 
       if (profileResolved) {
         showSnackbar({
@@ -383,10 +559,13 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
+      console.error(
+        "Google login error:",
+        error,
+      );
+
       showError(
-        getFirebaseAuthError(
-          error,
-        ),
+        getFirebaseAuthError(error),
       );
     } finally {
       setGoogleLoading(false);
@@ -394,18 +573,18 @@ export default function LoginPage() {
   }
 
   /*
-   * --------------------------------------------------
-   * RENDER
-   * --------------------------------------------------
+   * ==================================================
+   * UI
+   * ==================================================
    */
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-[1920px]">
 
-        {/* =====================================================
+        {/* ================================================
             LOGIN PANEL
-        ===================================================== */}
+        ================================================= */}
 
         <section className="flex min-h-screen w-full flex-col lg:w-[54%] xl:w-[50%]">
 
@@ -448,7 +627,8 @@ export default function LoginPage() {
                 </h1>
 
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
-                  Continue discovering talent, sharing your work and connecting
+                  Continue discovering talent,
+                  sharing your work and connecting
                   with people across Zambia.
                 </p>
               </div>
@@ -456,9 +636,7 @@ export default function LoginPage() {
               {/* Form */}
 
               <form
-                onSubmit={
-                  handleSubmit
-                }
+                onSubmit={handleSubmit}
                 noValidate
                 className="mt-8 space-y-5"
               >
@@ -487,9 +665,7 @@ export default function LoginPage() {
                       inputMode="email"
                       placeholder="you@example.com"
                       required
-                      disabled={
-                        isLoading
-                      }
+                      disabled={isLoading}
                       className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
                     />
                   </div>
@@ -531,9 +707,7 @@ export default function LoginPage() {
                       autoComplete="current-password"
                       placeholder="Enter your password"
                       required
-                      disabled={
-                        isLoading
-                      }
+                      disabled={isLoading}
                       className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-12 text-sm font-medium outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
                     />
 
@@ -541,13 +715,10 @@ export default function LoginPage() {
                       type="button"
                       onClick={() =>
                         setShowPassword(
-                          (value) =>
-                            !value,
+                          (value) => !value,
                         )
                       }
-                      disabled={
-                        isLoading
-                      }
+                      disabled={isLoading}
                       aria-label={
                         showPassword
                           ? "Hide password"
@@ -569,20 +740,13 @@ export default function LoginPage() {
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
                     type="checkbox"
-                    checked={
-                      rememberMe
-                    }
-                    onChange={(
-                      event,
-                    ) =>
+                    checked={rememberMe}
+                    onChange={(event) =>
                       setRememberMe(
-                        event.target
-                          .checked,
+                        event.target.checked,
                       )
                     }
-                    disabled={
-                      isLoading
-                    }
+                    disabled={isLoading}
                     className="h-4 w-4 rounded border-slate-300 accent-slate-950"
                   />
 
@@ -595,9 +759,7 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  disabled={
-                    isLoading
-                  }
+                  disabled={isLoading}
                   className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                 >
                   {loading ? (
@@ -634,12 +796,8 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={
-                  handleGoogleSignIn
-                }
-                disabled={
-                  isLoading
-                }
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
                 className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 {googleLoading ? (
@@ -687,7 +845,6 @@ export default function LoginPage() {
                 </Link>
                 .
               </p>
-
             </div>
           </div>
 
@@ -698,12 +855,11 @@ export default function LoginPage() {
               © 2026 Youth Space by TechGU
             </p>
           </footer>
-
         </section>
 
-        {/* =====================================================
+        {/* ================================================
             VISUAL PANEL
-        ===================================================== */}
+        ================================================= */}
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
 
@@ -717,9 +873,7 @@ export default function LoginPage() {
               priority
               sizes="(min-width: 1280px) 50vw, 46vw"
               onError={() =>
-                setImageError(
-                  true,
-                )
+                setImageError(true)
               }
               className="object-cover"
             />
@@ -753,7 +907,6 @@ export default function LoginPage() {
 
           {imageError && (
             <div className="absolute inset-0 flex items-center justify-center">
-
               <div className="absolute h-[500px] w-[500px] rounded-full border border-white/5" />
 
               <div className="absolute h-[350px] w-[350px] rounded-full border border-white/5" />
@@ -765,7 +918,6 @@ export default function LoginPage() {
                   className="text-white/50"
                 />
               </div>
-
             </div>
           )}
 
@@ -774,9 +926,7 @@ export default function LoginPage() {
             {/* Top */}
 
             <div className="flex items-center justify-between">
-
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-lg backdrop-blur-xl">
-
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
                   <Sparkles size={10} />
                 </span>
@@ -784,19 +934,16 @@ export default function LoginPage() {
                 <span className="text-[10px] font-bold text-white/80">
                   Zambia's youth talent platform
                 </span>
-
               </div>
 
               <span className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-white/40 xl:block">
                 Youth Space
               </span>
-
             </div>
 
             {/* Main */}
 
             <div className="mt-16 max-w-2xl xl:mt-20 2xl:mt-24">
-
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/45">
                 Discover what is possible
               </p>
@@ -810,8 +957,10 @@ export default function LoginPage() {
               </h2>
 
               <p className="mt-6 max-w-lg text-sm leading-7 text-white/65 xl:text-base">
-                Youth Space connects young Zambians with people, businesses and
-                opportunities that value what they can do.
+                Youth Space connects young Zambians
+                with people, businesses and
+                opportunities that value what they
+                can do.
               </p>
 
               <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
@@ -827,28 +976,23 @@ export default function LoginPage() {
                   Connect locally
                 </VisualFeature>
               </div>
-
             </div>
 
             {/* Bottom */}
 
             <div className="mt-auto pt-16">
-
               <div className="max-w-xl border-l border-white/20 pl-5">
-
                 <p className="text-sm font-medium leading-6 text-white/55">
-                  "Your skills can open doors. Youth Space helps people find
+                  "Your skills can open doors.
+                  Youth Space helps people find
                   them."
                 </p>
 
                 <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
                   Youth Space by TechGU
                 </p>
-
               </div>
-
             </div>
-
           </div>
         </section>
       </div>
@@ -857,9 +1001,9 @@ export default function LoginPage() {
 }
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * LOADING SPINNER
- * --------------------------------------------------
+ * ==================================================
  */
 
 function LoadingSpinner() {
@@ -872,9 +1016,9 @@ function LoadingSpinner() {
 }
 
 /*
- * --------------------------------------------------
- * FIREBASE AUTH ERROR HANDLING
- * --------------------------------------------------
+ * ==================================================
+ * FIREBASE AUTH ERROR
+ * ==================================================
  */
 
 function getFirebaseAuthError(error) {
@@ -924,12 +1068,14 @@ function getFirebaseAuthError(error) {
 }
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * VISUAL FEATURE
- * --------------------------------------------------
+ * ==================================================
  */
 
-function VisualFeature({ children }) {
+function VisualFeature({
+  children,
+}) {
   return (
     <div className="flex items-center gap-2 text-xs font-bold text-white/70">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10">
@@ -942,9 +1088,9 @@ function VisualFeature({ children }) {
 }
 
 /*
- * --------------------------------------------------
+ * ==================================================
  * GOOGLE ICON
- * --------------------------------------------------
+ * ==================================================
  */
 
 function GoogleIcon() {

@@ -4,7 +4,9 @@ import { z } from "zod";
 
 import {
   getCategoryTalents,
+  getCurrentUserTalentLikes,
   getMoreTalents,
+  getTalentLikeStatus,
   getTopTalents,
   getNewTalents,
   toggleTalentLike,
@@ -16,7 +18,6 @@ import {
  * =========================================================
  */
 
-const TALENTS_PER_LOAD = 8;
 const DISCOVER_TALENTS_LIMIT = 10;
 
 const MAX_CATEGORY_ID_LENGTH = 100;
@@ -69,31 +70,29 @@ const discoverTalentsSchema = z
   })
   .strict();
 
-/*
- * =========================================================
- * LIKE SCHEMA
- * =========================================================
- */
+const talentIdSchema = z
+  .string()
+  .trim()
+  .min(1, "Talent ID is required.")
+  .max(
+    MAX_TALENT_ID_LENGTH,
+    "Talent ID is too long.",
+  )
+  .regex(
+    /^[A-Za-z0-9_-]+$/,
+    "Invalid talent ID.",
+  );
 
 const talentLikeSchema = z
   .object({
-    talentId: z
-      .string()
-      .trim()
-      .min(
-        1,
-        "Talent ID is required.",
-      )
-      .max(
-        MAX_TALENT_ID_LENGTH,
-        "Talent ID is too long.",
-      )
-      .regex(
-        /^[A-Za-z0-9_-]+$/,
-        "Invalid talent ID.",
-      ),
-
+    talentId: talentIdSchema,
     liked: z.boolean(),
+  })
+  .strict();
+
+const talentLikeStatusSchema = z
+  .object({
+    talentId: talentIdSchema,
   })
   .strict();
 
@@ -115,10 +114,7 @@ function normalizeInput(input) {
   return input;
 }
 
-function getErrorMessage(
-  error,
-  fallback,
-) {
+function getErrorMessage(error, fallback) {
   if (
     error instanceof Error &&
     error.message
@@ -135,26 +131,118 @@ function normalizeTalents(talents) {
     : [];
 }
 
+function normalizeLikes(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  return Math.max(
+    0,
+    Math.floor(number),
+  );
+}
+
+/*
+ * =========================================================
+ * PUBLIC TALENT HELPERS
+ * =========================================================
+ *
+ * IMPORTANT:
+ *
+ * Discover/category data is public.
+ *
+ * We must NOT call getServerFirebase() while this data
+ * is being prerendered because getServerFirebase() uses
+ * headers().
+ *
+ * Therefore public talent queries return:
+ *
+ * liked: false
+ *
+ * The client can optimistically update the state when the
+ * authenticated user interacts with the like button.
+ * =========================================================
+ */
+
+function addDefaultLikeState(talents) {
+  return normalizeTalents(talents).map(
+    (talent) => ({
+      ...talent,
+      liked: false,
+    }),
+  );
+}
+
+/*
+ * =========================================================
+ * AUTHENTICATED LIKE STATE
+ * =========================================================
+ *
+ * This function is ONLY for request-time/authenticated
+ * operations.
+ *
+ * It must NOT be called from public Discover data during
+ * prerendering.
+ * =========================================================
+ */
+
+async function enrichTalentsWithLikeState(
+  talents,
+) {
+  const normalizedTalents =
+    normalizeTalents(talents);
+
+  if (!normalizedTalents.length) {
+    return [];
+  }
+
+  try {
+    const talentIds =
+      normalizedTalents.map(
+        (talent) => talent.id,
+      );
+
+    const likedIds =
+      await getCurrentUserTalentLikes(
+        talentIds,
+      );
+
+    return normalizedTalents.map(
+      (talent) => ({
+        ...talent,
+
+        liked:
+          likedIds.has(
+            talent.id,
+          ),
+      }),
+    );
+  } catch (error) {
+    console.error(
+      "enrichTalentsWithLikeState failed:",
+      error,
+    );
+
+    return normalizedTalents.map(
+      (talent) => ({
+        ...talent,
+        liked: false,
+      }),
+    );
+  }
+}
+
 /*
  * =========================================================
  * CATEGORY TALENTS — INITIAL LOAD
  * =========================================================
  *
- * First request:
+ * PUBLIC DATA ONLY.
  *
- * {
- *   categoryId
- * }
- *
- * The server always loads the first 8 talents.
- *
- * The data layer returns:
- *
- * {
- *   talents,
- *   nextCursor,
- *   hasMore
- * }
+ * Do not resolve authenticated like state here.
+ * =========================================================
  */
 
 export async function loadCategoryTalentsAction(
@@ -185,23 +273,32 @@ export async function loadCategoryTalentsAction(
         validation.data.categoryId,
       );
 
+    const talents =
+      addDefaultLikeState(
+        result?.talents,
+      );
+
     return {
       success: true,
 
-      talents:
-        normalizeTalents(
-          result?.talents,
-        ),
+      talents,
 
       nextCursor:
         result?.nextCursor ?? null,
 
       hasMore:
-        Boolean(result?.hasMore),
+        Boolean(
+          result?.hasMore,
+        ),
 
       error: null,
     };
   } catch (error) {
+    console.error(
+      "loadCategoryTalentsAction failed:",
+      error,
+    );
+
     return {
       success: false,
       talents: [],
@@ -221,51 +318,24 @@ export async function loadCategoryTalentsAction(
  * CATEGORY TALENTS — LOAD MORE
  * =========================================================
  *
- * Cursor pagination:
- *
- * First load:
- *
- *   1 2 3 4 5 6 7 8
- *                 ↑
- *              cursor
- *
- * Load more sends that cursor.
- *
- * Server then loads:
- *
- *   9 10 11 12 13 14 15 16
- *
- * and returns another cursor.
- *
- * The next request uses that new cursor.
- *
- * This continues:
- *
- * 1–8
- * 9–16
- * 17–24
- * 25–32
- * ...
- *
- * until hasMore === false.
- *
- * The client NEVER sends the already-loaded talents.
- * The client NEVER sends loadedCount.
+ * PUBLIC DATA ONLY.
+ * =========================================================
  */
 
 export async function loadMoreTalentsAction(
-  { id, nextCursor } = {}
+  input = {},
 ) {
+  const safeInput =
+    normalizeInput(input);
 
   const validation =
     loadMoreTalentsSchema.safeParse({
       categoryId:
-        id,
+        safeInput.id,
 
       cursor:
-        nextCursor,
+        safeInput.nextCursor,
     });
-
 
   if (!validation.success) {
     return {
@@ -285,28 +355,34 @@ export async function loadMoreTalentsAction(
 
         cursor:
           validation.data.cursor,
-
-        limit:
-          TALENTS_PER_LOAD,
       });
+
+    const talents =
+      addDefaultLikeState(
+        result?.talents,
+      );
 
     return {
       success: true,
 
-      talents:
-        normalizeTalents(
-          result?.talents,
-        ),
+      talents,
 
       nextCursor:
         result?.nextCursor ?? null,
 
       hasMore:
-        Boolean(result?.hasMore),
+        Boolean(
+          result?.hasMore,
+        ),
 
       error: null,
     };
   } catch (error) {
+    console.error(
+      "loadMoreTalentsAction failed:",
+      error,
+    );
+
     return {
       success: false,
       talents: [],
@@ -323,7 +399,87 @@ export async function loadMoreTalentsAction(
 
 /*
  * =========================================================
+ * GET TALENT LIKE STATUS
+ * =========================================================
+ *
+ * AUTHENTICATED REQUEST.
+ *
+ * This action is allowed to use the current user's
+ * authentication context.
+ * =========================================================
+ */
+
+export async function getTalentLikeStatusAction(
+  input = {},
+) {
+  const safeInput =
+    normalizeInput(input);
+
+  const validation =
+    talentLikeStatusSchema.safeParse({
+      talentId:
+        safeInput.talentId,
+    });
+
+  if (!validation.success) {
+    return {
+      success: false,
+      liked: false,
+      likes: null,
+      error: "Invalid request.",
+    };
+  }
+
+  try {
+    const result =
+      await getTalentLikeStatus(
+        validation.data.talentId,
+      );
+
+    return {
+      success: true,
+
+      liked:
+        Boolean(
+          result?.liked,
+        ),
+
+      likes:
+        result?.likes === null
+          ? null
+          : normalizeLikes(
+              result?.likes,
+            ),
+
+      error: null,
+    };
+  } catch (error) {
+    console.error(
+      "getTalentLikeStatusAction failed:",
+      error,
+    );
+
+    return {
+      success: false,
+      liked: false,
+      likes: null,
+      error:
+        getErrorMessage(
+          error,
+          "Unable to load like status.",
+        ),
+    };
+  }
+}
+
+/*
+ * =========================================================
  * TALENT LIKE
+ * =========================================================
+ *
+ * AUTHENTICATED REQUEST.
+ *
+ * The data layer verifies the authenticated user.
  * =========================================================
  */
 
@@ -363,9 +519,11 @@ export async function toggleTalentLikeAction(
 
     if (
       !result ||
-      typeof result.liked !== "boolean" ||
-      typeof result.likes !== "number" ||
-      !Number.isFinite(result.likes) ||
+      typeof result.liked !==
+        "boolean" ||
+      !Number.isFinite(
+        result.likes,
+      ) ||
       result.likes < 0
     ) {
       return {
@@ -384,16 +542,18 @@ export async function toggleTalentLikeAction(
         result.liked,
 
       likes:
-        Math.max(
-          0,
-          Math.floor(
-            result.likes,
-          ),
+        normalizeLikes(
+          result.likes,
         ),
 
       error: null,
     };
   } catch (error) {
+    console.error(
+      "toggleTalentLikeAction failed:",
+      error,
+    );
+
     return {
       success: false,
       liked: false,
@@ -410,6 +570,15 @@ export async function toggleTalentLikeAction(
 /*
  * =========================================================
  * DISCOVER — TOP TALENTS
+ * =========================================================
+ *
+ * PUBLIC DATA ONLY.
+ *
+ * IMPORTANT:
+ * Do NOT call enrichTalentsWithLikeState() here.
+ *
+ * This action can therefore safely run during
+ * Next.js prerendering.
  * =========================================================
  */
 
@@ -436,7 +605,13 @@ export async function getTopTalentsAction(
 
   try {
     const talents =
-      await getTopTalents(
+      await getTopTalents();
+
+    const limitedTalents =
+      normalizeTalents(
+        talents,
+      ).slice(
+        0,
         validation.data.limit,
       );
 
@@ -444,13 +619,18 @@ export async function getTopTalentsAction(
       success: true,
 
       talents:
-        normalizeTalents(
-          talents,
+        addDefaultLikeState(
+          limitedTalents,
         ),
 
       error: null,
     };
   } catch (error) {
+    console.error(
+      "getTopTalentsAction failed:",
+      error,
+    );
+
     return {
       success: false,
       talents: [],
@@ -466,6 +646,11 @@ export async function getTopTalentsAction(
 /*
  * =========================================================
  * DISCOVER — NEWEST TALENTS
+ * =========================================================
+ *
+ * PUBLIC DATA ONLY.
+ *
+ * Do NOT call enrichTalentsWithLikeState() here.
  * =========================================================
  */
 
@@ -492,7 +677,13 @@ export async function getNewTalentsAction(
 
   try {
     const talents =
-      await getNewTalents(
+      await getNewTalents();
+
+    const limitedTalents =
+      normalizeTalents(
+        talents,
+      ).slice(
+        0,
         validation.data.limit,
       );
 
@@ -500,13 +691,18 @@ export async function getNewTalentsAction(
       success: true,
 
       talents:
-        normalizeTalents(
-          talents,
+        addDefaultLikeState(
+          limitedTalents,
         ),
 
       error: null,
     };
   } catch (error) {
+    console.error(
+      "getNewTalentsAction failed:",
+      error,
+    );
+
     return {
       success: false,
       talents: [],

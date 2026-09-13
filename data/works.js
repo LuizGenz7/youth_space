@@ -843,7 +843,7 @@ export async function toggleWorkLike({
           likes,
         };
       }
-    );
+    ); 
 
   /*
    * Invalidate only after the transaction

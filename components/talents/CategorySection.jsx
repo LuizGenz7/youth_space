@@ -102,9 +102,7 @@ function talentMatchesCategory(talent, category) {
     return true;
   }
 
-  const selectedCategory = normalize(category);
-
-  return normalize(talent?.category) === selectedCategory;
+  return normalize(talent?.category) === normalize(category);
 }
 
 function sortTalents(talents, sort) {
@@ -203,20 +201,12 @@ export default function CategorySection({
   const hasInitialTalents = initialTalents.length > 0;
 
   const shouldFetchCategory =
-    Boolean(categoryId) && totalTalents > 0 && initialTalents.length === 0;
+    Boolean(categoryId) && totalTalents > 0 && !hasInitialTalents;
 
   /*
    * =======================================================
    * QUERY KEY
    * =======================================================
-   *
-   * IMPORTANT:
-   *
-   * Filters are NOT part of this query key.
-   *
-   * React Query stores the complete category dataset.
-   *
-   * Filtering happens locally with useMemo.
    */
 
   const queryKey = ["talents", categoryId];
@@ -291,10 +281,6 @@ export default function CategorySection({
 
   const talents = Array.isArray(data?.talents) ? data.talents : [];
 
-  /*
-   * React Query owns the pagination state.
-   */
-
   const nextCursor = data?.nextCursor ?? null;
 
   const lastItemId = data?.lastItemId ?? null;
@@ -303,7 +289,7 @@ export default function CategorySection({
 
   /*
    * =======================================================
-   * INITIAL LOADING
+   * LOADING
    * =======================================================
    */
 
@@ -317,15 +303,6 @@ export default function CategorySection({
 
   const [loadingMore, setLoadingMore] = useState(false);
 
-  /*
-   * =======================================================
-   * SHOULD LOAD MORE
-   * =======================================================
-   *
-   * Pagination is based on the ORIGINAL category data,
-   * not the filtered result.
-   */
-
   const shouldLoadMore =
     !loading &&
     !isError &&
@@ -335,35 +312,8 @@ export default function CategorySection({
 
   /*
    * =======================================================
-   * FILTER DATA
+   * FILTER + SORT
    * =======================================================
-   *
-   * IMPORTANT:
-   *
-   * We filter the talents already loaded into React Query.
-   *
-   * Search:
-   *   username
-   *   displayName
-   *   role
-   *   category
-   *   province
-   *   district
-   *   bio
-   *   skills
-   *   services
-   *
-   * Province:
-   *   exact match
-   *
-   * District:
-   *   exact match
-   *
-   * Category:
-   *   exact match
-   *
-   * Sort:
-   *   applied after filtering
    */
 
   const filteredTalents = useMemo(() => {
@@ -387,9 +337,7 @@ export default function CategorySection({
       return true;
     });
 
-    result = sortTalents(result, sort);
-
-    return result;
+    return sortTalents(result, sort);
   }, [talents, search, activeCategory, province, district, sort]);
 
   /*
@@ -405,10 +353,6 @@ export default function CategorySection({
 
     setLoadingMore(true);
 
-    /*
-     * Capture the current cursor.
-     */
-
     const cursorForRequest = nextCursor;
 
     try {
@@ -423,20 +367,10 @@ export default function CategorySection({
 
       const newTalents = Array.isArray(result.talents) ? result.talents : [];
 
-      /*
-       * ===================================================
-       * UPDATE REACT QUERY
-       * ===================================================
-       */
-
       queryClient.setQueryData(queryKey, (current) => {
         const currentTalents = Array.isArray(current?.talents)
           ? current.talents
           : [];
-
-        /*
-         * No new talents.
-         */
 
         if (newTalents.length === 0) {
           return {
@@ -451,7 +385,7 @@ export default function CategorySection({
         }
 
         /*
-         * Prevent duplicates.
+         * Prevent duplicate talents.
          */
 
         const existingIds = new Set(
@@ -461,12 +395,6 @@ export default function CategorySection({
         const uniqueTalents = newTalents.filter(
           (talent) => talent?.id && !existingIds.has(talent.id),
         );
-
-        /*
-         * Only duplicates returned.
-         *
-         * Still advance the cursor.
-         */
 
         if (uniqueTalents.length === 0) {
           return {
@@ -479,10 +407,6 @@ export default function CategorySection({
             hasMore: Boolean(result.hasMore),
           };
         }
-
-        /*
-         * Append the new page.
-         */
 
         return {
           talents: [...currentTalents, ...uniqueTalents],
@@ -500,9 +424,9 @@ export default function CategorySection({
   }
 
   /*
-   * =======================================================
+   * =========================================================
    * RENDER
-   * =======================================================
+   * =========================================================
    */
 
   return (
@@ -514,7 +438,13 @@ export default function CategorySection({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-center gap-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700"
+            className="
+              flex h-11 w-11 shrink-0
+              items-center justify-center
+              rounded-xl
+              bg-slate-100
+              text-slate-700
+            "
             aria-hidden="true"
           >
             <CategoryIcon icon={category?.icon} size={18} />
@@ -524,13 +454,26 @@ export default function CategorySection({
             <div className="flex flex-wrap items-center gap-2">
               <h2
                 id={`category-${categoryId}`}
-                className="text-xl font-black tracking-tight text-slate-950"
+                className="
+                  text-xl
+                  font-black
+                  tracking-tight
+                  text-slate-950
+                "
               >
                 {categoryName}
               </h2>
 
               <span
-                className="rounded-lg bg-slate-950 px-2.5 py-1 text-[10px] font-bold text-white"
+                className="
+                  rounded-lg
+                  bg-slate-950
+                  px-2.5
+                  py-1
+                  text-[10px]
+                  font-bold
+                  text-white
+                "
                 aria-label={`${totalTalents} total ${categoryName.toLowerCase()} talents`}
               >
                 {totalTalents}
@@ -563,16 +506,24 @@ export default function CategorySection({
       )}
 
       {/* =================================================
-          FILTERED TALENTS
+          TALENTS
       ================================================= */}
 
       {!loading && !isError && filteredTalents.length > 0 && (
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          className="
+              mt-5
+              grid
+              grid-cols-1
+              gap-4
+              sm:grid-cols-2
+              lg:grid-cols-4
+            "
+        >
           {filteredTalents.map((talent) => (
             <TalentCard
               key={talent.id}
-              id={talent.id}
-              uid={talent.uid}
+              talentId={talent.id}
               username={talent.username}
               avatar={talent.avatar}
               displayName={talent.displayName}
@@ -582,6 +533,7 @@ export default function CategorySection({
               district={talent.district}
               skills={talent.skills}
               likes={talent.likes}
+              liked={talent.liked}
               workCount={talent.workCount}
               verified={talent.verified}
               available={talent.available}
@@ -591,7 +543,7 @@ export default function CategorySection({
       )}
 
       {/* =================================================
-          FILTERED EMPTY STATE
+          FILTERED EMPTY
       ================================================= */}
 
       {!loading &&
@@ -616,7 +568,28 @@ export default function CategorySection({
             onClick={handleLoadMore}
             disabled={loadingMore}
             aria-busy={loadingMore}
-            className="inline-flex h-11 min-w-[150px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="
+              inline-flex
+              h-11
+              min-w-[150px]
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              border
+              border-slate-200
+              bg-white
+              px-5
+              text-sm
+              font-bold
+              text-slate-700
+              transition
+              hover:border-slate-300
+              hover:bg-slate-50
+              active:scale-[0.98]
+              disabled:cursor-not-allowed
+              disabled:opacity-60
+            "
           >
             {loadingMore ? (
               <>

@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -11,20 +14,28 @@ import {
 import TalentHeroFallback from "./TalentHeroFallback";
 import StatusBadge from "./StatusBadge";
 import StatBadge from "./StatBadge";
+import TalentLikeButton from "./TalentLikeButton";
 
 export default function TalentHero({ talent }) {
   const {
+    id,
+    liked: initialLiked = false,
     displayName,
     role,
     category,
     province,
     district,
     avatar,
-    verified,
-    available,
-    likes,
-    workCount,
+    verified = false,
+    available = false,
+    likes: initialLikes = 0,
+    workCount = 0,
   } = talent;
+
+  const [likeState, setLikeState] = useState({
+    liked: Boolean(initialLiked),
+    likes: normalizeLikes(initialLikes),
+  });
 
   const location = [district, province]
     .filter(Boolean)
@@ -32,10 +43,25 @@ export default function TalentHero({ talent }) {
 
   const initials = getInitials(displayName);
 
-  return (
-    <section className="relative overflow-hidden bg-slate-950">
-      {/* Background */}
+  function handleLike({ liked, likes }) {
+    setLikeState({
+      liked: Boolean(liked),
+      likes: normalizeLikes(likes),
+    });
+  }
 
+  return (
+    <section
+      className="
+        relative
+        h-[390px]
+        overflow-hidden
+        bg-slate-950
+        sm:h-[420px]
+        lg:h-[450px]
+      "
+    >
+      {/* Background */}
       <div className="absolute inset-0">
         {avatar ? (
           <Image
@@ -44,7 +70,12 @@ export default function TalentHero({ talent }) {
             fill
             priority
             sizes="100vw"
-            className="object-cover"
+            className="
+              object-cover
+              object-[68%_20%]
+              sm:object-[70%_20%]
+              lg:object-[72%_18%]
+            "
           />
         ) : (
           <TalentHeroFallback
@@ -53,101 +84,415 @@ export default function TalentHero({ talent }) {
           />
         )}
 
-        <div className="absolute inset-0 bg-slate-950/65" />
+        {/* Image wash */}
+        <div className="absolute inset-0 bg-slate-300/55" />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/75 to-slate-950/35" />
+        {/* Left readability */}
+        <div
+          className="
+            absolute
+            inset-0
+            bg-gradient-to-r
+            from-slate-950
+            via-slate-950/80
+            to-slate-950/20
+          "
+        />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/30" />
+        {/* Bottom readability */}
+        <div
+          className="
+            absolute
+            inset-0
+            bg-gradient-to-t
+            from-slate-950
+            via-transparent
+            to-slate-950/20
+          "
+        />
+
+        {/* Top shade */}
+        <div
+          className="
+            absolute
+            inset-x-0
+            top-0
+            h-28
+            bg-gradient-to-b
+            from-slate-950/50
+            to-transparent
+          "
+        />
       </div>
 
-      {/* Decorative circles */}
+      {/* Decorative orange dots */}
+      <OrangeCircles />
 
-      <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full border-[60px] border-white/[0.035]" />
+      {/* Large decorative arc */}
+      <div
+        className="
+          pointer-events-none
+          absolute
+          -left-[260px]
+          top-0
+          h-[430px]
+          w-[430px]
+          rounded-full
+          border
+          border-orange-500/40
+          sm:-left-[220px]
+          sm:h-[480px]
+          sm:w-[480px]
+        "
+      />
 
-      <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full border-[55px] border-white/[0.025]" />
+      {/* White dot grid */}
+      <DotGrid
+        className="
+          left-[31%]
+          top-16
+          hidden
+          sm:grid
+        "
+      />
 
-      {/* Content */}
+      {/* Orange dot grid */}
+      <DotGrid
+        orange
+        className="
+          bottom-8
+          right-5
+          grid
+          sm:right-8
+          lg:right-12
+        "
+      />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-5 pb-10 pt-24 sm:px-6 sm:pb-14 sm:pt-28 lg:px-8 lg:pb-20">
+      {/* Decorative copy */}
+      <div
+        className="
+          pointer-events-none
+          absolute
+          left-7
+          top-28
+          hidden
+          -rotate-6
+          select-none
+          sm:block
+          lg:left-12
+        "
+      >
+        <p
+          className="
+            text-[21px]
+            font-black
+            uppercase
+            leading-[0.9]
+            tracking-[-0.06em]
+            text-slate-800/70
+            lg:text-[25px]
+          "
+        >
+          Real
+          <br />
+          Talent
+          <br />
+          Builds
+          <br />
+          Tomorrow
+        </p>
+
+        <div
+          className="
+            mt-2
+            h-[3px]
+            w-32
+            -rotate-3
+            rounded-full
+            bg-orange-500/70
+          "
+        />
+      </div>
+
+      {/* Main content */}
+      <div
+        className="
+          relative
+          z-20
+          mx-auto
+          flex
+          h-full
+          max-w-7xl
+          flex-col
+          px-5
+          pb-7
+          pt-20
+          sm:px-6
+          sm:pb-9
+          sm:pt-24
+          lg:px-8
+          lg:pb-10
+          lg:pt-24
+        "
+      >
+        {/* Back */}
         <Link
           href="/talents"
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3.5 py-2 text-xs font-bold text-white/75 backdrop-blur-md transition hover:bg-white/15 hover:text-white"
+          className="
+            inline-flex
+            w-fit
+            items-center
+            gap-2
+            rounded-full
+            border
+            border-white/15
+            bg-slate-950/40
+            px-3.5
+            py-2
+            text-xs
+            font-bold
+            text-white/80
+            shadow-lg
+            backdrop-blur-xl
+            transition
+            hover:border-white/25
+            hover:bg-white/10
+            hover:text-white
+          "
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft
+            size={14}
+            aria-hidden="true"
+          />
+
           Back to talents
         </Link>
 
-        <div className="mt-10 flex flex-col gap-6 sm:mt-14 sm:flex-row sm:items-end">
+        {/* Profile */}
+        <div
+          className="
+            mt-auto
+            flex
+            flex-col
+            gap-4
+            sm:flex-row
+            sm:items-end
+            sm:gap-5
+          "
+        >
           {/* Avatar */}
+          <div className="relative shrink-0">
+            <div
+              className="
+                pointer-events-none
+                absolute
+                -inset-2
+                rounded-[1.7rem]
+                bg-orange-500/20
+                blur-xl
+              "
+            />
 
-          <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl border-4 border-white/20 bg-white/10 shadow-2xl backdrop-blur sm:h-36 sm:w-36">
-            {avatar ? (
-              <Image
-                src={avatar}
-                alt={displayName || "Talent"}
-                fill
-                sizes="(max-width: 640px) 112px, 144px"
-                className="object-cover"
+            <div
+              className="
+                relative
+                h-20
+                w-20
+                overflow-hidden
+                rounded-[1.4rem]
+                border-[3px]
+                border-white/90
+                bg-slate-900
+                shadow-[0_15px_40px_rgba(0,0,0,0.5)]
+                sm:h-24
+                sm:w-24
+                lg:h-28
+                lg:w-28
+              "
+            >
+              {avatar ? (
+                <Image
+                  src={avatar}
+                  alt={displayName || "Talent"}
+                  fill
+                  sizes="
+                    (max-width: 640px) 80px,
+                    (max-width: 1024px) 96px,
+                    112px
+                  "
+                  className="object-cover"
+                />
+              ) : (
+                <div
+                  className="
+                    flex
+                    h-full
+                    w-full
+                    items-center
+                    justify-center
+                    bg-white/10
+                    text-xl
+                    font-black
+                    text-white
+                  "
+                >
+                  {initials}
+                </div>
+              )}
+
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  inset-0
+                  bg-gradient-to-br
+                  from-white/15
+                  via-transparent
+                  to-black/25
+                "
               />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-white/10 text-2xl font-black text-white">
-                {initials}
-              </div>
+            </div>
+
+            {/* Available indicator */}
+            {available && (
+              <span
+                aria-label="Available"
+                className="
+                  absolute
+                  bottom-0
+                  right-0
+                  h-5
+                  w-5
+                  rounded-full
+                  border-[3px]
+                  border-slate-950
+                  bg-emerald-400
+                  shadow-[0_0_12px_rgba(52,211,153,0.5)]
+                  sm:h-6
+                  sm:w-6
+                "
+              />
             )}
           </div>
 
           {/* Information */}
-
           <div className="min-w-0 flex-1">
+            {/* Name */}
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-black tracking-[-0.045em] text-white sm:text-4xl lg:text-5xl">
+              <h1
+                className="
+                  max-w-full
+                  text-2xl
+                  font-black
+                  leading-none
+                  tracking-[-0.05em]
+                  text-white
+                  drop-shadow-lg
+                  sm:text-3xl
+                  lg:text-4xl
+                "
+              >
                 {displayName}
               </h1>
 
               {verified && (
                 <span
                   title="Verified talent"
-                  className="inline-flex items-center justify-center"
+                  className="shrink-0"
                 >
                   <CheckCircle2
-                    size={21}
-                    className="fill-white text-slate-950"
+                    size={19}
+                    className="
+                      fill-white
+                      text-slate-950
+                      sm:h-5
+                      sm:w-5
+                    "
+                    aria-hidden="true"
                   />
                 </span>
               )}
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            {/* Role + category */}
+            <div
+              className="
+                mt-1.5
+                flex
+                flex-wrap
+                items-center
+                gap-x-2.5
+                gap-y-1
+              "
+            >
               {role && (
-                <p className="text-base font-bold text-white/80">
+                <p
+                  className="
+                    text-sm
+                    font-bold
+                    text-white/85
+                    sm:text-base
+                  "
+                >
                   {role}
                 </p>
               )}
 
-              {category && role && (
-                <span className="hidden h-1 w-1 rounded-full bg-white/30 sm:block" />
+              {role && category && (
+                <span className="h-1 w-1 rounded-full bg-white/35" />
               )}
 
               {category && (
-                <p className="text-sm font-semibold text-white/50">
+                <p
+                  className="
+                    text-xs
+                    font-semibold
+                    text-white/55
+                    sm:text-sm
+                  "
+                >
                   {category}
                 </p>
               )}
             </div>
 
+            {/* Location */}
             {location && (
-              <div className="mt-3 flex items-center gap-1.5 text-sm text-white/55">
-                <MapPin size={14} />
+              <div
+                className="
+                  mt-2
+                  flex
+                  items-center
+                  gap-1.5
+                  text-xs
+                  text-white/55
+                  sm:text-sm
+                "
+              >
+                <MapPin
+                  size={13}
+                  aria-hidden="true"
+                />
+
                 <span>{location}</span>
               </div>
             )}
 
-            <div className="mt-5 flex flex-wrap items-center gap-2.5">
+            {/* Stats */}
+            <div
+              className="
+                mt-3
+                flex
+                flex-wrap
+                items-center
+                gap-2
+              "
+            >
               <StatusBadge available={available} />
 
               <StatBadge
                 icon={Heart}
-                value={likes ?? 0}
+                value={likeState.likes}
                 label="likes"
               />
 
@@ -160,8 +505,137 @@ export default function TalentHero({ talent }) {
           </div>
         </div>
       </div>
+
+      {/* Floating like button */}
+      <TalentLikeButton
+        talentId={id}
+        initialLiked={likeState.liked}
+        initialLikes={likeState.likes}
+        onLike={handleLike}
+        variant="hero"
+      />
+
+      {/* Bottom brand accent */}
+      <div
+        className="
+          absolute
+          bottom-0
+          left-0
+          h-1
+          w-28
+          bg-orange-500
+          sm:w-40
+        "
+      />
     </section>
   );
+}
+
+/* ===============================================================
+   ORANGE DOTS
+=============================================================== */
+
+function OrangeCircles() {
+  const circles = [
+    [6, "12%", "48%"],
+    [4, "18%", "54%"],
+    [8, "25%", "43%"],
+    [5, "31%", "51%"],
+    [10, "38%", "46%"],
+    [4, "45%", "55%"],
+    [7, "52%", "42%"],
+    [5, "59%", "49%"],
+    [9, "67%", "44%"],
+    [4, "73%", "52%"],
+    [5, "15%", "61%"],
+    [8, "23%", "66%"],
+    [4, "33%", "59%"],
+    [7, "41%", "64%"],
+    [5, "49%", "69%"],
+    [9, "58%", "62%"],
+    [4, "65%", "71%"],
+    [6, "72%", "66%"],
+    [4, "20%", "76%"],
+    [7, "29%", "80%"],
+    [5, "40%", "75%"],
+    [8, "54%", "80%"],
+    [4, "64%", "76%"],
+    [6, "76%", "82%"],
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0">
+      {circles.map(([size, top, left], index) => (
+        <span
+          key={index}
+          className="
+            absolute
+            rounded-full
+            bg-orange-500
+            opacity-70
+            shadow-[0_0_10px_rgba(249,115,22,0.2)]
+          "
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            top,
+            left,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ===============================================================
+   DOT GRID
+=============================================================== */
+
+function DotGrid({
+  className = "",
+  orange = false,
+}) {
+  return (
+    <div
+      className={`
+        pointer-events-none
+        absolute
+        z-10
+        grid
+        grid-cols-7
+        gap-[5px]
+        ${className}
+      `}
+    >
+      {Array.from({ length: 49 }).map((_, index) => (
+        <span
+          key={index}
+          className={`
+            h-[3px]
+            w-[3px]
+            rounded-full
+            sm:h-[4px]
+            sm:w-[4px]
+            ${orange ? "bg-orange-500" : "bg-white/70"}
+          `}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ===============================================================
+   HELPERS
+=============================================================== */
+
+function normalizeLikes(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(number));
 }
 
 function getInitials(name = "") {
@@ -169,7 +643,7 @@ function getInitials(name = "") {
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part[0])
+    .map((part) => part[0] || "")
     .join("")
     .toUpperCase();
 }

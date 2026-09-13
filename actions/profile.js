@@ -17,6 +17,7 @@ import {
 } from "@/data/categories";
 
 import {
+    requireAuth,
     requireAuthAction,
 } from "@/lib/auth-server";
 
@@ -470,7 +471,12 @@ export async function completeProfileAction(
 export async function getMyProfileAction() {
     try {
         const user =
-            await requireAuthAction();
+            await requireAuth();
+
+        console.log(
+            "Authenticated user:",
+            user
+        );
 
         const profile =
             await getProfileByUid(
@@ -495,10 +501,16 @@ export async function getMyProfileAction() {
             error: null,
         };
     } catch (error) {
+        console.error(
+            "getMyProfileAction failed:",
+            error
+        );
+
         return {
             success: false,
             profile: null,
             code:
+                error?.code ||
                 error?.message ||
                 "PROFILE_LOAD_FAILED",
             error:
@@ -838,7 +850,7 @@ function getProfileErrorMessage(
     error
 ) {
     switch (
-        error?.message
+    error?.message
     ) {
         case "AUTH_REQUIRED":
             return (
@@ -897,7 +909,7 @@ function getDeleteProfileError(
     error
 ) {
     switch (
-        error?.message
+    error?.message
     ) {
         case "AUTH_REQUIRED":
             return (
