@@ -34,123 +34,134 @@ export default function TalentCard({
 }) {
   const [imageError, setImageError] = useState(false);
 
-  const [isPending, startTransition] =
-    useTransition();
+  const [isPending, startTransition] = useTransition();
 
   /*
-   * -------------------------------------------------------
-   * OPTIMISTIC LIKE STATE
-   * -------------------------------------------------------
+   * =========================================================
+   * CANONICAL LIKE STATE
+   * =========================================================
    *
-   * The UI changes immediately when the user taps the
-   * heart. The Server Action runs in the background.
+   * Props represent the server/canonical state.
    *
-   * Server state:
-   *
-   * {
-   *   liked: false,
-   *   likes: 10
-   * }
-   *
-   * After tapping:
-   *
-   * {
-   *   liked: true,
-   *   likes: 11
-   * }
+   * useOptimistic temporarily overrides that state while
+   * the Server Action is running.
    */
 
-  const [optimisticLike, updateOptimisticLike] =
-    useOptimistic(
-      {
-        liked: Boolean(liked),
-        likes: normalizeLikes(likes),
-      },
-      (current, next) => ({
-        liked: next.liked,
-        likes: next.likes,
-      }),
-    );
+  const canonicalLike = {
+    liked: Boolean(liked),
+    likes: normalizeLikes(likes),
+  };
 
-  const showImage =
-    Boolean(avatar) && !imageError;
-
-  const location = [
-    district,
-    province,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  const initials =
-    getInitials(displayName);
-
-  const profileUrl =
-    `/talents/${username}`;
+  const [optimisticLike, setOptimisticLike] = useOptimistic(
+    canonicalLike,
+    (_, nextState) => nextState,
+  );
 
   /*
-   * -------------------------------------------------------
+   * =========================================================
+   * IMAGE
+   * =========================================================
+   */
+
+  const showImage = Boolean(avatar) && !imageError;
+
+  const location = [district, province].filter(Boolean).join(", ");
+
+  const initials = getInitials(displayName);
+
+  const profileUrl = `/talents/${username}`;
+
+  /*
+   * =========================================================
    * LIKE
-   * -------------------------------------------------------
+   * =========================================================
    */
 
   function handleLike() {
+    /*
+     * Prevent duplicate requests.
+     */
+
     if (isPending) {
       return;
     }
+
+    /*
+     * Don't attempt to like a card without
+     * a valid talent ID.
+     */
 
     if (!talentId) {
       return;
     }
 
-    const nextLiked =
-      !optimisticLike.liked;
+    /*
+     * Calculate the next state from the state currently
+     * displayed to the user.
+     */
 
-    const nextLikes = Math.max(
-      0,
-      optimisticLike.likes +
-        (nextLiked ? 1 : -1),
-    );
+    const nextLiked = !optimisticLike.liked;
+
+    const nextLikes = Math.max(0, optimisticLike.likes + (nextLiked ? 1 : -1));
+
+    const nextState = {
+      liked: nextLiked,
+      likes: nextLikes,
+    };
+
+    /*
+     * =======================================================
+     * SERVER TRANSITION
+     * =======================================================
+     */
 
     startTransition(async () => {
       /*
-       * Update UI immediately.
+       * 1. Update the UI immediately.
        */
-      updateOptimisticLike({
-        liked: nextLiked,
-        likes: nextLikes,
-      });
+
+      setOptimisticLike(nextState);
 
       try {
         /*
-         * Update the real server state.
+         * 2. Tell the server what state we want.
+         *
+         * The server is responsible for:
+         * - authentication
+         * - checking the existing like
+         * - creating/deleting the like document
+         * - updating the talent counter
+         * - returning the authoritative result
          */
-        const result =
-          await toggleTalentLikeAction({
-            talentId,
-            liked: nextLiked,
-          });
+
+        const result = await toggleTalentLikeAction({
+          talentId,
+          liked: nextLiked,
+        });
 
         /*
-         * The Server Action is responsible for
-         * returning the authoritative result.
+         * 3. If the server rejected the mutation,
+         * log it.
          *
-         * We don't manually set state here because
-         * useOptimistic will return to the canonical
-         * props when the transition finishes.
+         * Because the optimistic state only exists during
+         * the transition, React will return to canonical
+         * server state when the transition completes.
          */
 
         if (!result?.success) {
-          console.error(
-            result?.error ||
-              "Unable to update talent like.",
-          );
+          console.error(result?.error || "Unable to update like.");
+
+          return;
         }
+
+        /*
+         * The returned result is authoritative.
+         *
+         * We intentionally do not maintain another
+         * useState copy here.
+         */
       } catch (error) {
-        console.error(
-          "Like update failed:",
-          error,
-        );
+        console.error("Like update failed:", error);
       }
     });
   }
@@ -161,62 +172,42 @@ export default function TalentCard({
           IMAGE
       ================================================= */}
 
-      <Link
-        href={profileUrl}
-        className="block"
-      >
+      <Link href={profileUrl} className="block">
         <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
           {showImage ? (
             <Image
               src={avatar}
-              alt={`${role || "Talent"} by ${
-                displayName || "talent"
-              }`}
+              alt={`${role || "Talent"} by ${displayName || "talent"}`}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               className="object-cover transition duration-500 group-hover:scale-105"
-              onError={() =>
-                setImageError(true)
-              }
+              onError={() => setImageError(true)}
             />
           ) : (
             <TalentImageFallback
               initials={initials}
-              category={
-                category || role
-              }
+              category={category || role}
             />
           )}
 
-          {/* Bottom gradient */}
-
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/30 to-transparent" />
 
-          {/* =================================================
-              LIKE COUNT
-          ================================================= */}
+          {/* LIKE COUNT */}
 
           <div className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black text-slate-700 shadow-sm backdrop-blur">
             <Heart
               size={11}
-              className={
-                optimisticLike.liked
-                  ? "fill-slate-950"
-                  : ""
-              }
+              className={optimisticLike.liked ? "fill-slate-950" : ""}
             />
 
             {optimisticLike.likes}
           </div>
 
-          {/* =================================================
-              AVAILABLE
-          ================================================= */}
+          {/* AVAILABLE */}
 
           {available && (
             <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-bold text-slate-700 shadow-sm backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-
               Available
             </div>
           )}
@@ -228,32 +219,22 @@ export default function TalentCard({
       ================================================= */}
 
       <div className="flex flex-1 flex-col p-4">
-        {/* =================================================
-            CATEGORY + VERIFIED
-        ================================================= */}
+        {/* CATEGORY + VERIFIED */}
 
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
-            {category ||
-              role ||
-              "Talent"}
+            {category || role || "Talent"}
           </span>
 
           {verified && (
             <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold text-slate-500">
-              <CheckCircle2
-                size={12}
-                className="fill-slate-950 text-white"
-              />
-
+              <CheckCircle2 size={12} className="fill-slate-950 text-white" />
               Verified
             </span>
           )}
         </div>
 
-        {/* =================================================
-            TALENT
-        ================================================= */}
+        {/* TALENT */}
 
         <div className="mt-3 flex items-center gap-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[8px] font-black text-slate-700">
@@ -264,9 +245,7 @@ export default function TalentCard({
                 width={32}
                 height={32}
                 className="h-full w-full object-cover"
-                onError={() =>
-                  setImageError(true)
-                }
+                onError={() => setImageError(true)}
               />
             ) : (
               initials || (
@@ -281,37 +260,31 @@ export default function TalentCard({
 
           <div className="min-w-0">
             <p className="truncate text-xs font-bold text-slate-800">
-              {displayName ||
-                "Unnamed talent"}
+              {displayName || "Unnamed talent"}
             </p>
 
             <div className="mt-0.5 flex items-center gap-1 text-[9px] text-slate-400">
               <MapPin size={9} />
 
               <span className="truncate">
-                {location ||
-                  "Location not provided"}
+                {location || "Location not provided"}
               </span>
             </div>
           </div>
         </div>
 
-        {/* =================================================
-            SKILLS
-        ================================================= */}
+        {/* SKILLS */}
 
         {skills.length > 0 && (
           <div className="mt-3 flex gap-1.5 overflow-hidden">
-            {skills
-              .slice(0, 3)
-              .map((skill) => (
-                <span
-                  key={skill}
-                  className="min-w-0 truncate rounded-md bg-slate-50 px-2 py-1 text-[8px] font-bold text-slate-500"
-                >
-                  {skill}
-                </span>
-              ))}
+            {skills.slice(0, 3).map((skill) => (
+              <span
+                key={skill}
+                className="min-w-0 truncate rounded-md bg-slate-50 px-2 py-1 text-[8px] font-bold text-slate-500"
+              >
+                {skill}
+              </span>
+            ))}
 
             {skills.length > 3 && (
               <span className="shrink-0 rounded-md bg-slate-50 px-2 py-1 text-[8px] font-bold text-slate-400">
@@ -321,78 +294,51 @@ export default function TalentCard({
           </div>
         )}
 
-        {/* =================================================
-            BOTTOM
-        ================================================= */}
+        {/* BOTTOM */}
 
         <div className="mt-auto">
-          {/* =================================================
-              STATS
-          ================================================= */}
+          {/* STATS */}
 
           <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
             <div className="flex items-center gap-4">
-              {/* Likes */}
+              {/* LIKES */}
 
               <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
                 <Heart
                   size={11}
-                  className={
-                    optimisticLike.liked
-                      ? "fill-slate-950"
-                      : ""
-                  }
+                  className={optimisticLike.liked ? "fill-slate-950" : ""}
                 />
 
                 <span>
                   {optimisticLike.likes}{" "}
-                  {optimisticLike.likes ===
-                  1
-                    ? "like"
-                    : "likes"}
+                  {optimisticLike.likes === 1 ? "like" : "likes"}
                 </span>
               </div>
 
-              {/* Works */}
+              {/* WORKS */}
 
               <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
-                <BriefcaseBusiness
-                  size={11}
-                />
+                <BriefcaseBusiness size={11} />
 
                 <span>
-                  {workCount}{" "}
-                  {workCount === 1
-                    ? "work"
-                    : "works"}
+                  {workCount} {workCount === 1 ? "work" : "works"}
                 </span>
               </div>
             </div>
 
-            {/* =================================================
-                LOVE BUTTON
-            ================================================= */}
+            {/* LIKE BUTTON */}
 
             <button
               type="button"
               onClick={handleLike}
-              disabled={
-                isPending || !talentId
-              }
+              disabled={isPending || !talentId}
               aria-label={
                 optimisticLike.liked
-                  ? `Remove love from ${
-                      displayName ||
-                      "talent"
-                    }`
-                  : `Love ${
-                      displayName ||
-                      "talent"
-                    }`
+                  ? `Remove love from ${displayName || "talent"}`
+                  : `Love ${displayName || "talent"}`
               }
-              aria-pressed={
-                optimisticLike.liked
-              }
+              aria-pressed={optimisticLike.liked}
+              aria-busy={isPending}
               className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
                 optimisticLike.liked
                   ? "bg-slate-950 text-white"
@@ -403,30 +349,25 @@ export default function TalentCard({
                 <LoaderCircle
                   size={14}
                   className="animate-spin"
+                  aria-hidden="true"
                 />
               ) : (
                 <Heart
                   size={14}
-                  className={
-                    optimisticLike.liked
-                      ? "fill-white"
-                      : ""
-                  }
+                  className={optimisticLike.liked ? "fill-white" : ""}
+                  aria-hidden="true"
                 />
               )}
             </button>
           </div>
 
-          {/* =================================================
-              VIEW PROFILE
-          ================================================= */}
+          {/* VIEW PROFILE */}
 
           <Link
             href={profileUrl}
             className="group/button mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-bold text-white transition hover:bg-slate-800 hover:shadow-md"
           >
             View profile
-
             <ArrowRight
               size={14}
               className="transition-transform duration-200 group-hover/button:translate-x-0.5"
@@ -443,17 +384,13 @@ export default function TalentCard({
 ========================================================= */
 
 function normalizeLikes(value) {
-  if (
-    typeof value !== "number" ||
-    !Number.isFinite(value)
-  ) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
     return 0;
   }
 
-  return Math.max(
-    0,
-    Math.floor(value),
-  );
+  return Math.max(0, Math.floor(number));
 }
 
 function getInitials(name) {
@@ -465,11 +402,7 @@ function getInitials(name) {
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map(
-      (part) =>
-        part[0]?.toUpperCase() ||
-        "",
-    )
+    .map((part) => part[0]?.toUpperCase() || "")
     .join("");
 }
 
@@ -477,10 +410,7 @@ function getInitials(name) {
    IMAGE FALLBACK
 ========================================================= */
 
-function TalentImageFallback({
-  initials,
-  category,
-}) {
+function TalentImageFallback({ initials, category }) {
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-white">
       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-slate-200/60 blur-2xl" />
@@ -494,15 +424,11 @@ function TalentImageFallback({
               {initials}
             </span>
           ) : (
-            <UserRound
-              size={30}
-              strokeWidth={1.5}
-              className="text-slate-300"
-            />
+            <UserRound size={30} strokeWidth={1.5} className="text-slate-300" />
           )}
         </div>
 
-        <span className="mt-2 max-w-[120px] truncate text-[8px] font-black uppercase tracking-[0.14em] text-slate-300">
+        <span className="mt-2 max-w-30 truncate text-[8px] font-black uppercase tracking-[0.14em] text-slate-300">
           {category || "Talent"}
         </span>
       </div>
