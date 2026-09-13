@@ -533,7 +533,7 @@ export default function CategorySection({
               district={talent.district}
               skills={talent.skills}
               likes={talent.likes}
-              liked={talent.liked}
+              likedByMe={talent.likedByMe}
               workCount={talent.workCount}
               verified={talent.verified}
               available={talent.available}

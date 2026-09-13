@@ -114,23 +114,23 @@ export default async function TalentSection({
 
       <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {talents.map((talent) => (
-          <TalentCard
-            key={talent.id}
-            talentId={talent.id}
-            username={talent.username}
-            avatar={talent.avatar}
-            displayName={talent.displayName}
-            role={talent.role}
-            category={talent.category}
-            province={talent.province}
-            district={talent.district}
-            skills={talent.skills}
-            likes={talent.likes}
-            liked={talent.liked}
-            workCount={talent.workCount}
-            verified={talent.verified}
-            available={talent.available}
-          />
+         <TalentCard
+  key={talent.id}
+  talentId={talent.id}
+  username={talent.username}
+  avatar={talent.avatar}
+  displayName={talent.displayName}
+  role={talent.role}
+  category={talent.category}
+  province={talent.province}
+  district={talent.district}
+  skills={talent.skills}
+  likes={talent.likes}
+  likedByMe={talent.likedByMe}
+  workCount={talent.workCount}
+  verified={talent.verified}
+  available={talent.available}
+/>
         ))}
       </div>
     </section>

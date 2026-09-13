@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   ArrowRight,
@@ -29,46 +29,30 @@ export default function TalentCard({
   workCount = 0,
   verified = false,
   available = false,
-  liked = false,
+  likedByMe = false,
 }) {
-  const [imageError, setImageError] =
-    useState(false);
+  const [imageError, setImageError] = useState(false);
 
   /*
    * =========================================================
    * LIKE STATE
    * =========================================================
    *
-   * liked  -> current user's like state
-   * likes  -> public total like count
+   * likedByMe:
+   * Whether the currently authenticated user has liked
+   * this talent.
    *
-   * The button updates this optimistically.
-   * Fresh server data can also update it through the effect below.
+   * likes:
+   * Public total number of likes.
+   *
+   * The state is initialized from server data and then
+   * updated optimistically by TalentLikeButton.
    */
 
-  const [likeState, setLikeState] =
-    useState(() => ({
-      liked: Boolean(liked),
-      likes: normalizeLikes(likes),
-    }));
-
-  /*
-   * Keep local state synchronized with
-   * fresh server / React Query data.
-   *
-   * Important when:
-   * - the list refetches
-   * - auth state changes
-   * - user navigates back
-   * - another component changes the talent
-   */
-
-  useEffect(() => {
-    setLikeState({
-      liked: Boolean(liked),
-      likes: normalizeLikes(likes),
-    });
-  }, [liked, likes]);
+  const [likeState, setLikeState] = useState(() => ({
+    liked: Boolean(likedByMe),
+    likes: normalizeLikes(likes),
+  }));
 
   /*
    * =========================================================
@@ -76,8 +60,7 @@ export default function TalentCard({
    * =========================================================
    */
 
-  const showImage =
-    Boolean(avatar) && !imageError;
+  const showImage = Boolean(avatar) && !imageError;
 
   /*
    * =========================================================
@@ -85,18 +68,13 @@ export default function TalentCard({
    * =========================================================
    */
 
-  const location = [
-    district,
-    province,
-  ]
+  const location = [district, province]
     .filter(Boolean)
     .join(", ");
 
-  const initials =
-    getInitials(displayName);
+  const initials = getInitials(displayName);
 
-  const profileUrl =
-    `/talents/${username}`;
+  const profileUrl = `/talents/${username}`;
 
   /*
    * =========================================================
@@ -170,16 +148,12 @@ export default function TalentCard({
                 duration-500
                 group-hover:scale-105
               "
-              onError={() =>
-                setImageError(true)
-              }
+              onError={() => setImageError(true)}
             />
           ) : (
             <TalentImageFallback
               initials={initials}
-              category={
-                category || role
-              }
+              category={category || role}
             />
           )}
 
@@ -294,9 +268,7 @@ export default function TalentCard({
               text-slate-400
             "
           >
-            {category ||
-              role ||
-              "Talent"}
+            {category || role || "Talent"}
           </span>
 
           {verified && (
@@ -355,9 +327,7 @@ export default function TalentCard({
                   w-full
                   object-cover
                 "
-                onError={() =>
-                  setImageError(true)
-                }
+                onError={() => setImageError(true)}
               />
             ) : (
               initials || (
@@ -380,8 +350,7 @@ export default function TalentCard({
                 text-slate-800
               "
             >
-              {displayName ||
-                "Unnamed talent"}
+              {displayName || "Unnamed talent"}
             </p>
 
             <div
@@ -400,8 +369,7 @@ export default function TalentCard({
               />
 
               <span className="truncate">
-                {location ||
-                  "Location not provided"}
+                {location || "Location not provided"}
               </span>
             </div>
           </div>
@@ -418,26 +386,24 @@ export default function TalentCard({
               overflow-hidden
             "
           >
-            {skills
-              .slice(0, 3)
-              .map((skill) => (
-                <span
-                  key={skill}
-                  className="
-                    min-w-0
-                    truncate
-                    rounded-md
-                    bg-slate-50
-                    px-2
-                    py-1
-                    text-[8px]
-                    font-bold
-                    text-slate-500
-                  "
-                >
-                  {skill}
-                </span>
-              ))}
+            {skills.slice(0, 3).map((skill) => (
+              <span
+                key={skill}
+                className="
+                  min-w-0
+                  truncate
+                  rounded-md
+                  bg-slate-50
+                  px-2
+                  py-1
+                  text-[8px]
+                  font-bold
+                  text-slate-500
+                "
+              >
+                {skill}
+              </span>
+            ))}
 
             {skills.length > 3 && (
               <span
@@ -538,12 +504,8 @@ export default function TalentCard({
 
             <TalentLikeButton
               talentId={talentId}
-              initialLiked={
-                likeState.liked
-              }
-              initialLikes={
-                likeState.likes
-              }
+              initialLiked={likeState.liked}
+              initialLikes={likeState.likes}
               variant="card"
               onLike={handleLike}
             />
@@ -604,10 +566,7 @@ function normalizeLikes(value) {
     return 0;
   }
 
-  return Math.max(
-    0,
-    Math.floor(number),
-  );
+  return Math.max(0, Math.floor(number));
 }
 
 function getInitials(name) {
