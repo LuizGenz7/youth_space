@@ -2,14 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Heart,
-  MapPin,
-  Sparkles,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, CheckCircle2, Heart, MapPin, Sparkles } from "lucide-react";
 
 import TalentHeroFallback from "./TalentHeroFallback";
 import StatusBadge from "./StatusBadge";
@@ -19,7 +13,7 @@ import TalentLikeButton from "./TalentLikeButton";
 export default function TalentHero({ talent }) {
   const {
     id,
-    liked: initialLiked = false,
+    likedByMe = false,
     displayName,
     role,
     category,
@@ -32,14 +26,31 @@ export default function TalentHero({ talent }) {
     workCount = 0,
   } = talent;
 
+  /*
+   * likedByMe comes directly from the serialized talent:
+   *
+   * talent.likedByMe
+   *
+   * This is the initial source of truth.
+   * Local state is then used for optimistic UI updates.
+   */
   const [likeState, setLikeState] = useState({
-    liked: Boolean(initialLiked),
+    liked: Boolean(likedByMe),
     likes: normalizeLikes(initialLikes),
   });
 
-  const location = [district, province]
-    .filter(Boolean)
-    .join(", ");
+  /*
+   * Keep the hero synchronized if the parent/server sends
+   * updated talent data later.
+   */
+  useEffect(() => {
+    setLikeState({
+      liked: Boolean(likedByMe),
+      likes: normalizeLikes(initialLikes),
+    });
+  }, [likedByMe, initialLikes]);
+
+  const location = [district, province].filter(Boolean).join(", ");
 
   const initials = getInitials(displayName);
 
@@ -78,10 +89,7 @@ export default function TalentHero({ talent }) {
             "
           />
         ) : (
-          <TalentHeroFallback
-            initials={initials}
-            category={category || role}
-          />
+          <TalentHeroFallback initials={initials} category={category || role} />
         )}
 
         {/* Image wash */}
@@ -260,11 +268,7 @@ export default function TalentHero({ talent }) {
             hover:text-white
           "
         >
-          <ArrowLeft
-            size={14}
-            aria-hidden="true"
-          />
-
+          <ArrowLeft size={14} aria-hidden="true" />
           Back to talents
         </Link>
 
@@ -396,10 +400,7 @@ export default function TalentHero({ talent }) {
               </h1>
 
               {verified && (
-                <span
-                  title="Verified talent"
-                  className="shrink-0"
-                >
+                <span title="Verified talent" className="shrink-0">
                   <CheckCircle2
                     size={19}
                     className="
@@ -469,10 +470,7 @@ export default function TalentHero({ talent }) {
                   sm:text-sm
                 "
               >
-                <MapPin
-                  size={13}
-                  aria-hidden="true"
-                />
+                <MapPin size={13} aria-hidden="true" />
 
                 <span>{location}</span>
               </div>
@@ -490,23 +488,15 @@ export default function TalentHero({ talent }) {
             >
               <StatusBadge available={available} />
 
-              <StatBadge
-                icon={Heart}
-                value={likeState.likes}
-                label="likes"
-              />
+              <StatBadge icon={Heart} value={likeState.likes} label="likes" />
 
-              <StatBadge
-                icon={Sparkles}
-                value={workCount ?? 0}
-                label="works"
-              />
+              <StatBadge icon={Sparkles} value={workCount ?? 0} label="works" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Floating like button */}
+      {/* Like button */}
       <TalentLikeButton
         talentId={id}
         initialLiked={likeState.liked}
@@ -591,10 +581,7 @@ function OrangeCircles() {
    DOT GRID
 =============================================================== */
 
-function DotGrid({
-  className = "",
-  orange = false,
-}) {
+function DotGrid({ className = "", orange = false }) {
   return (
     <div
       className={`

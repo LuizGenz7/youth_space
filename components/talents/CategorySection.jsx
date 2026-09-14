@@ -17,19 +17,21 @@ import {
 import { TalentCardSkeletonGrid } from "./TalentsLoading";
 
 /*
- * =========================================================
- * CONFIG
- * =========================================================
- */
+
+* =========================================================
+* CONFIG
+* =========================================================
+  */
 
 const QUERY_STALE_TIME = 5 * 60 * 1000;
 const QUERY_GC_TIME = 30 * 60 * 1000;
 
 /*
- * =========================================================
- * HELPERS
- * =========================================================
- */
+
+* =========================================================
+* HELPERS
+* =========================================================
+  */
 
 function normalize(value) {
   return String(value ?? "")
@@ -105,28 +107,64 @@ function talentMatchesCategory(talent, category) {
   return normalize(talent?.category) === normalize(category);
 }
 
+/*
+
+* =========================================================
+* SORT
+* =========================================================
+* 
+* IMPORTANT:
+* 
+* "Recommended" preserves the order returned by Firestore.
+* 
+* The category Firestore query is ordered by:
+* 
+* likeCount DESC
+* createdAt DESC
+* documentId DESC
+* 
+* Keeping this order intact is important for cursor
+* pagination. Re-sorting the accumulated pages on the
+* client can make newly loaded talents appear above the
+* previous page.
+* 
+* Other client-side sorts are still supported, but they
+* should be treated as display-only sorting of the talents
+* that have already been loaded.
+* =========================================================
+  */
+
 function sortTalents(talents, sort) {
   const result = [...talents];
 
   switch (sort) {
+    /*
+     * Newest
+     *
+     * Client-side sort of currently loaded talents.
+     */
     case "Newest":
       return result.sort((a, b) => {
         const aTime = Number(a?.createdAt || 0);
-
         const bTime = Number(b?.createdAt || 0);
 
         return bTime - aTime;
       });
 
+    /*
+     * A-Z
+     */
     case "A-Z":
       return result.sort((a, b) =>
         normalize(a?.displayName).localeCompare(normalize(b?.displayName)),
       );
 
+    /*
+     * Available now
+     */
     case "Available now":
       return result.sort((a, b) => {
         const aAvailable = a?.available ? 1 : 0;
-
         const bAvailable = b?.available ? 1 : 0;
 
         if (bAvailable !== aAvailable) {
@@ -136,35 +174,30 @@ function sortTalents(talents, sort) {
         return Number(b?.likes || 0) - Number(a?.likes || 0);
       });
 
+    /*
+     * Recommended
+     *
+     * DO NOT SORT HERE.
+     *
+     * Firestore already provides the correct pagination
+     * order:
+     *
+     * likeCount DESC
+     * createdAt DESC
+     * documentId DESC
+     */
     case "Recommended":
     default:
-      return result.sort((a, b) => {
-        const likesDifference = Number(b?.likes || 0) - Number(a?.likes || 0);
-
-        if (likesDifference !== 0) {
-          return likesDifference;
-        }
-
-        const aAvailable = a?.available ? 1 : 0;
-
-        const bAvailable = b?.available ? 1 : 0;
-
-        if (bAvailable !== aAvailable) {
-          return bAvailable - aAvailable;
-        }
-
-        return normalize(a?.displayName).localeCompare(
-          normalize(b?.displayName),
-        );
-      });
+      return result;
   }
 }
 
 /*
- * =========================================================
- * COMPONENT
- * =========================================================
- */
+
+* =========================================================
+* COMPONENT
+* =========================================================
+  */
 
 export default function CategorySection({
   category,
@@ -177,22 +210,22 @@ export default function CategorySection({
   const queryClient = useQueryClient();
 
   /*
-   * =======================================================
-   * CATEGORY
-   * =======================================================
-   */
+
+* =======================================================
+* CATEGORY
+* =======================================================
+  */
 
   const categoryId = category?.id || "";
-
   const categoryName = category?.name || "Talents";
-
   const totalTalents = Number(category?.totalTalents || 0);
 
   /*
-   * =======================================================
-   * INITIAL TALENTS
-   * =======================================================
-   */
+
+* =======================================================
+* INITIAL TALENTS
+* =======================================================
+  */
 
   const initialTalents = Array.isArray(category?.talents)
     ? category.talents
@@ -204,18 +237,20 @@ export default function CategorySection({
     Boolean(categoryId) && totalTalents > 0 && !hasInitialTalents;
 
   /*
-   * =======================================================
-   * QUERY KEY
-   * =======================================================
-   */
+
+* =======================================================
+* QUERY KEY
+* =======================================================
+  */
 
   const queryKey = ["talents", categoryId];
 
   /*
-   * =======================================================
-   * INITIAL DATA
-   * =======================================================
-   */
+
+* =======================================================
+* INITIAL DATA
+* =======================================================
+  */
 
   const initialData = hasInitialTalents
     ? {
@@ -232,10 +267,11 @@ export default function CategorySection({
     : undefined;
 
   /*
-   * =======================================================
-   * REACT QUERY
-   * =======================================================
-   */
+
+* =======================================================
+* REACT QUERY
+* =======================================================
+  */
 
   const { data, isPending, isError } = useQuery({
     queryKey,
@@ -274,10 +310,11 @@ export default function CategorySection({
   });
 
   /*
-   * =======================================================
-   * CURRENT QUERY STATE
-   * =======================================================
-   */
+
+* =======================================================
+* CURRENT QUERY STATE
+* =======================================================
+  */
 
   const talents = Array.isArray(data?.talents) ? data.talents : [];
 
@@ -288,18 +325,20 @@ export default function CategorySection({
   const hasMore = Boolean(data?.hasMore);
 
   /*
-   * =======================================================
-   * LOADING
-   * =======================================================
-   */
+
+* =======================================================
+* LOADING
+* =======================================================
+  */
 
   const loading = isPending && talents.length === 0;
 
   /*
-   * =======================================================
-   * LOAD MORE STATE
-   * =======================================================
-   */
+
+* =======================================================
+* LOAD MORE STATE
+* =======================================================
+  */
 
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -311,13 +350,14 @@ export default function CategorySection({
     Boolean(nextCursor);
 
   /*
-   * =======================================================
-   * FILTER + SORT
-   * =======================================================
-   */
+
+* =======================================================
+* FILTER + SORT
+* =======================================================
+  */
 
   const filteredTalents = useMemo(() => {
-    let result = talents.filter((talent) => {
+    const result = talents.filter((talent) => {
       if (!talentMatchesCategory(talent, activeCategory)) {
         return false;
       }
@@ -341,10 +381,11 @@ export default function CategorySection({
   }, [talents, search, activeCategory, province, district, sort]);
 
   /*
-   * =======================================================
-   * LOAD MORE
-   * =======================================================
-   */
+
+* =======================================================
+* LOAD MORE
+* =======================================================
+  */
 
   async function handleLoadMore() {
     if (loading || loadingMore || !hasMore || !categoryId || !nextCursor) {
@@ -372,6 +413,10 @@ export default function CategorySection({
           ? current.talents
           : [];
 
+        /*
+         * No new results.
+         */
+
         if (newTalents.length === 0) {
           return {
             talents: currentTalents,
@@ -396,6 +441,11 @@ export default function CategorySection({
           (talent) => talent?.id && !existingIds.has(talent.id),
         );
 
+        /*
+         * Cursor moved but every returned
+         * talent was already loaded.
+         */
+
         if (uniqueTalents.length === 0) {
           return {
             talents: currentTalents,
@@ -407,6 +457,14 @@ export default function CategorySection({
             hasMore: Boolean(result.hasMore),
           };
         }
+
+        /*
+         * IMPORTANT:
+         *
+         * Always append the next page.
+         *
+         * Never prepend it.
+         */
 
         return {
           talents: [...currentTalents, ...uniqueTalents],
@@ -424,27 +482,28 @@ export default function CategorySection({
   }
 
   /*
-   * =========================================================
-   * RENDER
-   * =========================================================
-   */
+
+* =========================================================
+* RENDER
+* =========================================================
+  */
 
   return (
-    <section aria-labelledby={`category-${categoryId}`}>
+    <section aria-labelledby={"category-${categoryId}"}>
       {/* =================================================
-          CATEGORY HEADER
-      ================================================= */}
+CATEGORY HEADER
+================================================= */}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-center gap-3">
           <div
             className="
-              flex h-11 w-11 shrink-0
-              items-center justify-center
-              rounded-xl
-              bg-slate-100
-              text-slate-700
-            "
+          flex h-11 w-11 shrink-0
+          items-center justify-center
+          rounded-xl
+          bg-slate-100
+          text-slate-700
+        "
             aria-hidden="true"
           >
             <CategoryIcon icon={category?.icon} size={18} />
@@ -455,25 +514,25 @@ export default function CategorySection({
               <h2
                 id={`category-${categoryId}`}
                 className="
-                  text-xl
-                  font-black
-                  tracking-tight
-                  text-slate-950
-                "
+              text-xl
+              font-black
+              tracking-tight
+              text-slate-950
+            "
               >
                 {categoryName}
               </h2>
 
               <span
                 className="
-                  rounded-lg
-                  bg-slate-950
-                  px-2.5
-                  py-1
-                  text-[10px]
-                  font-bold
-                  text-white
-                "
+              rounded-lg
+              bg-slate-950
+              px-2.5
+              py-1
+              text-[10px]
+              font-bold
+              text-white
+            "
                 aria-label={`${totalTalents} total ${categoryName.toLowerCase()} talents`}
               >
                 {totalTalents}
@@ -488,14 +547,14 @@ export default function CategorySection({
       </div>
 
       {/* =================================================
-          INITIAL LOADING
-      ================================================= */}
+      INITIAL LOADING
+  ================================================= */}
 
       {loading && <TalentCardSkeletonGrid length={4} />}
 
       {/* =================================================
-          ERROR
-      ================================================= */}
+      ERROR
+  ================================================= */}
 
       {!loading && isError && talents.length === 0 && totalTalents > 0 && (
         <div className="mt-5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">
@@ -506,19 +565,19 @@ export default function CategorySection({
       )}
 
       {/* =================================================
-          TALENTS
-      ================================================= */}
+      TALENTS
+  ================================================= */}
 
       {!loading && !isError && filteredTalents.length > 0 && (
         <div
           className="
-              mt-5
-              grid
-              grid-cols-1
-              gap-4
-              sm:grid-cols-2
-              lg:grid-cols-4
-            "
+          mt-5
+          grid
+          grid-cols-1
+          gap-4
+          sm:grid-cols-2
+          lg:grid-cols-4
+        "
         >
           {filteredTalents.map((talent) => (
             <TalentCard
@@ -543,8 +602,8 @@ export default function CategorySection({
       )}
 
       {/* =================================================
-          FILTERED EMPTY
-      ================================================= */}
+      FILTERED EMPTY
+  ================================================= */}
 
       {!loading &&
         !isError &&
@@ -558,8 +617,8 @@ export default function CategorySection({
         )}
 
       {/* =================================================
-          LOAD MORE
-      ================================================= */}
+      LOAD MORE
+  ================================================= */}
 
       {shouldLoadMore && (
         <div className="mt-7 flex justify-center">
@@ -569,27 +628,27 @@ export default function CategorySection({
             disabled={loadingMore}
             aria-busy={loadingMore}
             className="
-              inline-flex
-              h-11
-              min-w-[150px]
-              items-center
-              justify-center
-              gap-2
-              rounded-xl
-              border
-              border-slate-200
-              bg-white
-              px-5
-              text-sm
-              font-bold
-              text-slate-700
-              transition
-              hover:border-slate-300
-              hover:bg-slate-50
-              active:scale-[0.98]
-              disabled:cursor-not-allowed
-              disabled:opacity-60
-            "
+          inline-flex
+          h-11
+          min-w-[150px]
+          items-center
+          justify-center
+          gap-2
+          rounded-xl
+          border
+          border-slate-200
+          bg-white
+          px-5
+          text-sm
+          font-bold
+          text-slate-700
+          transition
+          hover:border-slate-300
+          hover:bg-slate-50
+          active:scale-[0.98]
+          disabled:cursor-not-allowed
+          disabled:opacity-60
+        "
           >
             {loadingMore ? (
               <>
@@ -613,8 +672,8 @@ export default function CategorySection({
       )}
 
       {/* =================================================
-          END
-      ================================================= */}
+      END
+  ================================================= */}
 
       {!loading && !isError && talents.length > 0 && !hasMore && (
         <p className="mt-6 text-center text-xs font-medium text-slate-400">
@@ -623,8 +682,8 @@ export default function CategorySection({
       )}
 
       {/* =================================================
-          EMPTY CATEGORY
-      ================================================= */}
+      EMPTY CATEGORY
+  ================================================= */}
 
       {!loading && !isError && talents.length === 0 && totalTalents === 0 && (
         <div className="mt-5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">

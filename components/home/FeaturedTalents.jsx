@@ -34,23 +34,23 @@ export default async function FeaturedTalents() {
         {featuredTalents.length > 0 ? (
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {featuredTalents.map((talent) => (
-   <TalentCard
-            key={talent.id}
-            talentId={talent.id}
-            username={talent.username}
-            avatar={talent.avatar}
-            displayName={talent.displayName}
-            role={talent.role}
-            category={talent.category}
-            province={talent.province}
-            district={talent.district}
-            skills={talent.skills}
-            likes={talent.likes}
-            liked={talent.liked}
-            workCount={talent.workCount}
-            verified={talent.verified}
-            available={talent.available}
-          />
+              <TalentCard
+                key={talent.id}
+                talentId={talent.id}
+                username={talent.username}
+                avatar={talent.avatar}
+                displayName={talent.displayName}
+                role={talent.role}
+                category={talent.category}
+                province={talent.province}
+                district={talent.district}
+                skills={talent.skills}
+                likes={talent.likes}
+                likedByMe={talent.likedByMe}
+                workCount={talent.workCount}
+                verified={talent.verified}
+                available={talent.available}
+              />
             ))}
           </div>
         ) : (
