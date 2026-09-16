@@ -33,7 +33,7 @@ import { deleteProfileAction, updateProfileAction } from "@/actions/profile";
 import { deleteWorkAction } from "@/actions/works";
 
 import { useSnackbarStore } from "@/stores/useSnackbarStore";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 /* ============================================================================
    PROFILE CLIENT
