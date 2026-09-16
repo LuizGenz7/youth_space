@@ -9,18 +9,19 @@ import {
 } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function TalentsHero({ talentsLoading = false }) {
+export default function TalentsHero() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const initialSearch = searchParams.get("search") || "";
+  const urlSearch = searchParams.get("search") || "";
 
-  const [search, setSearch] = useState(initialSearch);
+  // Local state keeps typing instant.
+  const [search, setSearch] = useState(urlSearch);
 
+  // Update the URL only after the user stops typing.
   useEffect(() => {
     const trimmedSearch = search.trim();
-
     const currentSearch = searchParams.get("search") || "";
 
     if (trimmedSearch === currentSearch) {
@@ -44,7 +45,7 @@ export default function TalentsHero({ talentsLoading = false }) {
           scroll: false,
         }
       );
-    }, 300);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [search, pathname, router, searchParams]);
@@ -77,6 +78,7 @@ export default function TalentsHero({ talentsLoading = false }) {
 
   return (
     <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
+      {/* Hero image */}
       <Image
         src="/images/hero/talents-hero.webp"
         alt="Young people sharing their skills and creative work"
@@ -86,6 +88,7 @@ export default function TalentsHero({ talentsLoading = false }) {
         className="object-cover"
       />
 
+      {/* Overlays */}
       <div
         className="absolute inset-0 bg-slate-950/2"
         aria-hidden="true"
@@ -101,6 +104,7 @@ export default function TalentsHero({ talentsLoading = false }) {
         aria-hidden="true"
       />
 
+      {/* Content */}
       <div className="relative mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
         <div className="max-w-3xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
@@ -119,18 +123,13 @@ export default function TalentsHero({ talentsLoading = false }) {
             professional services, and local expertise.
           </p>
 
+          {/* Search */}
           <form
             onSubmit={handleSubmit}
             className="mt-7"
             role="search"
           >
-            <div
-              className={`flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl transition ${
-                talentsLoading
-                  ? "opacity-70"
-                  : "focus-within:border-white/40 focus-within:ring-4 focus-within:ring-white/10"
-              }`}
-            >
+            <div className="flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl transition focus-within:border-white/40 focus-within:ring-4 focus-within:ring-white/10">
               <div
                 className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400"
                 aria-hidden="true"
@@ -142,22 +141,18 @@ export default function TalentsHero({ talentsLoading = false }) {
                 type="search"
                 value={search}
                 onChange={handleChange}
-                placeholder={
-                  talentsLoading
-                    ? "Loading talents..."
-                    : "Search talents, skills or services..."
-                }
+                placeholder="Search talents, skills or services..."
                 aria-label="Search talents, skills or services"
                 className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 sm:text-base"
               />
 
               <button
                 type="submit"
-                disabled={talentsLoading || !search.trim()}
+                disabled={!search.trim()}
                 className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="hidden sm:inline">
-                  {talentsLoading ? "Loading..." : "Search"}
+                  Search
                 </span>
 
                 <ArrowRight
