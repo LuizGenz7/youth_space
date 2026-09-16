@@ -2,1995 +2,2942 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-
+import { useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft,
   BriefcaseBusiness,
   Check,
   ChevronDown,
+  CircleAlert,
   ImagePlus,
-  Mail,
-  MapPin,
+  Info,
   Pencil,
   Plus,
-  Save,
-  Settings2,
-  ShieldCheck,
-  Sparkles,
   Trash2,
-  UserRound,
+  User,
   X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import {
-  ZAMBIA_PROVINCES,
-  getDistrictsByProvince,
-} from "@/data/zambia-locations";
-
-import { deleteProfileAction, updateProfileAction } from "@/actions/profile";
+  deleteProfileAction,
+  updateProfileAction,
+} from "@/actions/profile";
 
 import { deleteWorkAction } from "@/actions/works";
 
-import { useSnackbarStore } from "@/stores/useSnackbarStore";
-import { useRouter } from "next/navigation";
+import { useSnackbarStore } from "@/stores/snackbarStore";
 
-/* ============================================================================
-   PROFILE CLIENT
-   ============================================================================ */
+import {
+  provinces,
+  districts,
+} from "@/data/zambiaLocations";
+
 
 export default function ProfileClient({
   profile,
   works = [],
   categories = [],
 }) {
-  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
   const router = useRouter();
 
+  const showSnackbar = useSnackbarStore(
+    (state) => state.showSnackbar
+  );
+
+  const avatarInputRef = useRef(null);
+
   const [currentProfile, setCurrentProfile] = useState(profile);
-  const [currentWorks, setCurrentWorks] = useState(
-    Array.isArray(works) ? works : [],
+  const [currentWorks, setCurrentWorks] = useState(works);
+
+  const [activeSection, setActiveSection] =
+    useState("profile");
+
+  const [openDropdown, setOpenDropdown] =
+    useState(null);
+
+  const [activeModal, setActiveModal] =
+    useState(null);
+
+  const [confirmAction, setConfirmAction] =
+    useState(null);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [deletingProfile, setDeletingProfile] =
+    useState(false);
+
+  const [deletingWorkId, setDeletingWorkId] =
+    useState(null);
+
+  const [savingAvailability, setSavingAvailability] =
+    useState(false);
+
+  const [skills, setSkills] = useState(
+    Array.isArray(profile?.skills)
+      ? profile.skills
+      : []
   );
 
-  const [activeModal, setActiveModal] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null);
-
-  const [savingAvailability, setSavingAvailability] = useState(false);
-  const [deletingProfile, setDeletingProfile] = useState(false);
-
-  const category = useMemo(
-    () => categories.find((item) => item.id === currentProfile.categoryId),
-    [categories, currentProfile.categoryId],
+  const [services, setServices] = useState(
+    normalizeServices(profile?.services)
   );
 
-  const progress = useMemo(
-    () => calculateProfileProgress(currentProfile, currentWorks),
-    [currentProfile, currentWorks],
-  );
+  const [avatarPreview, setAvatarPreview] =
+    useState(profile?.avatar || "");
 
-  async function handleAvailabilityToggle() {
-    const nextValue = !Boolean(currentProfile.available);
+  const [skillInput, setSkillInput] =
+    useState("");
 
-    setSavingAvailability(true);
+  const [serviceInput, setServiceInput] =
+    useState("");
+
+  const [profileForm, setProfileForm] =
+    useState({
+      displayName: profile?.displayName || "",
+      username: profile?.username || "",
+      role: profile?.role || "",
+      categoryId: profile?.categoryId || "",
+      province: profile?.province || "",
+      district: profile?.district || "",
+      bio: profile?.bio || "",
+      phone: profile?.phone || "",
+      whatsapp: profile?.whatsapp || "",
+    });
+
+  const [workModalOpen, setWorkModalOpen] =
+    useState(false);
+
+  const category = useMemo(() => {
+    return categories.find(
+      (item) => item.id === currentProfile?.categoryId
+    );
+  }, [categories, currentProfile?.categoryId]);
+
+  const availableDistricts = useMemo(() => {
+    if (!profileForm.province) return [];
+
+    return getDistrictsForProvince(
+      profileForm.province
+    );
+  }, [profileForm.province]);
+
+  const profileStrength = useMemo(() => {
+    const checks = [
+      Boolean(currentProfile?.displayName),
+      Boolean(currentProfile?.avatar),
+      Boolean(currentProfile?.role),
+      Boolean(currentProfile?.categoryId),
+      Boolean(currentProfile?.province),
+      Boolean(currentProfile?.district),
+      Boolean(currentProfile?.bio),
+      skills.length > 0,
+      services.length > 0,
+      currentWorks.length > 0,
+    ];
+
+    const completed = checks.filter(Boolean).length;
+
+    return Math.round(
+      (completed / checks.length) * 100
+    );
+  }, [
+    currentProfile,
+    skills.length,
+    services.length,
+    currentWorks.length,
+  ]);
+
+  function selectSection(section) {
+    setActiveSection(section);
+    setOpenDropdown(null);
+  }
+
+  function closeModal() {
+    setActiveModal(null);
+    setConfirmAction(null);
+  }
+
+  function updateForm(field, value) {
+    setProfileForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  }
+
+  async function handleSaveProfile(event) {
+    event.preventDefault();
+
+    if (saving) return;
 
     try {
+      setSaving(true);
+
+      const result = await updateProfileAction({
+        displayName: profileForm.displayName,
+        username: profileForm.username,
+        role: profileForm.role,
+        categoryId: profileForm.categoryId,
+        province: profileForm.province,
+        district: profileForm.district,
+        bio: profileForm.bio,
+        phone: profileForm.phone,
+        whatsapp: profileForm.whatsapp,
+        avatar: currentProfile?.avatar || "",
+        available: currentProfile?.available ?? false,
+      });
+
+      if (result?.error) {
+        showSnackbar(
+          result.error,
+          "error"
+        );
+
+        return;
+      }
+
+      setCurrentProfile((previous) => ({
+        ...previous,
+        ...profileForm,
+      }));
+
+      showSnackbar(
+        "Profile updated successfully.",
+        "success"
+      );
+
+      setActiveModal(null);
+
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+
+      showSnackbar(
+        "Something went wrong while saving your profile.",
+        "error"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveProfessional(event) {
+    event.preventDefault();
+
+    if (saving) return;
+
+    try {
+      setSaving(true);
+
+      const result = await updateProfileAction({
+        displayName:
+          currentProfile?.displayName || "",
+        username:
+          currentProfile?.username || "",
+        role: profileForm.role,
+        categoryId: profileForm.categoryId,
+        province:
+          currentProfile?.province || "",
+        district:
+          currentProfile?.district || "",
+        bio:
+          currentProfile?.bio || "",
+        phone:
+          currentProfile?.phone || "",
+        whatsapp:
+          currentProfile?.whatsapp || "",
+        avatar:
+          currentProfile?.avatar || "",
+        available:
+          currentProfile?.available ?? false,
+      });
+
+      if (result?.error) {
+        showSnackbar(
+          result.error,
+          "error"
+        );
+
+        return;
+      }
+
+      setCurrentProfile((previous) => ({
+        ...previous,
+        role: profileForm.role,
+        categoryId: profileForm.categoryId,
+      }));
+
+      showSnackbar(
+        "Professional profile updated.",
+        "success"
+      );
+
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+
+      showSnackbar(
+        "Unable to save professional profile.",
+        "error"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveSkills() {
+    if (saving) return;
+
+    try {
+      setSaving(true);
+
+      const result = await updateProfileAction({
+        skills,
+      });
+
+      if (result?.error) {
+        showSnackbar(
+          result.error,
+          "error"
+        );
+
+        return;
+      }
+
+      setCurrentProfile((previous) => ({
+        ...previous,
+        skills,
+      }));
+
+      showSnackbar(
+        "Skills updated successfully.",
+        "success"
+      );
+
+      closeModal();
+    } catch (error) {
+      console.error(error);
+
+      showSnackbar(
+        "Unable to update your skills.",
+        "error"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveServices() {
+    if (saving) return;
+
+    try {
+      setSaving(true);
+
+      const result = await updateProfileAction({
+        services,
+      });
+
+      if (result?.error) {
+        showSnackbar(
+          result.error,
+          "error"
+        );
+
+        return;
+      }
+
+      setCurrentProfile((previous) => ({
+        ...previous,
+        services,
+      }));
+
+      showSnackbar(
+        "Services updated successfully.",
+        "success"
+      );
+
+      closeModal();
+    } catch (error) {
+      console.error(error);
+
+      showSnackbar(
+        "Unable to update your services.",
+        "error"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleAvailability() {
+    if (savingAvailability) return;
+
+    const nextValue =
+      !Boolean(currentProfile?.available);
+
+    try {
+      setSavingAvailability(true);
+
       const result = await updateProfileAction({
         available: nextValue,
       });
 
-      if (!result?.success) {
-        throw new Error(result?.error || "Unable to update availability.");
+      if (result?.error) {
+        showSnackbar(
+          result.error,
+          "error"
+        );
+
+        return;
       }
 
-      setCurrentProfile(
-        result.profile || {
-          ...currentProfile,
-          available: nextValue,
-        },
-      );
+      setCurrentProfile((previous) => ({
+        ...previous,
+        available: nextValue,
+      }));
 
-      showSnackbar({
-        type: "success",
-        message: nextValue
-          ? "You are now available."
-          : "You are now unavailable.",
-      });
+      showSnackbar(
+        nextValue
+          ? "You are now available for work."
+          : "You are now unavailable for work.",
+        "success"
+      );
     } catch (error) {
-      showSnackbar({
-        type: "error",
-        message: error?.message || "Unable to update availability.",
-      });
+      console.error(error);
+
+      showSnackbar(
+        "Unable to update availability.",
+        "error"
+      );
     } finally {
       setSavingAvailability(false);
     }
   }
 
-  function handleProfileUpdated(updatedProfile) {
-    if (!updatedProfile) return;
+  function handleAvatarSelect(event) {
+    const file = event.target.files?.[0];
 
-    setCurrentProfile(updatedProfile);
-    setActiveModal(null);
+    if (!file) return;
 
-    showSnackbar({
-      type: "success",
-      message: "Profile updated successfully.",
-    });
-  }
-
-  function handleSkillsUpdated(skills) {
-    setCurrentProfile((current) => ({
-      ...current,
-      skills: Array.isArray(skills) ? skills : [],
-    }));
-
-    setActiveModal(null);
-
-    showSnackbar({
-      type: "success",
-      message: "Skills updated successfully.",
-    });
-  }
-
-  function handleServicesUpdated(services) {
-    setCurrentProfile((current) => ({
-      ...current,
-      services: Array.isArray(services) ? services : [],
-    }));
-
-    setActiveModal(null);
-
-    showSnackbar({
-      type: "success",
-      message: "Services updated successfully.",
-    });
-  }
-
-  async function handleDeleteWork(workId) {
-    try {
-      const result = await deleteWorkAction({
-        workId,
-      });
-
-      if (!result?.success) {
-        throw new Error(result?.error || "Unable to delete work.");
-      }
-
-      setCurrentWorks((current) =>
-        current.filter((work) => work.id !== workId),
+    if (!file.type.startsWith("image/")) {
+      showSnackbar(
+        "Please select an image file.",
+        "error"
       );
 
-      setCurrentProfile((current) => ({
-        ...current,
-        workCount: Math.max(Number(current.workCount || 0) - 1, 0),
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = reader.result;
+
+      if (typeof result === "string") {
+        setAvatarPreview(result);
+      }
+    };
+
+    reader.readAsDataURL(file);
+
+    showSnackbar(
+      "Photo preview updated. Save it after connecting your image upload.",
+      "info"
+    );
+  }
+
+  function addSkill() {
+    const value = skillInput.trim();
+
+    if (!value) return;
+
+    const exists = skills.some(
+      (skill) =>
+        String(skill).toLowerCase() ===
+        value.toLowerCase()
+    );
+
+    if (exists) {
+      showSnackbar(
+        "That skill is already added.",
+        "error"
+      );
+
+      return;
+    }
+
+    setSkills((previous) => [
+      ...previous,
+      value,
+    ]);
+
+    setSkillInput("");
+  }
+
+  function removeSkill(skill) {
+    setSkills((previous) =>
+      previous.filter(
+        (item) => item !== skill
+      )
+    );
+  }
+
+  function addService() {
+    const value = serviceInput.trim();
+
+    if (!value) return;
+
+    const exists = services.some(
+      (service) =>
+        service.toLowerCase() ===
+        value.toLowerCase()
+    );
+
+    if (exists) {
+      showSnackbar(
+        "That service is already added.",
+        "error"
+      );
+
+      return;
+    }
+
+    setServices((previous) => [
+      ...previous,
+      value,
+    ]);
+
+    setServiceInput("");
+  }
+
+  function removeService(service) {
+    setServices((previous) =>
+      previous.filter(
+        (item) => item !== service
+      )
+    );
+  }
+
+  async function handleDeleteWork(work) {
+    if (!work?.id || deletingWorkId) return;
+
+    setDeletingWorkId(work.id);
+
+    try {
+      const result = await deleteWorkAction({
+        workId: work.id,
+      });
+
+      if (result?.error) {
+        showSnackbar(
+          result.error,
+          "error"
+        );
+
+        return;
+      }
+
+      setCurrentWorks((previous) =>
+        previous.filter(
+          (item) => item.id !== work.id
+        )
+      );
+
+      setCurrentProfile((previous) => ({
+        ...previous,
+        workCount: Math.max(
+          0,
+          Number(previous?.workCount || 0) - 1
+        ),
       }));
 
-      setConfirmAction(null);
-
-      showSnackbar({
-        type: "success",
-        message: "Work deleted successfully.",
-      });
+      showSnackbar(
+        "Work deleted successfully.",
+        "success"
+      );
     } catch (error) {
-      showSnackbar({
-        type: "error",
-        message: error?.message || "Unable to delete work.",
-      });
+      console.error(error);
+
+      showSnackbar(
+        "Unable to delete this work.",
+        "error"
+      );
+    } finally {
+      setDeletingWorkId(null);
     }
   }
 
+  function askDeleteWork(work) {
+    setConfirmAction({
+      type: "work",
+      work,
+    });
+  }
+
   async function handleDeleteProfile() {
-    setDeletingProfile(true);
+    if (deletingProfile) return;
 
     try {
+      setDeletingProfile(true);
+
       const result = await deleteProfileAction();
 
-      if (!result?.success) {
-        throw new Error(result?.error || "Unable to delete profile.");
+      if (result?.error) {
+        showSnackbar(
+          result.error,
+          "error"
+        );
+
+        return;
       }
 
-      showSnackbar({
-        type: "success",
-        message: "Your profile has been deleted.",
-      });
+      showSnackbar(
+        "Your account has been deleted.",
+        "success"
+      );
 
-      router.replace("discover");
+      router.push("/discover");
+      router.refresh();
     } catch (error) {
-      showSnackbar({
-        type: "error",
-        message: error?.message || "Unable to delete profile.",
-      });
+      console.error(error);
+
+      showSnackbar(
+        "Unable to delete your account.",
+        "error"
+      );
     } finally {
       setDeletingProfile(false);
-      setConfirmAction(null);
+      closeModal();
+    }
+  }
+
+  function openDeleteAccount() {
+    setConfirmAction({
+      type: "profile",
+    });
+  }
+
+  async function handleConfirm() {
+    if (!confirmAction) return;
+
+    if (confirmAction.type === "profile") {
+      await handleDeleteProfile();
+      return;
+    }
+
+    if (confirmAction.type === "work") {
+      const work = confirmAction.work;
+
+      closeModal();
+
+      await handleDeleteWork(work);
     }
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] text-slate-950">
-      {/* ====================================================================
-          HEADER
-      ==================================================================== */}
+    <main className="min-h-screen bg-slate-50 text-slate-900">
 
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+      {/* HEADER */}
+
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/discover"
-            className="group inline-flex items-center gap-2 text-sm font-bold text-slate-600 transition hover:text-slate-950"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white transition group-hover:border-slate-950">
-              <ArrowLeft size={16} />
-            </span>
 
-            <span className="hidden sm:block">Discover</span>
+          <Link
+            href="/"
+            className="flex items-center gap-2.5"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-extrabold text-white">
+              Y
+            </div>
+
+            <span className="text-lg font-extrabold tracking-tight">
+              Youth
+              <span className="text-orange-500">
+                Space
+              </span>
+            </span>
           </Link>
 
-          <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-950 text-white">
-              <Sparkles size={15} />
+          <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
+
+            <Link
+              href="/"
+              className="transition hover:text-slate-950"
+            >
+              Home
+            </Link>
+
+            <Link
+              href="/discover"
+              className="transition hover:text-slate-950"
+            >
+              Discover
+            </Link>
+
+            <Link
+              href="/talents"
+              className="transition hover:text-slate-950"
+            >
+              Talents
+            </Link>
+
+            <Link
+              href="/categories"
+              className="transition hover:text-slate-950"
+            >
+              Categories
+            </Link>
+
+          </nav>
+
+          <div className="flex items-center gap-3">
+
+            <div className="flex items-center gap-2 rounded-xl p-1.5">
+
+              <Avatar
+                src={
+                  avatarPreview ||
+                  currentProfile?.avatar
+                }
+                name={
+                  currentProfile?.displayName
+                }
+                size="sm"
+              />
+
+              <span className="hidden text-sm font-semibold sm:block">
+                {firstName(
+                  currentProfile?.displayName
+                )}
+              </span>
+
             </div>
 
-            <div className="hidden sm:block">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
-                Youth Space
-              </p>
-
-              <p className="text-xs font-black text-slate-950">Profile</p>
-            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveModal("profile")}
-            className="inline-flex h-9 items-center gap-2 rounded-xl bg-slate-950 px-3.5 text-xs font-black text-white transition hover:bg-slate-800"
-          >
-            <Pencil size={13} />
-            <span className="hidden sm:inline">Edit profile</span>
-          </button>
         </div>
+
       </header>
 
-      {/* ====================================================================
-          PAGE
-      ==================================================================== */}
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* ==================================================================
-            PROFILE HEADER
-        ================================================================== */}
+      {/* MAIN */}
 
-        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white">
-          <div className="relative h-28 bg-slate-950 sm:h-36">
-            <div className="absolute inset-0 opacity-40">
-              <div className="absolute -right-10 -top-32 h-72 w-72 rounded-full border border-white/10" />
-              <div className="absolute -right-24 -top-16 h-52 w-52 rounded-full border border-white/10" />
-              <div className="absolute left-1/3 top-12 h-32 w-32 rounded-full border border-white/5" />
-            </div>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
-            <div className="absolute bottom-4 left-5 sm:left-7">
-              <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/70">
-                Your profile
-              </span>
-            </div>
-          </div>
+        <div className="mb-8">
 
-          <div className="px-5 pb-6 sm:px-7 sm:pb-7">
-            <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
-              <ProfileAvatar
-                src={currentProfile.avatar}
-                name={currentProfile.displayName}
-                available={currentProfile.available}
+          <p className="mb-2 text-sm font-semibold text-orange-500">
+            Account
+          </p>
+
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+            Profile settings
+          </h1>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Manage your profile, skills, services,
+            portfolio and account settings.
+          </p>
+
+        </div>
+
+
+        <div className="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
+
+
+          {/* SIDEBAR */}
+
+          <aside className="hidden lg:block">
+
+            <div className="sticky top-24 rounded-2xl border border-slate-200 bg-white p-2">
+
+              <SectionButton
+                active={activeSection === "profile"}
+                icon={<User size={17} />}
+                label="Profile"
+                onClick={() =>
+                  selectSection("profile")
+                }
               />
 
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("profile")}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-xs font-black text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-                >
-                  <Pencil size={14} />
-                  Edit profile
-                </button>
-              </div>
+              <SectionButton
+                active={
+                  activeSection === "professional"
+                }
+                icon={
+                  <BriefcaseBusiness size={17} />
+                }
+                label="Professional"
+                onClick={() =>
+                  selectSection("professional")
+                }
+              />
+
+              <SectionButton
+                active={
+                  activeSection === "portfolio"
+                }
+                icon={<ImagePlus size={17} />}
+                label="Portfolio"
+                onClick={() =>
+                  selectSection("portfolio")
+                }
+              />
+
+              <div className="my-2 border-t border-slate-100" />
+
+              <SectionButton
+                active={
+                  activeSection === "account"
+                }
+                icon={<Info size={17} />}
+                label="Account"
+                onClick={() =>
+                  selectSection("account")
+                }
+              />
+
             </div>
 
-            <div className="mt-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
-                  {currentProfile.displayName || "Your Name"}
-                </h1>
+          </aside>
 
-                {currentProfile.verified && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-950 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-white">
-                    <ShieldCheck size={11} />
-                    Verified
-                  </span>
+
+          {/* CONTENT */}
+
+          <section className="min-w-0">
+
+
+            {/* MOBILE NAV */}
+
+            <div className="mb-5 lg:hidden">
+
+              <CustomSelect
+                value={capitalize(
+                  activeSection
                 )}
-              </div>
+                open={
+                  openDropdown ===
+                  "mobile"
+                }
+                onToggle={() =>
+                  setOpenDropdown(
+                    openDropdown === "mobile"
+                      ? null
+                      : "mobile"
+                  )
+                }
+                options={[
+                  ["profile", "Profile"],
+                  [
+                    "professional",
+                    "Professional",
+                  ],
+                  [
+                    "portfolio",
+                    "Portfolio",
+                  ],
+                  ["account", "Account"],
+                ]}
+                onSelect={(value) => {
+                  selectSection(value);
+                  setOpenDropdown(null);
+                }}
+              />
 
-              <p className="mt-1 text-sm font-bold text-slate-500">
-                {currentProfile.role || "Add your role"}
-              </p>
-
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-slate-500">
-                <span className="inline-flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-slate-400" />
-
-                  {category?.name ||
-                    currentProfile.category ||
-                    "Choose a category"}
-                </span>
-
-                {(currentProfile.province || currentProfile.district) && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={14} className="text-slate-400" />
-
-                    {[currentProfile.district, currentProfile.province]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                )}
-              </div>
-
-              {currentProfile.bio && (
-                <p className="mt-5 max-w-3xl text-sm leading-6 text-slate-600">
-                  {currentProfile.bio}
-                </p>
-              )}
             </div>
 
-            {/* PROFILE QUICK INFO */}
 
-            <div className="mt-6 grid grid-cols-2 overflow-hidden rounded-2xl border border-slate-200 sm:grid-cols-4">
-              <ProfileStat
-                value={currentProfile.workCount || currentWorks.length || 0}
-                label="Works"
-              />
+            {/* PROFILE */}
 
-              <ProfileStat
-                value={currentProfile.likeCount || 0}
-                label="Likes"
-              />
-
-              <ProfileStat
-                value={currentProfile.skills?.length || 0}
-                label="Skills"
-              />
-
-              <ProfileStat
-                value={currentProfile.services?.length || 0}
-                label="Services"
-              />
-            </div>
-
-            {/* AVAILABILITY */}
-
-            <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
-                    currentProfile.available
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                      : "border-slate-200 bg-slate-50 text-slate-400"
-                  }`}
-                >
-                  {currentProfile.available ? (
-                    <Check size={17} strokeWidth={2.5} />
-                  ) : (
-                    <X size={17} />
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-xs font-black text-slate-950">
-                    {currentProfile.available
-                      ? "Available for opportunities"
-                      : "Currently unavailable"}
-                  </p>
-
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    People can see your availability.
-                  </p>
-                </div>
-              </div>
-
-              <BlackSwitch
-                checked={Boolean(currentProfile.available)}
-                disabled={savingAvailability}
-                onChange={handleAvailabilityToggle}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* ==================================================================
-            MAIN GRID
-        ================================================================== */}
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <div className="min-w-0 space-y-6">
-            {/* ==============================================================
-                SKILLS
-            ============================================================== */}
-
-            <section className="rounded-[26px] border border-slate-200 bg-white p-5 sm:p-6">
-              <SectionHeader
-                icon={Sparkles}
-                title="Skills"
-                description="What you're good at"
-                action={
-                  <button
-                    type="button"
-                    onClick={() => setActiveModal("skills")}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-xs font-black text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-                  >
-                    {currentProfile.skills?.length ? (
-                      <>
-                        <Pencil size={13} />
-                        Edit
-                      </>
-                    ) : (
-                      <>
-                        <Plus size={14} />
-                        Add
-                      </>
-                    )}
-                  </button>
+            {activeSection === "profile" && (
+              <ProfileSection
+                profile={currentProfile}
+                profileForm={profileForm}
+                updateForm={updateForm}
+                avatarPreview={avatarPreview}
+                avatarInputRef={avatarInputRef}
+                handleAvatarSelect={
+                  handleAvatarSelect
+                }
+                onSave={handleSaveProfile}
+                saving={saving}
+                openModal={setActiveModal}
+                provinceOptions={provinces}
+                districtOptions={
+                  availableDistricts
+                }
+                categories={categories}
+                openDropdown={
+                  openDropdown
+                }
+                setOpenDropdown={
+                  setOpenDropdown
                 }
               />
+            )}
 
-              {currentProfile.skills?.length ? (
-                <SkillsPreview
-                  skills={currentProfile.skills}
-                  onEdit={() => setActiveModal("skills")}
-                />
-              ) : (
-                <EmptySection
-                  icon={Sparkles}
-                  title="Showcase your skills"
-                  description="Add the things you're good at so people can quickly understand what you bring."
-                  action={
-                    <button
-                      type="button"
-                      onClick={() => setActiveModal("skills")}
-                      className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-xs font-black text-white transition hover:bg-slate-800"
-                    >
-                      <Plus size={14} />
-                      Add your first skill
-                    </button>
-                  }
-                />
-              )}
-            </section>
 
-            {/* ==============================================================
-                WORKS
-            ============================================================== */}
+            {/* PROFESSIONAL */}
 
-            <section className="rounded-[26px] border border-slate-200 bg-white p-5 sm:p-6">
-              <SectionHeader
-                icon={BriefcaseBusiness}
-                title="Works"
-                description={
-                  currentWorks.length
-                    ? `${currentWorks.length} ${
-                        currentWorks.length === 1 ? "project" : "projects"
-                      }`
-                    : "Your projects and work"
+            {activeSection === "professional" && (
+              <ProfessionalSection
+                profile={currentProfile}
+                profileForm={profileForm}
+                updateForm={updateForm}
+                categories={categories}
+                skills={skills}
+                services={services}
+                skillInput={skillInput}
+                serviceInput={
+                  serviceInput
                 }
-                action={
-                  <Link
-                    href="/profile/works/new"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-950 px-3 text-xs font-black text-white transition hover:bg-slate-800"
-                  >
-                    <Plus size={14} />
-                    Add work
-                  </Link>
+                setSkillInput={
+                  setSkillInput
+                }
+                setServiceInput={
+                  setServiceInput
+                }
+                addSkill={addSkill}
+                removeSkill={removeSkill}
+                addService={addService}
+                removeService={
+                  removeService
+                }
+                toggleAvailability={
+                  toggleAvailability
+                }
+                savingAvailability={
+                  savingAvailability
+                }
+                onSave={
+                  handleSaveProfessional
+                }
+                saving={saving}
+                openModal={setActiveModal}
+              />
+            )}
+
+
+            {/* PORTFOLIO */}
+
+            {activeSection === "portfolio" && (
+              <PortfolioSection
+                works={currentWorks}
+                deletingWorkId={
+                  deletingWorkId
+                }
+                onAdd={() =>
+                  setWorkModalOpen(true)
+                }
+                onDelete={
+                  askDeleteWork
                 }
               />
+            )}
 
-              {currentWorks.length ? (
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  {currentWorks.map((work) => (
-                    <WorkCard
-                      key={work.id}
-                      work={work}
-                      categories={categories}
-                      onDelete={() =>
-                        setConfirmAction({
-                          type: "work",
-                          id: work.id,
-                          title: work.title || "this work",
-                        })
-                      }
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptySection
-                  icon={ImagePlus}
-                  title="Your work will appear here"
-                  description="Add projects, designs, apps, services or anything that shows what you can do."
-                  action={
-                    <Link
-                      href="/profile/works/new"
-                      className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-xs font-black text-white transition hover:bg-slate-800"
-                    >
-                      <Plus size={14} />
-                      Add work
-                    </Link>
-                  }
-                />
-              )}
-            </section>
-
-            {/* ==============================================================
-                SERVICES
-            ============================================================== */}
-
-            <section className="rounded-[26px] border border-slate-200 bg-white p-5 sm:p-6">
-              <SectionHeader
-                icon={Settings2}
-                title="Services"
-                description="What people can hire you for"
-                action={
-                  <button
-                    type="button"
-                    onClick={() => setActiveModal("services")}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-xs font-black text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
-                  >
-                    {currentProfile.services?.length ? (
-                      <>
-                        <Pencil size={13} />
-                        Edit
-                      </>
-                    ) : (
-                      <>
-                        <Plus size={14} />
-                        Add
-                      </>
-                    )}
-                  </button>
-                }
-              />
-
-              {currentProfile.services?.length ? (
-                <div className="mt-5 grid gap-3">
-                  {normalizeServices(currentProfile.services).map(
-                    (service, index) => (
-                      <ServiceCard
-                        key={service.id || `${service.name}-${index}`}
-                        service={service}
-                      />
-                    ),
-                  )}
-                </div>
-              ) : (
-                <EmptySection
-                  icon={Settings2}
-                  title="No services yet"
-                  description="Tell people exactly what they can work with you for."
-                  action={
-                    <button
-                      type="button"
-                      onClick={() => setActiveModal("services")}
-                      className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-xs font-black text-white transition hover:bg-slate-800"
-                    >
-                      <Plus size={14} />
-                      Add service
-                    </button>
-                  }
-                />
-              )}
-            </section>
-          </div>
-
-          {/* ==================================================================
-              SIDEBAR
-          ================================================================== */}
-
-          <aside className="space-y-6">
-            {/* COMPLETION */}
-
-            <section className="rounded-[26px] border border-slate-200 bg-white p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-black text-slate-950">
-                    Profile strength
-                  </p>
-
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    Complete your profile
-                  </p>
-                </div>
-
-                <span className="text-lg font-black text-slate-950">
-                  {progress}%
-                </span>
-              </div>
-
-              <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-slate-950 transition-all duration-500"
-                  style={{
-                    width: `${progress}%`,
-                  }}
-                />
-              </div>
-
-              <div className="mt-4 space-y-2.5">
-                <CompletionItem
-                  complete={Boolean(currentProfile.displayName)}
-                  label="Name"
-                />
-
-                <CompletionItem
-                  complete={Boolean(currentProfile.avatar)}
-                  label="Profile photo"
-                />
-
-                <CompletionItem
-                  complete={Boolean(currentProfile.bio)}
-                  label="Bio"
-                />
-
-                <CompletionItem
-                  complete={Boolean(currentProfile.categoryId)}
-                  label="Category"
-                />
-
-                <CompletionItem
-                  complete={Boolean(
-                    currentProfile.province && currentProfile.district,
-                  )}
-                  label="Location"
-                />
-
-                <CompletionItem
-                  complete={currentProfile.skills?.length > 0}
-                  label="Skills"
-                />
-
-                <CompletionItem
-                  complete={currentProfile.services?.length > 0}
-                  label="Services"
-                />
-
-                <CompletionItem
-                  complete={currentWorks.length > 0}
-                  label="Work"
-                />
-              </div>
-            </section>
 
             {/* ACCOUNT */}
 
-            <section className="rounded-[26px] border border-slate-200 bg-white p-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                  <Mail size={16} />
-                </div>
-
-                <div className="min-w-0">
-                  <p className="text-xs font-black text-slate-950">
-                    Account email
-                  </p>
-
-                  <p className="mt-1 truncate text-[11px] text-slate-400">
-                    {currentProfile.email || "No email available"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-[10px] font-bold leading-4 text-slate-400">
-                  Your email is connected to your account and cannot be changed
-                  from your public profile.
-                </p>
-              </div>
-            </section>
-
-            {/* TIP */}
-
-            <section className="rounded-[26px] bg-slate-950 p-5 text-white">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10">
-                <Sparkles size={16} />
-              </div>
-
-              <h3 className="mt-4 text-sm font-black">
-                Make your profile useful
-              </h3>
-
-              <p className="mt-2 text-xs leading-5 text-white/55">
-                Add real skills, clear services and your best work. Your profile
-                should quickly tell people what you can do.
-              </p>
-            </section>
-
-            {/* DANGER */}
-
-            <section className="rounded-[26px] border border-red-200 bg-white p-5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-500">
-                <Trash2 size={16} />
-              </div>
-
-              <h3 className="mt-4 text-sm font-black text-slate-950">
-                Delete profile
-              </h3>
-
-              <p className="mt-2 text-xs leading-5 text-slate-400">
-                Permanently remove your Youth Space profile and associated
-                profile data.
-              </p>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setConfirmAction({
-                    type: "profile",
-                    title: "your profile",
-                  })
+            {activeSection === "account" && (
+              <AccountSection
+                email={
+                  currentProfile?.email
                 }
-                className="mt-4 h-9 rounded-xl border border-red-200 px-3 text-xs font-black text-red-600 transition hover:bg-red-50"
-              >
-                Delete profile
-              </button>
-            </section>
-          </aside>
+                onDelete={
+                  openDeleteAccount
+                }
+              />
+            )}
+
+          </section>
+
         </div>
+
       </div>
 
-      {/* ====================================================================
-          MODALS
-      ==================================================================== */}
 
-      {activeModal === "profile" && (
-        <EditProfileModal
-          profile={currentProfile}
-          categories={categories}
-          provinces={ZAMBIA_PROVINCES}
-          getDistrictsByProvince={getDistrictsByProvince}
-          onClose={() => setActiveModal(null)}
-          onUpdated={handleProfileUpdated}
-        />
-      )}
+      {/* MODALS */}
 
       {activeModal === "skills" && (
         <SkillsModal
-          skills={currentProfile.skills || []}
-          onClose={() => setActiveModal(null)}
-          onUpdated={handleSkillsUpdated}
+          skills={skills}
+          input={skillInput}
+          setInput={setSkillInput}
+          addSkill={addSkill}
+          removeSkill={removeSkill}
+          onClose={closeModal}
+          onSave={handleSaveSkills}
+          saving={saving}
         />
       )}
 
       {activeModal === "services" && (
         <ServicesModal
-          services={currentProfile.services || []}
-          onClose={() => setActiveModal(null)}
-          onUpdated={handleServicesUpdated}
+          services={services}
+          input={serviceInput}
+          setInput={setServiceInput}
+          addService={addService}
+          removeService={removeService}
+          onClose={closeModal}
+          onSave={handleSaveServices}
+          saving={saving}
         />
       )}
 
       {confirmAction && (
         <ConfirmModal
-          action={confirmAction}
-          loading={deletingProfile}
-          onCancel={() => setConfirmAction(null)}
-          onConfirm={() => {
-            if (confirmAction.type === "work") {
-              handleDeleteWork(confirmAction.id);
-              return;
-            }
-
-            if (confirmAction.type === "profile") {
-              handleDeleteProfile();
-            }
-          }}
+          type={confirmAction.type}
+          work={confirmAction.work}
+          onClose={closeModal}
+          onConfirm={handleConfirm}
+          loading={
+            confirmAction.type ===
+            "profile"
+              ? deletingProfile
+              : deletingWorkId !== null
+          }
         />
       )}
+
+      {workModalOpen && (
+        <WorkModal
+          onClose={() =>
+            setWorkModalOpen(false)
+          }
+        />
+      )}
+
     </main>
   );
 }
 
-/* ============================================================================
-   PROFILE AVATAR
-   ============================================================================ */
 
-function ProfileAvatar({ src, name, available }) {
-  const [imageError, setImageError] = useState(false);
+/* =========================================================
+   PROFILE SECTION
+========================================================= */
 
-  const initials = String(name || "Y")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase();
-
-  return (
-    <div className="relative w-fit">
-      <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-[22px] border-4 border-white bg-slate-100 shadow-xl sm:h-28 sm:w-28">
-        {src && !imageError ? (
-          <Image
-            src={src}
-            alt={name || "Profile"}
-            fill
-            sizes="112px"
-            className="object-cover"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <span className="text-2xl font-black text-slate-400">
-            {initials || <UserRound size={32} />}
-          </span>
-        )}
-      </div>
-
-      <span
-        className={`absolute bottom-1 right-1 h-5 w-5 rounded-full border-[3px] border-white ${
-          available ? "bg-emerald-500" : "bg-slate-300"
-        }`}
-      />
-    </div>
-  );
-}
-
-/* ============================================================================
-   SKILLS PREVIEW
-   ============================================================================ */
-
-function SkillsPreview({ skills, onEdit }) {
-  const normalized = normalizeStringArray(skills);
-
-  if (!normalized.length) return null;
-
-  return (
-    <div className="mt-5">
-      <div className="grid gap-2 sm:grid-cols-2">
-        {normalized.slice(0, 8).map((skill, index) => (
-          <div
-            key={`${skill}-${index}`}
-            className="group flex min-h-[58px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3.5 transition hover:border-slate-950"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
-              <Check size={14} strokeWidth={3} />
-            </span>
-
-            <div className="min-w-0">
-              <p className="truncate text-xs font-black text-slate-900">
-                {skill}
-              </p>
-
-              <p className="mt-0.5 text-[10px] font-medium text-slate-400">
-                Skill
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {normalized.length > 8 && (
-        <button
-          type="button"
-          onClick={onEdit}
-          className="mt-3 text-xs font-black text-slate-500 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-950"
-        >
-          View all {normalized.length} skills
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ============================================================================
-   WORK CARD
-   ============================================================================ */
-
-function WorkCard({ work, categories, onDelete }) {
-  const [imageError, setImageError] = useState(false);
-
-  const category = categories.find(
-    (item) => item.id === work.categoryId || item.id === work.category,
-  );
-
-  return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:border-slate-300">
-      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-        {work.image && !imageError ? (
-          <Image
-            src={work.image}
-            alt={work.title || "Work"}
-            fill
-            sizes="(max-width: 640px) 100vw, 50vw"
-            className="object-cover transition duration-300 group-hover:scale-[1.025]"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <ImageFallback label="No image" />
-        )}
-
-        <button
-          type="button"
-          onClick={onDelete}
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-500"
-          aria-label={`Delete ${work.title || "work"}`}
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
-
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-black text-slate-950">
-              {work.title || "Untitled work"}
-            </h3>
-
-            {(category?.name || work.category) && (
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                {category?.name || work.category}
-              </p>
-            )}
-          </div>
-
-          <span className="shrink-0 text-[10px] font-bold text-slate-400">
-            {Number(work.likes || 0)} likes
-          </span>
-        </div>
-
-        {work.description && (
-          <p className="mt-3 line-clamp-2 text-xs leading-5 text-slate-500">
-            {work.description}
-          </p>
-        )}
-      </div>
-    </article>
-  );
-}
-
-/* ============================================================================
-   SERVICE CARD
-   ============================================================================ */
-
-function ServiceCard({ service }) {
-  return (
-    <article className="rounded-2xl border border-slate-200 p-4 transition hover:border-slate-300">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
-          <BriefcaseBusiness size={15} />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-black text-slate-950">
-              {service.name || "Untitled service"}
-            </h3>
-
-            {service.price !== undefined &&
-              service.price !== null &&
-              service.price !== "" && (
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-700">
-                  K{service.price}
-                </span>
-              )}
-          </div>
-
-          {service.description && (
-            <p className="mt-1.5 text-xs leading-5 text-slate-500">
-              {service.description}
-            </p>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-/* ============================================================================
-   SECTION HEADER
-   ============================================================================ */
-
-function SectionHeader({ icon: Icon, title, description, action }) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-          <Icon size={16} />
-        </div>
-
-        <div className="min-w-0">
-          <h2 className="text-sm font-black text-slate-950">{title}</h2>
-
-          {description && (
-            <p className="mt-0.5 truncate text-[10px] font-medium text-slate-400">
-              {description}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {action}
-    </div>
-  );
-}
-
-/* ============================================================================
-   STAT
-   ============================================================================ */
-
-function ProfileStat({ value, label }) {
-  return (
-    <div className="border-slate-200 px-3 py-4 text-center even:border-l sm:border-l">
-      <p className="text-lg font-black tracking-tight text-slate-950">
-        {value}
-      </p>
-
-      <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
-        {label}
-      </p>
-    </div>
-  );
-}
-
-/* ============================================================================
-   COMPLETION ITEM
-   ============================================================================ */
-
-function CompletionItem({ complete, label }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span
-        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-          complete
-            ? "border-slate-950 bg-slate-950 text-white"
-            : "border-slate-200 bg-white text-transparent"
-        }`}
-      >
-        <Check size={11} strokeWidth={3} />
-      </span>
-
-      <span
-        className={`text-[11px] font-bold ${
-          complete ? "text-slate-700" : "text-slate-400"
-        }`}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
-/* ============================================================================
-   EMPTY SECTION
-   ============================================================================ */
-
-function EmptySection({ icon: Icon, title, description, action }) {
-  return (
-    <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-9 text-center">
-      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
-        <Icon size={19} />
-      </div>
-
-      <p className="mt-3 text-sm font-black text-slate-700">{title}</p>
-
-      <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-slate-400">
-        {description}
-      </p>
-
-      {action}
-    </div>
-  );
-}
-
-/* ============================================================================
-   IMAGE FALLBACK
-   ============================================================================ */
-
-function ImageFallback({ label }) {
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100">
-      <ImagePlus size={22} className="text-slate-300" />
-
-      <span className="mt-2 text-[10px] font-bold text-slate-400">{label}</span>
-    </div>
-  );
-}
-
-/* ============================================================================
-   BLACK SWITCH
-   ============================================================================ */
-
-function BlackSwitch({ checked, disabled, onChange }) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onChange}
-      role="switch"
-      aria-checked={checked}
-      className={`relative h-7 w-12 shrink-0 rounded-full border-2 transition ${
-        checked ? "border-slate-950 bg-slate-950" : "border-slate-300 bg-white"
-      } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
-    >
-      <span
-        className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full transition ${
-          checked ? "left-[24px] bg-white" : "left-[4px] bg-slate-300"
-        }`}
-      />
-    </button>
-  );
-}
-
-/* ============================================================================
-   EDIT PROFILE MODAL
-   ============================================================================ */
-
-function EditProfileModal({
+function ProfileSection({
   profile,
+  profileForm,
+  updateForm,
+  avatarPreview,
+  avatarInputRef,
+  handleAvatarSelect,
+  onSave,
+  saving,
+  openModal,
+  provinceOptions,
+  districtOptions,
   categories,
-  provinces,
-  getDistrictsByProvince,
-  onClose,
-  onUpdated,
+  openDropdown,
+  setOpenDropdown,
 }) {
-  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
-
-  const [form, setForm] = useState({
-    username: profile.username || "",
-    role: profile.role || "",
-    category: profile.categoryId || "",
-    province: profile.province || "",
-    district: profile.district || "",
-    bio: profile.bio || "",
-    phone: profile.phone || "",
-    whatsapp: profile.whatsapp || "",
-    available: Boolean(profile.available),
-    avatar: profile.avatar || "",
-  });
-
-  const [saving, setSaving] = useState(false);
-
-  const districtOptions = getDistrictsByProvince(form.province);
-
-  function updateField(field, value) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
-
-  function handleProvinceChange(value) {
-    setForm((current) => ({
-      ...current,
-      province: value,
-      district: "",
-    }));
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    setSaving(true);
-
-    try {
-      const result = await updateProfileAction({
-        username: form.username,
-        role: form.role,
-        categoryId: form.category,
-        province: form.province,
-        district: form.district,
-        bio: form.bio,
-        phone: form.phone,
-        whatsapp: form.whatsapp,
-        available: form.available,
-        avatar: form.avatar || null,
-      });
-
-      if (!result?.success) {
-        throw new Error(result?.error || "Unable to update profile.");
-      }
-
-      onUpdated(result.profile);
-    } catch (error) {
-      showSnackbar({
-        type: "error",
-        message: error?.message || "Unable to update profile.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
-    <ModalShell
-      title="Edit profile"
-      description="Update the information people see on Youth Space."
-      onClose={onClose}
-    >
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* AVATAR */}
+    <div className="space-y-6">
 
-        <div>
-          <span className="mb-2 block text-[11px] font-black text-slate-700">
-            Profile image
-          </span>
+      <form
+        onSubmit={onSave}
+        className="rounded-2xl border border-slate-200 bg-white"
+      >
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-slate-100">
-              {form.avatar ? (
-                <Image
-                  src={form.avatar}
-                  alt="Profile"
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-slate-300">
-                  <UserRound size={24} />
-                </div>
-              )}
+        <SectionHeader
+          title="Personal information"
+          description="Keep your public profile information up to date."
+        />
+
+        <div className="space-y-6 p-5 sm:p-6">
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+
+            <div className="relative">
+
+              <Avatar
+                src={avatarPreview}
+                name={profile?.displayName}
+                size="xl"
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  avatarInputRef.current?.click()
+                }
+                className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl border-2 border-white bg-slate-950 text-white shadow-lg transition hover:bg-slate-800"
+                aria-label="Change photo"
+              >
+                <Pencil size={16} />
+              </button>
+
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleAvatarSelect}
+              />
+
             </div>
 
-            <div className="min-w-0">
-              <p className="text-xs font-black text-slate-900">Profile photo</p>
+            <div>
 
-              <p className="mt-1 text-[10px] leading-4 text-slate-400">
-                Use a clear image so people can recognize you.
+              <h3 className="font-semibold text-slate-950">
+                Profile photo
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-500">
+                JPG, PNG or WEBP. Recommended
+                400 × 400px.
               </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  avatarInputRef.current?.click()
+                }
+                className="mt-3 text-sm font-semibold text-orange-500 hover:text-orange-600"
+              >
+                Change photo
+              </button>
+
             </div>
+
           </div>
 
-          <div className="mt-3">
-            <FormField
-              label="Image URL"
-              value={form.avatar}
-              onChange={(value) => updateField("avatar", value)}
-              placeholder="Image URL"
+
+          <div className="grid gap-5 sm:grid-cols-2">
+
+            <Field
+              label="Display name"
+              value={
+                profileForm.displayName
+              }
+              onChange={(value) =>
+                updateForm(
+                  "displayName",
+                  value
+                )
+              }
             />
+
+            <div>
+
+              <label className="mb-2 block text-sm font-semibold">
+                Username
+              </label>
+
+              <div className="flex overflow-hidden rounded-xl border border-slate-200 transition focus-within:border-slate-950 focus-within:ring-4 focus-within:ring-slate-950/10">
+
+                <span className="flex items-center bg-slate-50 px-3 text-sm text-slate-400">
+                  @
+                </span>
+
+                <input
+                  value={
+                    profileForm.username
+                  }
+                  onChange={(event) =>
+                    updateForm(
+                      "username",
+                      event.target.value
+                    )
+                  }
+                  className="min-w-0 flex-1 px-3 py-3 text-sm outline-none"
+                />
+
+              </div>
+
+            </div>
+
           </div>
-        </div>
 
-        <FormField
-          label="Username"
-          value={form.username}
-          onChange={(value) => updateField("username", value)}
-          placeholder="username"
-        />
 
-        <FormField
-          label="What do you do?"
-          value={form.role}
-          onChange={(value) => updateField("role", value)}
-          placeholder="e.g. Backend Developer"
-        />
-
-        <SelectField
-          label="Category"
-          value={form.category}
-          options={categories.map((item) => ({
-            value: item.id,
-            label: item.name,
-          }))}
-          onChange={(value) => updateField("category", value)}
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SelectField
-            label="Province"
-            value={form.province}
-            options={provinces.map((province) => ({
-              value: province,
-              label: province,
-            }))}
-            onChange={handleProvinceChange}
-          />
-
-          <SelectField
-            label="District"
-            value={form.district}
-            options={districtOptions.map((district) => ({
-              value: district,
-              label: district,
-            }))}
-            onChange={(value) => updateField("district", value)}
-            disabled={!form.province}
-          />
-        </div>
-
-        <TextAreaField
-          label="Bio"
-          value={form.bio}
-          onChange={(value) => updateField("bio", value)}
-          placeholder="Tell people what you do..."
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            label="Phone"
-            value={form.phone}
-            onChange={(value) => updateField("phone", value)}
-            placeholder="Phone number"
-          />
-
-          <FormField
-            label="WhatsApp"
-            value={form.whatsapp}
-            onChange={(value) => updateField("whatsapp", value)}
-            placeholder="WhatsApp number"
-          />
-        </div>
-
-        <div className="flex items-center justify-between rounded-2xl border border-slate-200 p-4">
           <div>
-            <p className="text-xs font-black text-slate-900">
-              Available for opportunities
+
+            <label className="mb-2 block text-sm font-semibold">
+              Email
+            </label>
+
+            <div className="relative">
+
+              <input
+                value={
+                  profile?.email || ""
+                }
+                disabled
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 pr-24 text-sm text-slate-500"
+              />
+
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-slate-200 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Verified
+              </span>
+
+            </div>
+
+            <p className="mt-2 text-xs text-slate-400">
+              Your email is managed through
+              your authentication account.
             </p>
 
-            <p className="mt-1 text-[11px] text-slate-400">
-              Show that you're currently available.
-            </p>
           </div>
 
-          <BlackSwitch
-            checked={form.available}
-            onChange={() => updateField("available", !form.available)}
-          />
+
+          <div>
+
+            <label className="mb-2 block text-sm font-semibold">
+              Bio
+            </label>
+
+            <textarea
+              rows={4}
+              maxLength={250}
+              value={
+                profileForm.bio
+              }
+              onChange={(event) =>
+                updateForm(
+                  "bio",
+                  event.target.value
+                )
+              }
+              className="field resize-none leading-6"
+            />
+
+            <div className="mt-1.5 flex justify-between text-xs text-slate-400">
+              <span>
+                Tell people what you do.
+              </span>
+
+              <span>
+                {profileForm.bio.length} / 250
+              </span>
+            </div>
+
+          </div>
+
+
+          <div className="grid gap-5 sm:grid-cols-2">
+
+            <Field
+              label="Phone number"
+              value={
+                profileForm.phone
+              }
+              onChange={(value) =>
+                updateForm(
+                  "phone",
+                  value
+                )
+              }
+            />
+
+            <Field
+              label="WhatsApp"
+              value={
+                profileForm.whatsapp
+              }
+              onChange={(value) =>
+                updateForm(
+                  "whatsapp",
+                  value
+                )
+              }
+            />
+
+          </div>
+
+
+          <div className="flex justify-end border-t border-slate-100 pt-5">
+
+            <SaveButton
+              loading={saving}
+              label="Save changes"
+            />
+
+          </div>
+
         </div>
 
-        <ModalActions
-          onCancel={onClose}
-          loading={saving}
-          submitText="Save profile"
-        />
       </form>
-    </ModalShell>
+
+
+      {/* LOCATION */}
+
+      <div className="rounded-2xl border border-slate-200 bg-white">
+
+        <SectionHeader
+          title="Location"
+          description="Help people discover talent around them."
+        />
+
+        <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
+
+          <CustomSelect
+            label="Province"
+            value={
+              profileForm.province ||
+              "Select province"
+            }
+            open={
+              openDropdown ===
+              "profile-province"
+            }
+            onToggle={() =>
+              setOpenDropdown(
+                openDropdown ===
+                  "profile-province"
+                  ? null
+                  : "profile-province"
+              )
+            }
+            options={provinceOptions.map(
+              (province) => [
+                province,
+                province,
+              ]
+            )}
+            onSelect={(value) => {
+              updateForm(
+                "province",
+                value
+              );
+
+              updateForm(
+                "district",
+                ""
+              );
+
+              setOpenDropdown(null);
+            }}
+          />
+
+          <CustomSelect
+            label="District"
+            value={
+              profileForm.district ||
+              "Select district"
+            }
+            open={
+              openDropdown ===
+              "profile-district"
+            }
+            onToggle={() =>
+              setOpenDropdown(
+                openDropdown ===
+                  "profile-district"
+                  ? null
+                  : "profile-district"
+              )
+            }
+            options={districtOptions.map(
+              (district) => [
+                district,
+                district,
+              ]
+            )}
+            onSelect={(value) => {
+              updateForm(
+                "district",
+                value
+              );
+
+              setOpenDropdown(null);
+            }}
+          />
+
+        </div>
+
+      </div>
+
+
+      {/* PROFESSIONAL SUMMARY */}
+
+      <div className="rounded-2xl border border-slate-200 bg-white">
+
+        <SectionHeader
+          title="Profile overview"
+          description="Manage the professional information people see on your profile."
+        />
+
+        <div className="space-y-4 p-5 sm:p-6">
+
+          <SummaryRow
+            label="Role"
+            value={
+              profile?.role ||
+              "Not set"
+            }
+          />
+
+          <SummaryRow
+            label="Category"
+            value={
+              categories.find(
+                (item) =>
+                  item.id ===
+                  profile?.categoryId
+              )?.name ||
+              profile?.category ||
+              "Not set"
+            }
+          />
+
+          <SummaryRow
+            label="Skills"
+            value={`${profile?.skills?.length || 0} skills`}
+          />
+
+          <SummaryRow
+            label="Services"
+            value={`${normalizeServices(profile?.services).length} services`}
+          />
+
+        </div>
+
+      </div>
+
+    </div>
   );
 }
 
-/* ============================================================================
-   SKILLS MODAL
-   ============================================================================ */
 
-function SkillsModal({ skills, onClose, onUpdated }) {
-  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
+/* =========================================================
+   PROFESSIONAL
+========================================================= */
 
-  const [items, setItems] = useState(normalizeStringArray(skills));
-
-  const [newSkill, setNewSkill] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  function addSkill() {
-    const value = newSkill.trim();
-
-    if (!value) return;
-
-    if (items.some((item) => item.toLowerCase() === value.toLowerCase())) {
-      showSnackbar({
-        type: "warning",
-        message: "That skill is already added.",
-      });
-
-      return;
-    }
-
-    if (items.length >= 20) {
-      showSnackbar({
-        type: "warning",
-        message: "You can add up to 20 skills.",
-      });
-
-      return;
-    }
-
-    setItems((current) => [...current, value]);
-    setNewSkill("");
-  }
-
-  async function handleSave() {
-    setSaving(true);
-
-    try {
-      const result = await updateProfileAction({
-        skills: items,
-      });
-
-      if (!result?.success) {
-        throw new Error(result?.error || "Unable to update skills.");
-      }
-
-      onUpdated(result.profile?.skills || items);
-    } catch (error) {
-      showSnackbar({
-        type: "error",
-        message: error?.message || "Unable to update skills.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
+function ProfessionalSection({
+  profile,
+  profileForm,
+  updateForm,
+  categories,
+  skills,
+  services,
+  skillInput,
+  serviceInput,
+  setSkillInput,
+  setServiceInput,
+  addSkill,
+  removeSkill,
+  addService,
+  removeService,
+  toggleAvailability,
+  savingAvailability,
+  onSave,
+  saving,
+  openModal,
+}) {
   return (
-    <ModalShell
-      title="Manage skills"
-      description="Add the abilities you want people to see."
-      onClose={onClose}
+    <form
+      onSubmit={onSave}
+      className="space-y-6"
     >
-      <div className="flex gap-2">
-        <input
-          value={newSkill}
-          onChange={(event) => setNewSkill(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              addSkill();
-            }
-          }}
-          placeholder="e.g. React.js"
-          className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-0"
+
+      <div className="rounded-2xl border border-slate-200 bg-white">
+
+        <SectionHeader
+          title="Professional profile"
+          description="Tell people what you do and what you're available for."
         />
 
-        <button
-          type="button"
-          onClick={addSkill}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white transition hover:bg-slate-800"
-        >
-          <Plus size={16} />
-        </button>
-      </div>
+        <div className="space-y-7 p-5 sm:p-6">
 
-      {items.length ? (
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          {items.map((skill, index) => (
-            <div
-              key={`${skill}-${index}`}
-              className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2.5"
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
-                  <Check size={12} strokeWidth={3} />
-                </span>
+          <div className="grid gap-5 sm:grid-cols-2">
 
-                <span className="truncate text-xs font-bold text-slate-700">
-                  {skill}
-                </span>
+            <Field
+              label="Role"
+              value={
+                profileForm.role
+              }
+              onChange={(value) =>
+                updateForm(
+                  "role",
+                  value
+                )
+              }
+            />
+
+            <CustomSelect
+              label="Category"
+              value={
+                categories.find(
+                  (item) =>
+                    item.id ===
+                    profileForm.categoryId
+                )?.name ||
+                profile?.category ||
+                "Select category"
+              }
+              options={categories.map(
+                (item) => [
+                  item.id,
+                  item.name,
+                ]
+              )}
+              onSelect={(value) =>
+                updateForm(
+                  "categoryId",
+                  value
+                )
+              }
+            />
+
+          </div>
+
+
+          {/* AVAILABILITY */}
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+
+            <div className="flex items-center justify-between gap-5">
+
+              <div>
+
+                <div className="flex items-center gap-2">
+
+                  <h3 className="text-sm font-bold">
+                    Available for work
+                  </h3>
+
+                  <span
+                    className={
+                      profile?.available
+                        ? "rounded-full bg-slate-950 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                        : "rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+                    }
+                  >
+                    {profile?.available
+                      ? "Available"
+                      : "Unavailable"}
+                  </span>
+
+                </div>
+
+                <p className="mt-1 max-w-lg text-xs leading-5 text-slate-500">
+                  Let people know that you're
+                  currently available for
+                  opportunities.
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  toggleAvailability
+                }
+                disabled={
+                  savingAvailability
+                }
+                className={
+                  profile?.available
+                    ? "relative h-7 w-[50px] shrink-0 rounded-full border-2 border-slate-950 bg-slate-950 transition disabled:opacity-50"
+                    : "relative h-7 w-[50px] shrink-0 rounded-full border-2 border-slate-400 bg-slate-200 transition disabled:opacity-50"
+                }
+                aria-label="Toggle availability"
+              >
+
+                <span
+                  className={
+                    profile?.available
+                      ? "absolute right-[3px] top-[3px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition"
+                      : "absolute left-[3px] top-[3px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition"
+                  }
+                />
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+          {/* SKILLS */}
+
+          <div>
+
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
+              <div>
+
+                <div className="flex items-center gap-2">
+
+                  <h3 className="text-sm font-bold">
+                    Skills
+                  </h3>
+
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                    {skills.length}
+                  </span>
+
+                </div>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Add the skills you want people
+                  to find you for.
+                </p>
+
               </div>
 
               <button
                 type="button"
                 onClick={() =>
-                  setItems((current) =>
-                    current.filter((_, itemIndex) => itemIndex !== index),
+                  openModal("skills")
+                }
+                className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-950 hover:text-slate-950"
+              >
+                <Plus size={14} />
+                Add skill
+              </button>
+
+            </div>
+
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+
+              <div className="mb-3 flex items-center justify-between">
+
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Skill preview
+                </span>
+
+                <span className="text-[11px] text-slate-400">
+                  Public profile
+                </span>
+
+              </div>
+
+
+              <div className="flex min-h-[52px] flex-wrap items-center gap-2">
+
+                {skills.length > 0 ? (
+                  skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm"
+                    >
+                      <Check
+                        size={13}
+                        className="text-slate-950"
+                      />
+
+                      {skill}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeSkill(
+                            skill
+                          )
+                        }
+                        className="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
+                        aria-label={`Remove ${skill}`}
+                      >
+                        <X size={13} />
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400">
+                    No skills added yet.
+                  </p>
+                )}
+
+              </div>
+
+
+              <div className="mt-4 flex gap-2">
+
+                <input
+                  value={skillInput}
+                  onChange={(event) =>
+                    setSkillInput(
+                      event.target.value
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key ===
+                      "Enter"
+                    ) {
+                      event.preventDefault();
+                      addSkill();
+                    }
+                  }}
+                  type="text"
+                  maxLength={40}
+                  placeholder="Type a skill..."
+                  className="field flex-1"
+                />
+
+                <button
+                  type="button"
+                  onClick={addSkill}
+                  className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Add
+                </button>
+
+              </div>
+
+              <p className="mt-2 text-[11px] text-slate-400">
+                Press Enter to quickly add a
+                skill.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* SERVICES */}
+
+          <div>
+
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
+              <div>
+
+                <div className="flex items-center gap-2">
+
+                  <h3 className="text-sm font-bold">
+                    Services
+                  </h3>
+
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                    {services.length}
+                  </span>
+
+                </div>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  What can you offer clients or
+                  collaborators?
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  openModal("services")
+                }
+                className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-950 hover:text-slate-950"
+              >
+                <Plus size={14} />
+                Add service
+              </button>
+
+            </div>
+
+
+            <div className="space-y-2">
+
+              {services.map((service) => (
+                <div
+                  key={service}
+                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-700"
+                >
+
+                  <span>
+                    {service}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      removeService(
+                        service
+                      )
+                    }
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
+                    aria-label={`Remove ${service}`}
+                  >
+                    <X size={16} />
+                  </button>
+
+                </div>
+              ))}
+
+              {services.length === 0 && (
+                <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
+                  No services added yet.
+                </div>
+              )}
+
+            </div>
+
+
+            <div className="mt-3 flex gap-2">
+
+              <input
+                value={serviceInput}
+                onChange={(event) =>
+                  setServiceInput(
+                    event.target.value
                   )
                 }
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                onKeyDown={(event) => {
+                  if (
+                    event.key ===
+                    "Enter"
+                  ) {
+                    event.preventDefault();
+                    addService();
+                  }
+                }}
+                type="text"
+                maxLength={80}
+                placeholder="Add a service..."
+                className="field flex-1"
+              />
+
+              <button
+                type="button"
+                onClick={addService}
+                className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                <X size={13} />
+                Add
               </button>
+
             </div>
-          ))}
+
+          </div>
+
+
+          <div className="flex justify-end border-t border-slate-100 pt-5">
+
+            <SaveButton
+              loading={saving}
+              label="Save professional profile"
+            />
+
+          </div>
+
         </div>
-      ) : (
-        <EmptyModalState
-          icon={Sparkles}
-          title="No skills added"
-          description="Add your first skill above."
+
+      </div>
+
+    </form>
+  );
+}
+
+
+/* =========================================================
+   PORTFOLIO
+========================================================= */
+
+function PortfolioSection({
+  works,
+  deletingWorkId,
+  onAdd,
+  onDelete,
+}) {
+  return (
+    <div className="space-y-6">
+
+      <div className="rounded-2xl border border-slate-200 bg-white">
+
+        <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+
+          <div>
+
+            <h2 className="font-bold">
+              Your work
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Showcase projects and work you've
+              completed.
+            </p>
+
+          </div>
+
+          <button
+            type="button"
+            onClick={onAdd}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            <Plus size={17} />
+            Add work
+          </button>
+
+        </div>
+
+
+        <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3">
+
+          {works.map((work) => (
+            <article
+              key={work.id}
+              className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            >
+
+              <div className="aspect-[16/10] overflow-hidden bg-slate-100">
+
+                {work.image ? (
+                  <Image
+                    src={work.image}
+                    width={800}
+                    height={500}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    alt={
+                      work.title ||
+                      "Project"
+                    }
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-slate-300">
+                    <ImagePlus
+                      size={32}
+                    />
+                  </div>
+                )}
+
+              </div>
+
+
+              <div className="p-4">
+
+                <h3 className="font-bold">
+                  {work.title ||
+                    "Untitled work"}
+                </h3>
+
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                  {work.description ||
+                    "No description provided."}
+                </p>
+
+
+                <div className="mt-4 flex items-center justify-between gap-3">
+
+                  <span className="text-xs font-medium text-slate-400">
+                    {work.category ||
+                      "Work"}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onDelete(work)
+                    }
+                    disabled={
+                      deletingWorkId ===
+                      work.id
+                    }
+                    className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                    aria-label="Delete work"
+                  >
+                    <Trash2
+                      size={16}
+                    />
+                  </button>
+
+                </div>
+
+              </div>
+
+            </article>
+          ))}
+
+
+          <button
+            type="button"
+            onClick={onAdd}
+            className="flex min-h-[250px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-5 text-center transition hover:border-slate-950 hover:bg-white"
+          >
+
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+              <Plus size={22} />
+            </span>
+
+            <span className="mt-3 text-sm font-bold text-slate-700">
+              Add another project
+            </span>
+
+            <span className="mt-1 text-xs text-slate-400">
+              Showcase more of your work
+            </span>
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   ACCOUNT
+========================================================= */
+
+function AccountSection({
+  email,
+  onDelete,
+}) {
+  return (
+    <div className="space-y-6">
+
+      <div className="rounded-2xl border border-slate-200 bg-white">
+
+        <SectionHeader
+          title="Account"
+          description="Manage your account access and data."
         />
-      )}
+
+        <div className="divide-y divide-slate-100">
+
+          <div className="flex items-center justify-between gap-5 p-5 sm:p-6">
+
+            <div>
+
+              <h3 className="text-sm font-bold">
+                Email
+              </h3>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {email ||
+                  "No email available"}
+              </p>
+
+            </div>
+
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+              Verified
+            </span>
+
+          </div>
+
+
+          <div className="flex items-center justify-between gap-5 p-5 sm:p-6">
+
+            <div>
+
+              <h3 className="text-sm font-bold">
+                Log out
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Sign out of your Youth Space
+                account on this device.
+              </p>
+
+            </div>
+
+            <span className="text-xs text-slate-400">
+              Use your existing auth control
+            </span>
+
+          </div>
+
+
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+
+            <div>
+
+              <h3 className="text-sm font-bold text-red-600">
+                Delete account
+              </h3>
+
+              <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500">
+                Permanently delete your account,
+                profile, work and associated data.
+                This action cannot be undone.
+              </p>
+
+            </div>
+
+            <button
+              type="button"
+              onClick={onDelete}
+              className="shrink-0 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+            >
+              Delete account
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   SKILLS MODAL
+========================================================= */
+
+function SkillsModal({
+  skills,
+  input,
+  setInput,
+  addSkill,
+  removeSkill,
+  onClose,
+  onSave,
+  saving,
+}) {
+  return (
+    <ModalShell
+      title="Edit skills"
+      description="Add the skills you want to showcase."
+      onClose={onClose}
+    >
+
+      <div className="space-y-5">
+
+        <div className="flex flex-wrap gap-2">
+
+          {skills.map((skill) => (
+            <span
+              key={skill}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+            >
+              {skill}
+
+              <button
+                type="button"
+                onClick={() =>
+                  removeSkill(skill)
+                }
+                className="text-slate-400 hover:text-slate-950"
+              >
+                <X size={14} />
+              </button>
+
+            </span>
+          ))}
+
+        </div>
+
+        <div className="flex gap-2">
+
+          <input
+            autoFocus
+            value={input}
+            onChange={(event) =>
+              setInput(
+                event.target.value
+              )
+            }
+            onKeyDown={(event) => {
+              if (
+                event.key ===
+                "Enter"
+              ) {
+                event.preventDefault();
+                addSkill();
+              }
+            }}
+            placeholder="Type a skill..."
+            maxLength={40}
+            className="field flex-1"
+          />
+
+          <button
+            type="button"
+            onClick={addSkill}
+            className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+          >
+            Add
+          </button>
+
+        </div>
+
+      </div>
 
       <ModalActions
-        onCancel={onClose}
-        onSubmit={handleSave}
-        loading={saving}
-        submitText="Save skills"
+        onClose={onClose}
+        onSave={onSave}
+        saving={saving}
       />
+
     </ModalShell>
   );
 }
 
-/* ============================================================================
+
+/* =========================================================
    SERVICES MODAL
-   ============================================================================ */
+========================================================= */
 
-function ServicesModal({ services, onClose, onUpdated }) {
-  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
-
-  const [items, setItems] = useState(normalizeServices(services));
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  function addService() {
-    const cleanName = name.trim();
-
-    if (!cleanName) {
-      showSnackbar({
-        type: "warning",
-        message: "Enter a service name.",
-      });
-
-      return;
-    }
-
-    if (items.length >= 20) {
-      showSnackbar({
-        type: "warning",
-        message: "You can add up to 20 services.",
-      });
-
-      return;
-    }
-
-    setItems((current) => [
-      ...current,
-      {
-        id: crypto.randomUUID(),
-        name: cleanName,
-        description: description.trim(),
-        price: price.trim(),
-      },
-    ]);
-
-    setName("");
-    setDescription("");
-    setPrice("");
-  }
-
-  async function handleSave() {
-    setSaving(true);
-
-    try {
-      const result = await updateProfileAction({
-        services: items,
-      });
-
-      if (!result?.success) {
-        throw new Error(result?.error || "Unable to update services.");
-      }
-
-      onUpdated(result.profile?.services || items);
-    } catch (error) {
-      showSnackbar({
-        type: "error",
-        message: error?.message || "Unable to update services.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
+function ServicesModal({
+  services,
+  input,
+  setInput,
+  addService,
+  removeService,
+  onClose,
+  onSave,
+  saving,
+}) {
   return (
     <ModalShell
-      title="Manage services"
-      description="Tell people what they can hire you for."
+      title="Edit services"
+      description="Add the services you offer."
       onClose={onClose}
     >
-      <div className="space-y-3 rounded-2xl border border-slate-200 p-4">
-        <FormField
-          label="Service name"
-          value={name}
-          onChange={setName}
-          placeholder="e.g. Logo design"
-        />
 
-        <TextAreaField
-          label="Description"
-          value={description}
-          onChange={setDescription}
-          placeholder="Describe what you provide..."
-        />
+      <div className="space-y-3">
 
-        <FormField
-          label="Price"
-          value={price}
-          onChange={setPrice}
-          placeholder="e.g. 300"
+        {services.map((service) => (
+          <div
+            key={service}
+            className="flex items-center justify-between rounded-xl border border-slate-200 p-3"
+          >
+
+            <span className="text-sm text-slate-700">
+              {service}
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                removeService(
+                  service
+                )
+              }
+              className="text-slate-400 hover:text-slate-950"
+            >
+              <X size={16} />
+            </button>
+
+          </div>
+        ))}
+
+      </div>
+
+      <div className="mt-4 flex gap-2">
+
+        <input
+          autoFocus
+          value={input}
+          onChange={(event) =>
+            setInput(
+              event.target.value
+            )
+          }
+          onKeyDown={(event) => {
+            if (
+              event.key ===
+              "Enter"
+            ) {
+              event.preventDefault();
+              addService();
+            }
+          }}
+          placeholder="Add a service..."
+          maxLength={80}
+          className="field flex-1"
         />
 
         <button
           type="button"
           onClick={addService}
-          className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white transition hover:bg-slate-800"
+          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
         >
-          <Plus size={14} />
-          Add service
+          Add
         </button>
+
       </div>
-
-      {items.length ? (
-        <div className="mt-5 space-y-2">
-          {items.map((service, index) => (
-            <div
-              key={service.id || `${service.name}-${index}`}
-              className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4"
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
-                <BriefcaseBusiness size={14} />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-xs font-black text-slate-900">
-                    {service.name}
-                  </p>
-
-                  {service.price && (
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
-                      K{service.price}
-                    </span>
-                  )}
-                </div>
-
-                {service.description && (
-                  <p className="mt-1 text-[11px] leading-5 text-slate-400">
-                    {service.description}
-                  </p>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setItems((current) =>
-                    current.filter((_, itemIndex) => itemIndex !== index),
-                  )
-                }
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <EmptyModalState
-          icon={BriefcaseBusiness}
-          title="No services added"
-          description="Add a service above."
-        />
-      )}
 
       <ModalActions
-        onCancel={onClose}
-        onSubmit={handleSave}
-        loading={saving}
-        submitText="Save services"
+        onClose={onClose}
+        onSave={onSave}
+        saving={saving}
       />
+
     </ModalShell>
   );
 }
 
-/* ============================================================================
+
+/* =========================================================
    CONFIRM MODAL
-   ============================================================================ */
+========================================================= */
 
-function ConfirmModal({ action, loading, onCancel, onConfirm }) {
-  const isProfile = action?.type === "profile";
-
-  const title = isProfile ? "Delete your profile?" : "Delete this work?";
-
-  const description = isProfile
-    ? "This permanently removes your Youth Space profile. This action cannot be undone."
-    : `This permanently deletes "${
-        action?.title || "this work"
-      }". This action cannot be undone.`;
+function ConfirmModal({
+  type,
+  work,
+  onClose,
+  onConfirm,
+  loading,
+}) {
+  const deletingProfile =
+    type === "profile";
 
   return (
-    <ModalShell
-      title={title}
-      description={description}
-      onClose={onCancel}
-      narrow
-    >
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-500">
-        <Trash2 size={20} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600">
+          {deletingProfile ? (
+            <Trash2 size={20} />
+          ) : (
+            <CircleAlert
+              size={20}
+            />
+          )}
+        </div>
+
+        <h2 className="mt-5 text-lg font-bold">
+          {deletingProfile
+            ? "Delete your account?"
+            : `Delete ${
+                work?.title ||
+                "this work"
+              }?`}
+        </h2>
+
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          {deletingProfile
+            ? "This permanently removes your profile, work and account data. This action cannot be undone."
+            : "This will permanently remove this work from your portfolio."}
+        </p>
+
+        <div className="mt-6 flex gap-3">
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:border-slate-950 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+          >
+            {loading
+              ? "Deleting..."
+              : deletingProfile
+                ? "Delete account"
+                : "Delete work"}
+          </button>
+
+        </div>
+
       </div>
 
-      <div className="mt-6 flex gap-3">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={onCancel}
-          className="h-10 flex-1 rounded-xl border border-slate-200 bg-white text-xs font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          disabled={loading}
-          onClick={onConfirm}
-          className="h-10 flex-1 rounded-xl bg-red-600 text-xs font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    </ModalShell>
+    </div>
   );
 }
 
-/* ============================================================================
-   MODAL SHELL
-   ============================================================================ */
 
-function ModalShell({ title, description, onClose, children, narrow = false }) {
+/* =========================================================
+   WORK MODAL
+========================================================= */
+
+function WorkModal({
+  onClose,
+}) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/55 p-0 sm:items-center sm:p-4">
-      <div
-        className={`flex max-h-[94vh] w-full flex-col overflow-hidden bg-white shadow-2xl sm:rounded-[26px] ${
-          narrow ? "max-w-md rounded-t-[26px]" : "max-w-2xl rounded-t-[26px]"
-        }`}
-      >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
-          <div>
-            <h2 className="text-sm font-black text-slate-950">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
 
-            {description && (
-              <p className="mt-1 max-w-lg text-[11px] leading-5 text-slate-400">
-                {description}
-              </p>
-            )}
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
+
+        <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:p-6">
+
+          <div>
+
+            <h2 className="font-bold">
+              Add work
+            </h2>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Showcase something you've
+              created.
+            </p>
+
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:border-slate-950 hover:text-slate-950"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
             aria-label="Close"
           >
-            <X size={16} />
+            <X size={19} />
           </button>
+
         </div>
 
-        <div className="overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
-          {children}
+
+        <div className="space-y-5 p-5 sm:p-6">
+
+          <Field
+            label="Project title"
+            placeholder="e.g. E-commerce website"
+          />
+
+          <div>
+
+            <label className="mb-2 block text-sm font-semibold">
+              Description
+            </label>
+
+            <textarea
+              rows={4}
+              placeholder="Briefly describe your work..."
+              className="field resize-none"
+            />
+
+          </div>
+
+
+          <div>
+
+            <label className="mb-2 block text-sm font-semibold">
+              Project image
+            </label>
+
+            <button
+              type="button"
+              className="flex min-h-32 w-full items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-center transition hover:border-slate-950 hover:bg-white"
+            >
+
+              <div>
+
+                <ImagePlus
+                  size={28}
+                  className="mx-auto text-slate-300"
+                />
+
+                <p className="mt-2 text-xs font-medium text-slate-500">
+                  Upload project image
+                </p>
+
+              </div>
+
+            </button>
+
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-500">
+            Work creation will use your existing
+            works action/upload implementation.
+          </div>
+
         </div>
+
+
+        <div className="flex justify-end gap-3 border-t border-slate-100 p-5 sm:p-6">
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold transition hover:border-slate-950"
+          >
+            Cancel
+          </button>
+
+        </div>
+
       </div>
+
     </div>
   );
 }
 
-/* ============================================================================
-   MODAL ACTIONS
-   ============================================================================ */
 
-function ModalActions({ onCancel, onSubmit, loading, submitText }) {
+/* =========================================================
+   CUSTOM SELECT
+========================================================= */
+
+function CustomSelect({
+  label,
+  value,
+  options,
+  onSelect,
+  open,
+  onToggle,
+}) {
   return (
-    <div className="mt-6 flex gap-3 border-t border-slate-200 pt-5">
+    <div className="relative">
+
+      {label && (
+        <label className="mb-2 block text-sm font-semibold">
+          {label}
+        </label>
+      )}
+
       <button
         type="button"
-        disabled={loading}
-        onClick={onCancel}
-        className="h-10 flex-1 rounded-xl border border-slate-300 bg-white text-xs font-black text-slate-700 transition hover:border-slate-950 disabled:opacity-50"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-left text-sm outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-950/10"
+      >
+
+        <span className="truncate">
+          {value}
+        </span>
+
+        <ChevronDown
+          size={17}
+          className="shrink-0"
+        />
+
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+
+          {options.length > 0 ? (
+            options.map(
+              ([optionValue, optionLabel]) => (
+                <button
+                  key={optionValue}
+                  type="button"
+                  onClick={() =>
+                    onSelect(
+                      optionValue
+                    )
+                  }
+                  className="flex w-full items-center rounded-[10px] px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                >
+                  {optionLabel}
+                </button>
+              )
+            )
+          ) : (
+            <p className="p-3 text-xs text-slate-400">
+              No options available.
+            </p>
+          )}
+
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   SECTION BUTTON
+========================================================= */
+
+function SectionButton({
+  active,
+  icon,
+  label,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "flex w-full items-center gap-3 rounded-xl bg-slate-100 px-3 py-3 text-left text-sm font-semibold text-slate-950"
+          : "mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
+      }
+    >
+
+      <span
+        className={
+          active
+            ? "flex h-8 w-8 items-center justify-center rounded-lg bg-white"
+            : "flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50"
+        }
+      >
+        {icon}
+      </span>
+
+      {label}
+
+    </button>
+  );
+}
+
+
+/* =========================================================
+   MODAL SHELL
+========================================================= */
+
+function ModalShell({
+  title,
+  description,
+  onClose,
+  children,
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+
+        <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:p-6">
+
+          <div>
+
+            <h2 className="font-bold">
+              {title}
+            </h2>
+
+            <p className="mt-1 text-xs text-slate-500">
+              {description}
+            </p>
+
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
+            aria-label="Close"
+          >
+            <X size={19} />
+          </button>
+
+        </div>
+
+        <div className="p-5 sm:p-6">
+          {children}
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   MODAL ACTIONS
+========================================================= */
+
+function ModalActions({
+  onClose,
+  onSave,
+  saving,
+}) {
+  return (
+    <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-5">
+
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={saving}
+        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold transition hover:border-slate-950 disabled:opacity-50"
       >
         Cancel
       </button>
 
       <button
-        type={onSubmit ? "button" : "submit"}
-        disabled={loading}
-        onClick={onSubmit}
-        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-950 text-xs font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        type="button"
+        onClick={onSave}
+        disabled={saving}
+        className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
       >
-        {loading ? (
-          "Saving..."
-        ) : (
-          <>
-            <Save size={14} />
-            {submitText}
-          </>
-        )}
+        {saving
+          ? "Saving..."
+          : "Save changes"}
       </button>
+
     </div>
   );
 }
 
-/* ============================================================================
-   FORM FIELD
-   ============================================================================ */
 
-function FormField({ label, value, onChange, placeholder, type = "text" }) {
+/* =========================================================
+   SECTION HEADER
+========================================================= */
+
+function SectionHeader({
+  title,
+  description,
+}) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-[11px] font-black text-slate-700">
-        {label}
-      </span>
+    <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+
+      <h2 className="font-bold text-slate-950">
+        {title}
+      </h2>
+
+      <p className="mt-1 text-sm text-slate-500">
+        {description}
+      </p>
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   FIELD
+========================================================= */
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  disabled = false,
+}) {
+  return (
+    <div>
+
+      {label && (
+        <label className="mb-2 block text-sm font-semibold">
+          {label}
+        </label>
+      )}
 
       <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        value={value ?? ""}
+        onChange={
+          onChange
+            ? (event) =>
+                onChange(
+                  event.target.value
+                )
+            : undefined
+        }
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-0"
-      />
-    </label>
-  );
-}
-
-/* ============================================================================
-   TEXT AREA
-   ============================================================================ */
-
-function TextAreaField({ label, value, onChange, placeholder }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[11px] font-black text-slate-700">
-        {label}
-      </span>
-
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        rows={4}
-        className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-semibold leading-5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-0"
-      />
-    </label>
-  );
-}
-
-/* ============================================================================
-   CUSTOM SELECT
-   ============================================================================ */
-
-function SelectField({ label, value, options, onChange, disabled = false }) {
-  const [open, setOpen] = useState(false);
-
-  const selected = options.find((option) => option.value === value);
-
-  return (
-    <div className="relative">
-      <span className="mb-1.5 block text-[11px] font-black text-slate-700">
-        {label}
-      </span>
-
-      <button
-        type="button"
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
-        className={`flex h-11 w-full items-center justify-between rounded-xl border bg-white px-3 text-left text-xs font-semibold outline-none transition ${
-          open ? "border-slate-950" : "border-slate-200 hover:border-slate-300"
-        } ${
-          disabled
-            ? "cursor-not-allowed bg-slate-50 text-slate-400"
-            : "text-slate-900"
-        }`}
-      >
-        <span className="truncate">
-          {selected?.label || `Select ${label.toLowerCase()}`}
-        </span>
+        className="field disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+      />
 
-        <ChevronDown
-          size={15}
-          className={`shrink-0 text-slate-400 transition ${
-            open ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {open && !disabled && (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 cursor-default"
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-          />
-
-          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-60 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
-            <button
-              type="button"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
-              className={`w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition hover:bg-slate-50 ${
-                !value ? "bg-slate-50 text-slate-950" : "text-slate-400"
-              }`}
-            >
-              Select {label.toLowerCase()}
-            </button>
-
-            {options.map((option) => {
-              const isSelected = option.value === value;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${
-                    isSelected
-                      ? "bg-slate-950 text-white"
-                      : "text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <span>{option.label}</span>
-
-                  {isSelected && <Check size={14} strokeWidth={3} />}
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
     </div>
   );
 }
 
-/* ============================================================================
-   EMPTY MODAL STATE
-   ============================================================================ */
 
-function EmptyModalState({ icon: Icon, title, description }) {
+/* =========================================================
+   SAVE BUTTON
+========================================================= */
+
+function SaveButton({
+  loading,
+  label,
+}) {
   return (
-    <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-7 text-center">
-      <Icon size={20} className="mx-auto text-slate-300" />
+    <button
+      type="submit"
+      disabled={loading}
+      className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {loading
+        ? "Saving..."
+        : label}
+    </button>
+  );
+}
 
-      <p className="mt-2 text-xs font-black text-slate-600">{title}</p>
 
-      <p className="mt-1 text-[11px] text-slate-400">{description}</p>
+/* =========================================================
+   SUMMARY ROW
+========================================================= */
+
+function SummaryRow({
+  label,
+  value,
+}) {
+  return (
+    <div className="flex items-center justify-between gap-5 border-b border-slate-100 py-3 last:border-0 last:pb-0 first:pt-0">
+
+      <span className="text-sm font-medium text-slate-500">
+        {label}
+      </span>
+
+      <span className="text-right text-sm font-semibold text-slate-950">
+        {value}
+      </span>
+
     </div>
   );
 }
 
-/* ============================================================================
+
+/* =========================================================
+   AVATAR
+========================================================= */
+
+function Avatar({
+  src,
+  name,
+  size = "md",
+}) {
+  const sizes = {
+    sm: "h-9 w-9",
+    md: "h-12 w-12",
+    xl: "h-24 w-24",
+  };
+
+  const initials = getInitials(name);
+
+  if (!src) {
+    return (
+      <div
+        className={`${sizes[size] || sizes.md} flex shrink-0 items-center justify-center rounded-2xl bg-slate-950 font-bold text-white`}
+      >
+        {initials}
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      width={
+        size === "xl"
+          ? 96
+          : size === "sm"
+            ? 36
+            : 48
+      }
+      height={
+        size === "xl"
+          ? 96
+          : size === "sm"
+            ? 36
+            : 48
+      }
+      alt={name || "Profile"}
+      className={`${sizes[size] || sizes.md} shrink-0 rounded-2xl object-cover ${
+        size === "xl"
+          ? "ring-4 ring-slate-50"
+          : ""
+      }`}
+    />
+  );
+}
+
+
+/* =========================================================
    HELPERS
-   ============================================================================ */
+========================================================= */
 
-function normalizeStringArray(items) {
-  if (!Array.isArray(items)) return [];
+function normalizeServices(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
-  return items
-    .map((item) =>
-      typeof item === "string" ? item.trim() : item?.name?.trim() || "",
-    )
+  return value
+    .map((item) => {
+      if (
+        typeof item === "string"
+      ) {
+        return item.trim();
+      }
+
+      if (
+        item &&
+        typeof item === "object"
+      ) {
+        return String(
+          item.name ||
+            item.title ||
+            item.service ||
+            ""
+        ).trim();
+      }
+
+      return "";
+    })
     .filter(Boolean);
 }
 
-function normalizeServices(services) {
-  if (!Array.isArray(services)) return [];
 
-  return services
-    .map((service) => {
-      if (typeof service === "string") {
-        return {
-          id: service,
-          name: service,
-          description: "",
-          price: "",
-        };
-      }
+function firstName(name) {
+  if (!name) return "Profile";
 
-      return {
-        id: service?.id || service?.name,
-        name: service?.name || "",
-        description: service?.description || "",
-        price: service?.price ?? "",
-      };
-    })
-    .filter((service) => service.name);
+  return String(name)
+    .trim()
+    .split(/\s+/)[0];
 }
 
-function calculateProfileProgress(profile, works) {
-  const checks = [
-    Boolean(profile.displayName),
-    Boolean(profile.avatar),
-    Boolean(profile.role),
-    Boolean(profile.categoryId),
-    Boolean(profile.province),
-    Boolean(profile.district),
-    Boolean(profile.bio),
-    profile.skills?.length > 0,
-    profile.services?.length > 0,
-    works.length > 0,
-  ];
 
-  const completed = checks.filter(Boolean).length;
+function getInitials(name) {
+  if (!name) return "Y";
 
-  return Math.round((completed / checks.length) * 100);
+  const parts = String(name)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 1) {
+    return parts[0]
+      .slice(0, 1)
+      .toUpperCase();
+  }
+
+  return (
+    parts[0][0] +
+    parts[parts.length - 1][0]
+  ).toUpperCase();
+}
+
+
+function capitalize(value) {
+  if (!value) return "";
+
+  return (
+    value.charAt(0).toUpperCase() +
+    value.slice(1)
+  );
+}
+
+
+function getDistrictsForProvince(
+  province
+) {
+  if (!province) return [];
+
+  /*
+   * Supports either:
+   *
+   * {
+   *   Lusaka: ["Lusaka", "Chongwe"]
+   * }
+   *
+   * or
+   *
+   * [
+   *   {
+   *     name: "Lusaka",
+   *     districts: [...]
+   *   }
+   * ]
+   */
+
+  if (
+    districts &&
+    !Array.isArray(districts) &&
+    typeof districts === "object"
+  ) {
+    return districts[province] || [];
+  }
+
+  if (Array.isArray(districts)) {
+    const found = districts.find(
+      (item) =>
+        item?.name === province ||
+        item?.province === province
+    );
+
+    if (Array.isArray(found)) {
+      return found;
+    }
+
+    if (
+      Array.isArray(
+        found?.districts
+      )
+    ) {
+      return found.districts;
+    }
+  }
+
+  return [];
 }
