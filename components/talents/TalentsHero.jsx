@@ -4,7 +4,7 @@ import Image from "next/image";
 import { ArrowRight, Search } from "lucide-react";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function TalentsHero({ talentsLoading = false }) {
   const router = useRouter();
@@ -12,6 +12,8 @@ export default function TalentsHero({ talentsLoading = false }) {
   const searchParams = useSearchParams();
 
   const search = searchParams.get("search") || "";
+
+  const [inputValue, setInputValue] = useState(search);
   const debounceRef = useRef(null);
 
   function updateSearch(value) {
@@ -33,6 +35,10 @@ export default function TalentsHero({ talentsLoading = false }) {
   function handleChange(event) {
     const value = event.target.value;
 
+    // Update the input immediately.
+    setInputValue(value);
+
+    // Only delay the URL/search update.
     clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(() => {
@@ -108,7 +114,7 @@ export default function TalentsHero({ talentsLoading = false }) {
 
               <input
                 type="search"
-                value={search}
+                value={inputValue}
                 disabled={talentsLoading}
                 onChange={handleChange}
                 placeholder={
@@ -122,7 +128,7 @@ export default function TalentsHero({ talentsLoading = false }) {
 
               <button
                 type="submit"
-                disabled={talentsLoading || !search.trim()}
+                disabled={talentsLoading || !inputValue.trim()}
                 className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="hidden sm:inline">
