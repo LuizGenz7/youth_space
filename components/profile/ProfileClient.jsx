@@ -18,20 +18,16 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import {
-  deleteProfileAction,
-  updateProfileAction,
-} from "@/actions/profile";
+import { deleteProfileAction, updateProfileAction } from "@/actions/profile";
 
 import { deleteWorkAction } from "@/actions/works";
 
-import { useSnackbarStore } from "@/stores/snackbarStore";
+import { useSnackbarStore } from "@/stores/useSnackbarStore";
 
 import {
-  provinces,
-  districts,
-} from "@/data/zambiaLocations";
-
+  ZAMBIA_PROVINCES,
+  getDistrictsByProvince,
+} from "@/data/zambia-locations";
 
 export default function ProfileClient({
   profile,
@@ -40,86 +36,65 @@ export default function ProfileClient({
 }) {
   const router = useRouter();
 
-  const showSnackbar = useSnackbarStore(
-    (state) => state.showSnackbar
-  );
+  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
 
   const avatarInputRef = useRef(null);
 
   const [currentProfile, setCurrentProfile] = useState(profile);
   const [currentWorks, setCurrentWorks] = useState(works);
 
-  const [activeSection, setActiveSection] =
-    useState("profile");
+  const [activeSection, setActiveSection] = useState("profile");
 
-  const [openDropdown, setOpenDropdown] =
-    useState(null);
+  const [openDropdown, setOpenDropdown] = useState(null);
 
-  const [activeModal, setActiveModal] =
-    useState(null);
+  const [activeModal, setActiveModal] = useState(null);
 
-  const [confirmAction, setConfirmAction] =
-    useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [deletingProfile, setDeletingProfile] =
-    useState(false);
+  const [deletingProfile, setDeletingProfile] = useState(false);
 
-  const [deletingWorkId, setDeletingWorkId] =
-    useState(null);
+  const [deletingWorkId, setDeletingWorkId] = useState(null);
 
-  const [savingAvailability, setSavingAvailability] =
-    useState(false);
+  const [savingAvailability, setSavingAvailability] = useState(false);
 
   const [skills, setSkills] = useState(
-    Array.isArray(profile?.skills)
-      ? profile.skills
-      : []
+    Array.isArray(profile?.skills) ? profile.skills : [],
   );
 
   const [services, setServices] = useState(
-    normalizeServices(profile?.services)
+    normalizeServices(profile?.services),
   );
 
-  const [avatarPreview, setAvatarPreview] =
-    useState(profile?.avatar || "");
+  const [avatarPreview, setAvatarPreview] = useState(profile?.avatar || "");
 
-  const [skillInput, setSkillInput] =
-    useState("");
+  const [skillInput, setSkillInput] = useState("");
 
-  const [serviceInput, setServiceInput] =
-    useState("");
+  const [serviceInput, setServiceInput] = useState("");
 
-  const [profileForm, setProfileForm] =
-    useState({
-      displayName: profile?.displayName || "",
-      username: profile?.username || "",
-      role: profile?.role || "",
-      categoryId: profile?.categoryId || "",
-      province: profile?.province || "",
-      district: profile?.district || "",
-      bio: profile?.bio || "",
-      phone: profile?.phone || "",
-      whatsapp: profile?.whatsapp || "",
-    });
+  const [profileForm, setProfileForm] = useState({
+    displayName: profile?.displayName || "",
+    username: profile?.username || "",
+    role: profile?.role || "",
+    categoryId: profile?.categoryId || "",
+    province: profile?.province || "",
+    district: profile?.district || "",
+    bio: profile?.bio || "",
+    phone: profile?.phone || "",
+    whatsapp: profile?.whatsapp || "",
+  });
 
-  const [workModalOpen, setWorkModalOpen] =
-    useState(false);
+  const [workModalOpen, setWorkModalOpen] = useState(false);
 
   const category = useMemo(() => {
-    return categories.find(
-      (item) => item.id === currentProfile?.categoryId
-    );
+    return categories.find((item) => item.id === currentProfile?.categoryId);
   }, [categories, currentProfile?.categoryId]);
 
   const availableDistricts = useMemo(() => {
     if (!profileForm.province) return [];
 
-    return getDistrictsForProvince(
-      profileForm.province
-    );
+    return getDistrictsByProvince(profileForm.province);
   }, [profileForm.province]);
 
   const profileStrength = useMemo(() => {
@@ -138,15 +113,8 @@ export default function ProfileClient({
 
     const completed = checks.filter(Boolean).length;
 
-    return Math.round(
-      (completed / checks.length) * 100
-    );
-  }, [
-    currentProfile,
-    skills.length,
-    services.length,
-    currentWorks.length,
-  ]);
+    return Math.round((completed / checks.length) * 100);
+  }, [currentProfile, skills.length, services.length, currentWorks.length]);
 
   function selectSection(section) {
     setActiveSection(section);
@@ -188,10 +156,7 @@ export default function ProfileClient({
       });
 
       if (result?.error) {
-        showSnackbar(
-          result.error,
-          "error"
-        );
+        showSnackbar(result.error, "error");
 
         return;
       }
@@ -201,10 +166,7 @@ export default function ProfileClient({
         ...profileForm,
       }));
 
-      showSnackbar(
-        "Profile updated successfully.",
-        "success"
-      );
+      showSnackbar("Profile updated successfully.", "success");
 
       setActiveModal(null);
 
@@ -212,10 +174,7 @@ export default function ProfileClient({
     } catch (error) {
       console.error(error);
 
-      showSnackbar(
-        "Something went wrong while saving your profile.",
-        "error"
-      );
+      showSnackbar("Something went wrong while saving your profile.", "error");
     } finally {
       setSaving(false);
     }
@@ -230,33 +189,21 @@ export default function ProfileClient({
       setSaving(true);
 
       const result = await updateProfileAction({
-        displayName:
-          currentProfile?.displayName || "",
-        username:
-          currentProfile?.username || "",
+        displayName: currentProfile?.displayName || "",
+        username: currentProfile?.username || "",
         role: profileForm.role,
         categoryId: profileForm.categoryId,
-        province:
-          currentProfile?.province || "",
-        district:
-          currentProfile?.district || "",
-        bio:
-          currentProfile?.bio || "",
-        phone:
-          currentProfile?.phone || "",
-        whatsapp:
-          currentProfile?.whatsapp || "",
-        avatar:
-          currentProfile?.avatar || "",
-        available:
-          currentProfile?.available ?? false,
+        province: currentProfile?.province || "",
+        district: currentProfile?.district || "",
+        bio: currentProfile?.bio || "",
+        phone: currentProfile?.phone || "",
+        whatsapp: currentProfile?.whatsapp || "",
+        avatar: currentProfile?.avatar || "",
+        available: currentProfile?.available ?? false,
       });
 
       if (result?.error) {
-        showSnackbar(
-          result.error,
-          "error"
-        );
+        showSnackbar(result.error, "error");
 
         return;
       }
@@ -267,19 +214,13 @@ export default function ProfileClient({
         categoryId: profileForm.categoryId,
       }));
 
-      showSnackbar(
-        "Professional profile updated.",
-        "success"
-      );
+      showSnackbar("Professional profile updated.", "success");
 
       router.refresh();
     } catch (error) {
       console.error(error);
 
-      showSnackbar(
-        "Unable to save professional profile.",
-        "error"
-      );
+      showSnackbar("Unable to save professional profile.", "error");
     } finally {
       setSaving(false);
     }
@@ -296,10 +237,7 @@ export default function ProfileClient({
       });
 
       if (result?.error) {
-        showSnackbar(
-          result.error,
-          "error"
-        );
+        showSnackbar(result.error, "error");
 
         return;
       }
@@ -309,19 +247,13 @@ export default function ProfileClient({
         skills,
       }));
 
-      showSnackbar(
-        "Skills updated successfully.",
-        "success"
-      );
+      showSnackbar("Skills updated successfully.", "success");
 
       closeModal();
     } catch (error) {
       console.error(error);
 
-      showSnackbar(
-        "Unable to update your skills.",
-        "error"
-      );
+      showSnackbar("Unable to update your skills.", "error");
     } finally {
       setSaving(false);
     }
@@ -338,10 +270,7 @@ export default function ProfileClient({
       });
 
       if (result?.error) {
-        showSnackbar(
-          result.error,
-          "error"
-        );
+        showSnackbar(result.error, "error");
 
         return;
       }
@@ -351,19 +280,13 @@ export default function ProfileClient({
         services,
       }));
 
-      showSnackbar(
-        "Services updated successfully.",
-        "success"
-      );
+      showSnackbar("Services updated successfully.", "success");
 
       closeModal();
     } catch (error) {
       console.error(error);
 
-      showSnackbar(
-        "Unable to update your services.",
-        "error"
-      );
+      showSnackbar("Unable to update your services.", "error");
     } finally {
       setSaving(false);
     }
@@ -372,8 +295,7 @@ export default function ProfileClient({
   async function toggleAvailability() {
     if (savingAvailability) return;
 
-    const nextValue =
-      !Boolean(currentProfile?.available);
+    const nextValue = !Boolean(currentProfile?.available);
 
     try {
       setSavingAvailability(true);
@@ -383,10 +305,7 @@ export default function ProfileClient({
       });
 
       if (result?.error) {
-        showSnackbar(
-          result.error,
-          "error"
-        );
+        showSnackbar(result.error, "error");
 
         return;
       }
@@ -400,15 +319,12 @@ export default function ProfileClient({
         nextValue
           ? "You are now available for work."
           : "You are now unavailable for work.",
-        "success"
+        "success",
       );
     } catch (error) {
       console.error(error);
 
-      showSnackbar(
-        "Unable to update availability.",
-        "error"
-      );
+      showSnackbar("Unable to update availability.", "error");
     } finally {
       setSavingAvailability(false);
     }
@@ -420,10 +336,7 @@ export default function ProfileClient({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      showSnackbar(
-        "Please select an image file.",
-        "error"
-      );
+      showSnackbar("Please select an image file.", "error");
 
       return;
     }
@@ -442,7 +355,7 @@ export default function ProfileClient({
 
     showSnackbar(
       "Photo preview updated. Save it after connecting your image upload.",
-      "info"
+      "info",
     );
   }
 
@@ -452,34 +365,22 @@ export default function ProfileClient({
     if (!value) return;
 
     const exists = skills.some(
-      (skill) =>
-        String(skill).toLowerCase() ===
-        value.toLowerCase()
+      (skill) => String(skill).toLowerCase() === value.toLowerCase(),
     );
 
     if (exists) {
-      showSnackbar(
-        "That skill is already added.",
-        "error"
-      );
+      showSnackbar("That skill is already added.", "error");
 
       return;
     }
 
-    setSkills((previous) => [
-      ...previous,
-      value,
-    ]);
+    setSkills((previous) => [...previous, value]);
 
     setSkillInput("");
   }
 
   function removeSkill(skill) {
-    setSkills((previous) =>
-      previous.filter(
-        (item) => item !== skill
-      )
-    );
+    setSkills((previous) => previous.filter((item) => item !== skill));
   }
 
   function addService() {
@@ -488,34 +389,22 @@ export default function ProfileClient({
     if (!value) return;
 
     const exists = services.some(
-      (service) =>
-        service.toLowerCase() ===
-        value.toLowerCase()
+      (service) => service.toLowerCase() === value.toLowerCase(),
     );
 
     if (exists) {
-      showSnackbar(
-        "That service is already added.",
-        "error"
-      );
+      showSnackbar("That service is already added.", "error");
 
       return;
     }
 
-    setServices((previous) => [
-      ...previous,
-      value,
-    ]);
+    setServices((previous) => [...previous, value]);
 
     setServiceInput("");
   }
 
   function removeService(service) {
-    setServices((previous) =>
-      previous.filter(
-        (item) => item !== service
-      )
-    );
+    setServices((previous) => previous.filter((item) => item !== service));
   }
 
   async function handleDeleteWork(work) {
@@ -529,39 +418,25 @@ export default function ProfileClient({
       });
 
       if (result?.error) {
-        showSnackbar(
-          result.error,
-          "error"
-        );
+        showSnackbar(result.error, "error");
 
         return;
       }
 
       setCurrentWorks((previous) =>
-        previous.filter(
-          (item) => item.id !== work.id
-        )
+        previous.filter((item) => item.id !== work.id),
       );
 
       setCurrentProfile((previous) => ({
         ...previous,
-        workCount: Math.max(
-          0,
-          Number(previous?.workCount || 0) - 1
-        ),
+        workCount: Math.max(0, Number(previous?.workCount || 0) - 1),
       }));
 
-      showSnackbar(
-        "Work deleted successfully.",
-        "success"
-      );
+      showSnackbar("Work deleted successfully.", "success");
     } catch (error) {
       console.error(error);
 
-      showSnackbar(
-        "Unable to delete this work.",
-        "error"
-      );
+      showSnackbar("Unable to delete this work.", "error");
     } finally {
       setDeletingWorkId(null);
     }
@@ -583,28 +458,19 @@ export default function ProfileClient({
       const result = await deleteProfileAction();
 
       if (result?.error) {
-        showSnackbar(
-          result.error,
-          "error"
-        );
+        showSnackbar(result.error, "error");
 
         return;
       }
 
-      showSnackbar(
-        "Your account has been deleted.",
-        "success"
-      );
+      showSnackbar("Your account has been deleted.", "success");
 
       router.push("/discover");
       router.refresh();
     } catch (error) {
       console.error(error);
 
-      showSnackbar(
-        "Unable to delete your account.",
-        "error"
-      );
+      showSnackbar("Unable to delete your account.", "error");
     } finally {
       setDeletingProfile(false);
       closeModal();
@@ -636,49 +502,31 @@ export default function ProfileClient({
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-
       {/* HEADER */}
 
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-
-          <Link
-            href="/"
-            className="flex items-center gap-2.5"
-          >
+          <Link href="/" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-extrabold text-white">
               Y
             </div>
 
             <span className="text-lg font-extrabold tracking-tight">
               Youth
-              <span className="text-orange-500">
-                Space
-              </span>
+              <span className="text-orange-500">Space</span>
             </span>
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
-
-            <Link
-              href="/"
-              className="transition hover:text-slate-950"
-            >
+            <Link href="/" className="transition hover:text-slate-950">
               Home
             </Link>
 
-            <Link
-              href="/discover"
-              className="transition hover:text-slate-950"
-            >
+            <Link href="/discover" className="transition hover:text-slate-950">
               Discover
             </Link>
 
-            <Link
-              href="/talents"
-              className="transition hover:text-slate-950"
-            >
+            <Link href="/talents" className="transition hover:text-slate-950">
               Talents
             </Link>
 
@@ -688,155 +536,93 @@ export default function ProfileClient({
             >
               Categories
             </Link>
-
           </nav>
 
           <div className="flex items-center gap-3">
-
             <div className="flex items-center gap-2 rounded-xl p-1.5">
-
               <Avatar
-                src={
-                  avatarPreview ||
-                  currentProfile?.avatar
-                }
-                name={
-                  currentProfile?.displayName
-                }
+                src={avatarPreview || currentProfile?.avatar}
+                name={currentProfile?.displayName}
                 size="sm"
               />
 
               <span className="hidden text-sm font-semibold sm:block">
-                {firstName(
-                  currentProfile?.displayName
-                )}
+                {firstName(currentProfile?.displayName)}
               </span>
-
             </div>
-
           </div>
-
         </div>
-
       </header>
-
 
       {/* MAIN */}
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
         <div className="mb-8">
-
-          <p className="mb-2 text-sm font-semibold text-orange-500">
-            Account
-          </p>
+          <p className="mb-2 text-sm font-semibold text-orange-500">Account</p>
 
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
             Profile settings
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Manage your profile, skills, services,
-            portfolio and account settings.
+            Manage your profile, skills, services, portfolio and account
+            settings.
           </p>
-
         </div>
 
-
         <div className="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
-
-
           {/* SIDEBAR */}
 
           <aside className="hidden lg:block">
-
             <div className="sticky top-24 rounded-2xl border border-slate-200 bg-white p-2">
-
               <SectionButton
                 active={activeSection === "profile"}
                 icon={<User size={17} />}
                 label="Profile"
-                onClick={() =>
-                  selectSection("profile")
-                }
+                onClick={() => selectSection("profile")}
               />
 
               <SectionButton
-                active={
-                  activeSection === "professional"
-                }
-                icon={
-                  <BriefcaseBusiness size={17} />
-                }
+                active={activeSection === "professional"}
+                icon={<BriefcaseBusiness size={17} />}
                 label="Professional"
-                onClick={() =>
-                  selectSection("professional")
-                }
+                onClick={() => selectSection("professional")}
               />
 
               <SectionButton
-                active={
-                  activeSection === "portfolio"
-                }
+                active={activeSection === "portfolio"}
                 icon={<ImagePlus size={17} />}
                 label="Portfolio"
-                onClick={() =>
-                  selectSection("portfolio")
-                }
+                onClick={() => selectSection("portfolio")}
               />
 
               <div className="my-2 border-t border-slate-100" />
 
               <SectionButton
-                active={
-                  activeSection === "account"
-                }
+                active={activeSection === "account"}
                 icon={<Info size={17} />}
                 label="Account"
-                onClick={() =>
-                  selectSection("account")
-                }
+                onClick={() => selectSection("account")}
               />
-
             </div>
-
           </aside>
-
 
           {/* CONTENT */}
 
           <section className="min-w-0">
-
-
             {/* MOBILE NAV */}
 
             <div className="mb-5 lg:hidden">
-
               <CustomSelect
-                value={capitalize(
-                  activeSection
-                )}
-                open={
-                  openDropdown ===
-                  "mobile"
-                }
+                value={capitalize(activeSection)}
+                open={openDropdown === "mobile"}
                 onToggle={() =>
-                  setOpenDropdown(
-                    openDropdown === "mobile"
-                      ? null
-                      : "mobile"
-                  )
+                  setOpenDropdown(openDropdown === "mobile" ? null : "mobile")
                 }
                 options={[
                   ["profile", "Profile"],
-                  [
-                    "professional",
-                    "Professional",
-                  ],
-                  [
-                    "portfolio",
-                    "Portfolio",
-                  ],
+                  ["professional", "Professional"],
+                  ["portfolio", "Portfolio"],
                   ["account", "Account"],
                 ]}
                 onSelect={(value) => {
@@ -844,9 +630,7 @@ export default function ProfileClient({
                   setOpenDropdown(null);
                 }}
               />
-
             </div>
-
 
             {/* PROFILE */}
 
@@ -857,26 +641,17 @@ export default function ProfileClient({
                 updateForm={updateForm}
                 avatarPreview={avatarPreview}
                 avatarInputRef={avatarInputRef}
-                handleAvatarSelect={
-                  handleAvatarSelect
-                }
+                handleAvatarSelect={handleAvatarSelect}
                 onSave={handleSaveProfile}
                 saving={saving}
                 openModal={setActiveModal}
-                provinceOptions={provinces}
-                districtOptions={
-                  availableDistricts
-                }
+                provinceOptions={ZAMBIA_PROVINCES}
+                districtOptions={availableDistricts}
                 categories={categories}
-                openDropdown={
-                  openDropdown
-                }
-                setOpenDropdown={
-                  setOpenDropdown
-                }
+                openDropdown={openDropdown}
+                setOpenDropdown={setOpenDropdown}
               />
             )}
-
 
             {/* PROFESSIONAL */}
 
@@ -889,73 +664,43 @@ export default function ProfileClient({
                 skills={skills}
                 services={services}
                 skillInput={skillInput}
-                serviceInput={
-                  serviceInput
-                }
-                setSkillInput={
-                  setSkillInput
-                }
-                setServiceInput={
-                  setServiceInput
-                }
+                serviceInput={serviceInput}
+                setSkillInput={setSkillInput}
+                setServiceInput={setServiceInput}
                 addSkill={addSkill}
                 removeSkill={removeSkill}
                 addService={addService}
-                removeService={
-                  removeService
-                }
-                toggleAvailability={
-                  toggleAvailability
-                }
-                savingAvailability={
-                  savingAvailability
-                }
-                onSave={
-                  handleSaveProfessional
-                }
+                removeService={removeService}
+                toggleAvailability={toggleAvailability}
+                savingAvailability={savingAvailability}
+                onSave={handleSaveProfessional}
                 saving={saving}
                 openModal={setActiveModal}
               />
             )}
-
 
             {/* PORTFOLIO */}
 
             {activeSection === "portfolio" && (
               <PortfolioSection
                 works={currentWorks}
-                deletingWorkId={
-                  deletingWorkId
-                }
-                onAdd={() =>
-                  setWorkModalOpen(true)
-                }
-                onDelete={
-                  askDeleteWork
-                }
+                deletingWorkId={deletingWorkId}
+                onAdd={() => setWorkModalOpen(true)}
+                onDelete={askDeleteWork}
               />
             )}
-
 
             {/* ACCOUNT */}
 
             {activeSection === "account" && (
               <AccountSection
-                email={
-                  currentProfile?.email
-                }
-                onDelete={
-                  openDeleteAccount
-                }
+                email={currentProfile?.email}
+                onDelete={openDeleteAccount}
               />
             )}
-
           </section>
-
         </div>
-
       </div>
-
 
       {/* MODALS */}
 
@@ -992,26 +737,17 @@ export default function ProfileClient({
           onClose={closeModal}
           onConfirm={handleConfirm}
           loading={
-            confirmAction.type ===
-            "profile"
+            confirmAction.type === "profile"
               ? deletingProfile
               : deletingWorkId !== null
           }
         />
       )}
 
-      {workModalOpen && (
-        <WorkModal
-          onClose={() =>
-            setWorkModalOpen(false)
-          }
-        />
-      )}
-
+      {workModalOpen && <WorkModal onClose={() => setWorkModalOpen(false)} />}
     </main>
   );
 }
-
 
 /* =========================================================
    PROFILE SECTION
@@ -1035,23 +771,18 @@ function ProfileSection({
 }) {
   return (
     <div className="space-y-6">
-
       <form
         onSubmit={onSave}
         className="rounded-2xl border border-slate-200 bg-white"
       >
-
         <SectionHeader
           title="Personal information"
           description="Keep your public profile information up to date."
         />
 
         <div className="space-y-6 p-5 sm:p-6">
-
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-
             <div className="relative">
-
               <Avatar
                 src={avatarPreview}
                 name={profile?.displayName}
@@ -1060,9 +791,7 @@ function ProfileSection({
 
               <button
                 type="button"
-                onClick={() =>
-                  avatarInputRef.current?.click()
-                }
+                onClick={() => avatarInputRef.current?.click()}
                 className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl border-2 border-white bg-slate-950 text-white shadow-lg transition hover:bg-slate-800"
                 aria-label="Change photo"
               >
@@ -1076,94 +805,59 @@ function ProfileSection({
                 className="hidden"
                 onChange={handleAvatarSelect}
               />
-
             </div>
 
             <div>
-
-              <h3 className="font-semibold text-slate-950">
-                Profile photo
-              </h3>
+              <h3 className="font-semibold text-slate-950">Profile photo</h3>
 
               <p className="mt-1 text-sm text-slate-500">
-                JPG, PNG or WEBP. Recommended
-                400 × 400px.
+                JPG, PNG or WEBP. Recommended 400 × 400px.
               </p>
 
               <button
                 type="button"
-                onClick={() =>
-                  avatarInputRef.current?.click()
-                }
+                onClick={() => avatarInputRef.current?.click()}
                 className="mt-3 text-sm font-semibold text-orange-500 hover:text-orange-600"
               >
                 Change photo
               </button>
-
             </div>
-
           </div>
 
-
           <div className="grid gap-5 sm:grid-cols-2">
-
             <Field
               label="Display name"
-              value={
-                profileForm.displayName
-              }
-              onChange={(value) =>
-                updateForm(
-                  "displayName",
-                  value
-                )
-              }
+              value={profileForm.displayName}
+              onChange={(value) => updateForm("displayName", value)}
             />
 
             <div>
-
               <label className="mb-2 block text-sm font-semibold">
                 Username
               </label>
 
               <div className="flex overflow-hidden rounded-xl border border-slate-200 transition focus-within:border-slate-950 focus-within:ring-4 focus-within:ring-slate-950/10">
-
                 <span className="flex items-center bg-slate-50 px-3 text-sm text-slate-400">
                   @
                 </span>
 
                 <input
-                  value={
-                    profileForm.username
-                  }
+                  value={profileForm.username}
                   onChange={(event) =>
-                    updateForm(
-                      "username",
-                      event.target.value
-                    )
+                    updateForm("username", event.target.value)
                   }
                   className="min-w-0 flex-1 px-3 py-3 text-sm outline-none"
                 />
-
               </div>
-
             </div>
-
           </div>
 
-
           <div>
-
-            <label className="mb-2 block text-sm font-semibold">
-              Email
-            </label>
+            <label className="mb-2 block text-sm font-semibold">Email</label>
 
             <div className="relative">
-
               <input
-                value={
-                  profile?.email || ""
-                }
+                value={profile?.email || ""}
                 disabled
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 pr-24 text-sm text-slate-500"
               />
@@ -1171,141 +865,74 @@ function ProfileSection({
               <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-slate-200 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
                 Verified
               </span>
-
             </div>
 
             <p className="mt-2 text-xs text-slate-400">
-              Your email is managed through
-              your authentication account.
+              Your email is managed through your authentication account.
             </p>
-
           </div>
 
-
           <div>
-
-            <label className="mb-2 block text-sm font-semibold">
-              Bio
-            </label>
+            <label className="mb-2 block text-sm font-semibold">Bio</label>
 
             <textarea
               rows={4}
               maxLength={250}
-              value={
-                profileForm.bio
-              }
-              onChange={(event) =>
-                updateForm(
-                  "bio",
-                  event.target.value
-                )
-              }
+              value={profileForm.bio}
+              onChange={(event) => updateForm("bio", event.target.value)}
               className="field resize-none leading-6"
             />
 
             <div className="mt-1.5 flex justify-between text-xs text-slate-400">
-              <span>
-                Tell people what you do.
-              </span>
+              <span>Tell people what you do.</span>
 
-              <span>
-                {profileForm.bio.length} / 250
-              </span>
+              <span>{profileForm.bio.length} / 250</span>
             </div>
-
           </div>
 
-
           <div className="grid gap-5 sm:grid-cols-2">
-
             <Field
               label="Phone number"
-              value={
-                profileForm.phone
-              }
-              onChange={(value) =>
-                updateForm(
-                  "phone",
-                  value
-                )
-              }
+              value={profileForm.phone}
+              onChange={(value) => updateForm("phone", value)}
             />
 
             <Field
               label="WhatsApp"
-              value={
-                profileForm.whatsapp
-              }
-              onChange={(value) =>
-                updateForm(
-                  "whatsapp",
-                  value
-                )
-              }
+              value={profileForm.whatsapp}
+              onChange={(value) => updateForm("whatsapp", value)}
             />
-
           </div>
-
 
           <div className="flex justify-end border-t border-slate-100 pt-5">
-
-            <SaveButton
-              loading={saving}
-              label="Save changes"
-            />
-
+            <SaveButton loading={saving} label="Save changes" />
           </div>
-
         </div>
-
       </form>
-
 
       {/* LOCATION */}
 
       <div className="rounded-2xl border border-slate-200 bg-white">
-
         <SectionHeader
           title="Location"
           description="Help people discover talent around them."
         />
 
         <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-
           <CustomSelect
             label="Province"
-            value={
-              profileForm.province ||
-              "Select province"
-            }
-            open={
-              openDropdown ===
-              "profile-province"
-            }
+            value={profileForm.province || "Select province"}
+            open={openDropdown === "profile-province"}
             onToggle={() =>
               setOpenDropdown(
-                openDropdown ===
-                  "profile-province"
-                  ? null
-                  : "profile-province"
+                openDropdown === "profile-province" ? null : "profile-province",
               )
             }
-            options={provinceOptions.map(
-              (province) => [
-                province,
-                province,
-              ]
-            )}
+            options={provinceOptions.map((province) => [province, province])}
             onSelect={(value) => {
-              updateForm(
-                "province",
-                value
-              );
+              updateForm("province", value);
 
-              updateForm(
-                "district",
-                ""
-              );
+              updateForm("district", "");
 
               setOpenDropdown(null);
             }}
@@ -1313,70 +940,39 @@ function ProfileSection({
 
           <CustomSelect
             label="District"
-            value={
-              profileForm.district ||
-              "Select district"
-            }
-            open={
-              openDropdown ===
-              "profile-district"
-            }
+            value={profileForm.district || "Select district"}
+            open={openDropdown === "profile-district"}
             onToggle={() =>
               setOpenDropdown(
-                openDropdown ===
-                  "profile-district"
-                  ? null
-                  : "profile-district"
+                openDropdown === "profile-district" ? null : "profile-district",
               )
             }
-            options={districtOptions.map(
-              (district) => [
-                district,
-                district,
-              ]
-            )}
+            options={districtOptions.map((district) => [district, district])}
             onSelect={(value) => {
-              updateForm(
-                "district",
-                value
-              );
+              updateForm("district", value);
 
               setOpenDropdown(null);
             }}
           />
-
         </div>
-
       </div>
-
 
       {/* PROFESSIONAL SUMMARY */}
 
       <div className="rounded-2xl border border-slate-200 bg-white">
-
         <SectionHeader
           title="Profile overview"
           description="Manage the professional information people see on your profile."
         />
 
         <div className="space-y-4 p-5 sm:p-6">
-
-          <SummaryRow
-            label="Role"
-            value={
-              profile?.role ||
-              "Not set"
-            }
-          />
+          <SummaryRow label="Role" value={profile?.role || "Not set"} />
 
           <SummaryRow
             label="Category"
             value={
-              categories.find(
-                (item) =>
-                  item.id ===
-                  profile?.categoryId
-              )?.name ||
+              categories.find((item) => item.id === profile?.categoryId)
+                ?.name ||
               profile?.category ||
               "Not set"
             }
@@ -1391,15 +987,11 @@ function ProfileSection({
             label="Services"
             value={`${normalizeServices(profile?.services).length} services`}
           />
-
         </div>
-
       </div>
-
     </div>
   );
 }
-
 
 /* =========================================================
    PROFESSIONAL
@@ -1427,76 +1019,41 @@ function ProfessionalSection({
   openModal,
 }) {
   return (
-    <form
-      onSubmit={onSave}
-      className="space-y-6"
-    >
-
+    <form onSubmit={onSave} className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white">
-
         <SectionHeader
           title="Professional profile"
           description="Tell people what you do and what you're available for."
         />
 
         <div className="space-y-7 p-5 sm:p-6">
-
           <div className="grid gap-5 sm:grid-cols-2">
-
             <Field
               label="Role"
-              value={
-                profileForm.role
-              }
-              onChange={(value) =>
-                updateForm(
-                  "role",
-                  value
-                )
-              }
+              value={profileForm.role}
+              onChange={(value) => updateForm("role", value)}
             />
 
             <CustomSelect
               label="Category"
               value={
-                categories.find(
-                  (item) =>
-                    item.id ===
-                    profileForm.categoryId
-                )?.name ||
+                categories.find((item) => item.id === profileForm.categoryId)
+                  ?.name ||
                 profile?.category ||
                 "Select category"
               }
-              options={categories.map(
-                (item) => [
-                  item.id,
-                  item.name,
-                ]
-              )}
-              onSelect={(value) =>
-                updateForm(
-                  "categoryId",
-                  value
-                )
-              }
+              options={categories.map((item) => [item.id, item.name])}
+              onSelect={(value) => updateForm("categoryId", value)}
             />
-
           </div>
-
 
           {/* AVAILABILITY */}
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-
             <div className="flex items-center justify-between gap-5">
-
               <div>
-
                 <div className="flex items-center gap-2">
-
-                  <h3 className="text-sm font-bold">
-                    Available for work
-                  </h3>
+                  <h3 className="text-sm font-bold">Available for work</h3>
 
                   <span
                     className={
@@ -1505,29 +1062,20 @@ function ProfessionalSection({
                         : "rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"
                     }
                   >
-                    {profile?.available
-                      ? "Available"
-                      : "Unavailable"}
+                    {profile?.available ? "Available" : "Unavailable"}
                   </span>
-
                 </div>
 
                 <p className="mt-1 max-w-lg text-xs leading-5 text-slate-500">
-                  Let people know that you're
-                  currently available for
+                  Let people know that you're currently available for
                   opportunities.
                 </p>
-
               </div>
 
               <button
                 type="button"
-                onClick={
-                  toggleAvailability
-                }
-                disabled={
-                  savingAvailability
-                }
+                onClick={toggleAvailability}
+                disabled={savingAvailability}
                 className={
                   profile?.available
                     ? "relative h-7 w-[50px] shrink-0 rounded-full border-2 border-slate-950 bg-slate-950 transition disabled:opacity-50"
@@ -1535,7 +1083,6 @@ function ProfessionalSection({
                 }
                 aria-label="Toggle availability"
               >
-
                 <span
                   className={
                     profile?.available
@@ -1543,59 +1090,40 @@ function ProfessionalSection({
                       : "absolute left-[3px] top-[3px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition"
                   }
                 />
-
               </button>
-
             </div>
-
           </div>
-
 
           {/* SKILLS */}
 
           <div>
-
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-
               <div>
-
                 <div className="flex items-center gap-2">
-
-                  <h3 className="text-sm font-bold">
-                    Skills
-                  </h3>
+                  <h3 className="text-sm font-bold">Skills</h3>
 
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
                     {skills.length}
                   </span>
-
                 </div>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  Add the skills you want people
-                  to find you for.
+                  Add the skills you want people to find you for.
                 </p>
-
               </div>
 
               <button
                 type="button"
-                onClick={() =>
-                  openModal("skills")
-                }
+                onClick={() => openModal("skills")}
                 className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-950 hover:text-slate-950"
               >
                 <Plus size={14} />
                 Add skill
               </button>
-
             </div>
 
-
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-
               <div className="mb-3 flex items-center justify-between">
-
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Skill preview
                 </span>
@@ -1603,32 +1131,22 @@ function ProfessionalSection({
                 <span className="text-[11px] text-slate-400">
                   Public profile
                 </span>
-
               </div>
 
-
               <div className="flex min-h-[52px] flex-wrap items-center gap-2">
-
                 {skills.length > 0 ? (
                   skills.map((skill) => (
                     <span
                       key={skill}
                       className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm"
                     >
-                      <Check
-                        size={13}
-                        className="text-slate-950"
-                      />
+                      <Check size={13} className="text-slate-950" />
 
                       {skill}
 
                       <button
                         type="button"
-                        onClick={() =>
-                          removeSkill(
-                            skill
-                          )
-                        }
+                        onClick={() => removeSkill(skill)}
                         className="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
                         aria-label={`Remove ${skill}`}
                       >
@@ -1637,28 +1155,16 @@ function ProfessionalSection({
                     </span>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-400">
-                    No skills added yet.
-                  </p>
+                  <p className="text-xs text-slate-400">No skills added yet.</p>
                 )}
-
               </div>
 
-
               <div className="mt-4 flex gap-2">
-
                 <input
                   value={skillInput}
-                  onChange={(event) =>
-                    setSkillInput(
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => setSkillInput(event.target.value)}
                   onKeyDown={(event) => {
-                    if (
-                      event.key ===
-                      "Enter"
-                    ) {
+                    if (event.key === "Enter") {
                       event.preventDefault();
                       addSkill();
                     }
@@ -1676,85 +1182,58 @@ function ProfessionalSection({
                 >
                   Add
                 </button>
-
               </div>
 
               <p className="mt-2 text-[11px] text-slate-400">
-                Press Enter to quickly add a
-                skill.
+                Press Enter to quickly add a skill.
               </p>
-
             </div>
-
           </div>
-
 
           {/* SERVICES */}
 
           <div>
-
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-
               <div>
-
                 <div className="flex items-center gap-2">
-
-                  <h3 className="text-sm font-bold">
-                    Services
-                  </h3>
+                  <h3 className="text-sm font-bold">Services</h3>
 
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
                     {services.length}
                   </span>
-
                 </div>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  What can you offer clients or
-                  collaborators?
+                  What can you offer clients or collaborators?
                 </p>
-
               </div>
 
               <button
                 type="button"
-                onClick={() =>
-                  openModal("services")
-                }
+                onClick={() => openModal("services")}
                 className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-950 hover:text-slate-950"
               >
                 <Plus size={14} />
                 Add service
               </button>
-
             </div>
 
-
             <div className="space-y-2">
-
               {services.map((service) => (
                 <div
                   key={service}
                   className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-700"
                 >
-
-                  <span>
-                    {service}
-                  </span>
+                  <span>{service}</span>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      removeService(
-                        service
-                      )
-                    }
+                    onClick={() => removeService(service)}
                     className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
                     aria-label={`Remove ${service}`}
                   >
                     <X size={16} />
                   </button>
-
                 </div>
               ))}
 
@@ -1763,24 +1242,14 @@ function ProfessionalSection({
                   No services added yet.
                 </div>
               )}
-
             </div>
 
-
             <div className="mt-3 flex gap-2">
-
               <input
                 value={serviceInput}
-                onChange={(event) =>
-                  setServiceInput(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setServiceInput(event.target.value)}
                 onKeyDown={(event) => {
-                  if (
-                    event.key ===
-                    "Enter"
-                  ) {
+                  if (event.key === "Enter") {
                     event.preventDefault();
                     addService();
                   }
@@ -1798,58 +1267,33 @@ function ProfessionalSection({
               >
                 Add
               </button>
-
             </div>
-
           </div>
-
 
           <div className="flex justify-end border-t border-slate-100 pt-5">
-
-            <SaveButton
-              loading={saving}
-              label="Save professional profile"
-            />
-
+            <SaveButton loading={saving} label="Save professional profile" />
           </div>
-
         </div>
-
       </div>
-
     </form>
   );
 }
-
 
 /* =========================================================
    PORTFOLIO
 ========================================================= */
 
-function PortfolioSection({
-  works,
-  deletingWorkId,
-  onAdd,
-  onDelete,
-}) {
+function PortfolioSection({ works, deletingWorkId, onAdd, onDelete }) {
   return (
     <div className="space-y-6">
-
       <div className="rounded-2xl border border-slate-200 bg-white">
-
         <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-
           <div>
-
-            <h2 className="font-bold">
-              Your work
-            </h2>
+            <h2 className="font-bold">Your work</h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Showcase projects and work you've
-              completed.
+              Showcase projects and work you've completed.
             </p>
-
           </div>
 
           <button
@@ -1860,93 +1304,61 @@ function PortfolioSection({
             <Plus size={17} />
             Add work
           </button>
-
         </div>
 
-
         <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3">
-
           {works.map((work) => (
             <article
               key={work.id}
               className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
             >
-
               <div className="aspect-[16/10] overflow-hidden bg-slate-100">
-
                 {work.image ? (
                   <Image
                     src={work.image}
                     width={800}
                     height={500}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                    alt={
-                      work.title ||
-                      "Project"
-                    }
+                    alt={work.title || "Project"}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-slate-300">
-                    <ImagePlus
-                      size={32}
-                    />
+                    <ImagePlus size={32} />
                   </div>
                 )}
-
               </div>
 
-
               <div className="p-4">
-
-                <h3 className="font-bold">
-                  {work.title ||
-                    "Untitled work"}
-                </h3>
+                <h3 className="font-bold">{work.title || "Untitled work"}</h3>
 
                 <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-                  {work.description ||
-                    "No description provided."}
+                  {work.description || "No description provided."}
                 </p>
 
-
                 <div className="mt-4 flex items-center justify-between gap-3">
-
                   <span className="text-xs font-medium text-slate-400">
-                    {work.category ||
-                      "Work"}
+                    {work.category || "Work"}
                   </span>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      onDelete(work)
-                    }
-                    disabled={
-                      deletingWorkId ===
-                      work.id
-                    }
+                    onClick={() => onDelete(work)}
+                    disabled={deletingWorkId === work.id}
                     className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                     aria-label="Delete work"
                   >
-                    <Trash2
-                      size={16}
-                    />
+                    <Trash2 size={16} />
                   </button>
-
                 </div>
-
               </div>
-
             </article>
           ))}
-
 
           <button
             type="button"
             onClick={onAdd}
             className="flex min-h-[250px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-5 text-center transition hover:border-slate-950 hover:bg-white"
           >
-
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
               <Plus size={22} />
             </span>
@@ -1958,96 +1370,63 @@ function PortfolioSection({
             <span className="mt-1 text-xs text-slate-400">
               Showcase more of your work
             </span>
-
           </button>
-
         </div>
-
       </div>
-
     </div>
   );
 }
-
 
 /* =========================================================
    ACCOUNT
 ========================================================= */
 
-function AccountSection({
-  email,
-  onDelete,
-}) {
+function AccountSection({ email, onDelete }) {
   return (
     <div className="space-y-6">
-
       <div className="rounded-2xl border border-slate-200 bg-white">
-
         <SectionHeader
           title="Account"
           description="Manage your account access and data."
         />
 
         <div className="divide-y divide-slate-100">
-
           <div className="flex items-center justify-between gap-5 p-5 sm:p-6">
-
             <div>
-
-              <h3 className="text-sm font-bold">
-                Email
-              </h3>
+              <h3 className="text-sm font-bold">Email</h3>
 
               <p className="mt-1 text-xs text-slate-500">
-                {email ||
-                  "No email available"}
+                {email || "No email available"}
               </p>
-
             </div>
 
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
               Verified
             </span>
-
           </div>
 
-
           <div className="flex items-center justify-between gap-5 p-5 sm:p-6">
-
             <div>
-
-              <h3 className="text-sm font-bold">
-                Log out
-              </h3>
+              <h3 className="text-sm font-bold">Log out</h3>
 
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                Sign out of your Youth Space
-                account on this device.
+                Sign out of your Youth Space account on this device.
               </p>
-
             </div>
 
             <span className="text-xs text-slate-400">
               Use your existing auth control
             </span>
-
           </div>
 
-
           <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-
             <div>
-
-              <h3 className="text-sm font-bold text-red-600">
-                Delete account
-              </h3>
+              <h3 className="text-sm font-bold text-red-600">Delete account</h3>
 
               <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500">
-                Permanently delete your account,
-                profile, work and associated data.
-                This action cannot be undone.
+                Permanently delete your account, profile, work and associated
+                data. This action cannot be undone.
               </p>
-
             </div>
 
             <button
@@ -2057,17 +1436,12 @@ function AccountSection({
             >
               Delete account
             </button>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }
-
 
 /* =========================================================
    SKILLS MODAL
@@ -2089,11 +1463,8 @@ function SkillsModal({
       description="Add the skills you want to showcase."
       onClose={onClose}
     >
-
       <div className="space-y-5">
-
         <div className="flex flex-wrap gap-2">
-
           {skills.map((skill) => (
             <span
               key={skill}
@@ -2103,34 +1474,22 @@ function SkillsModal({
 
               <button
                 type="button"
-                onClick={() =>
-                  removeSkill(skill)
-                }
+                onClick={() => removeSkill(skill)}
                 className="text-slate-400 hover:text-slate-950"
               >
                 <X size={14} />
               </button>
-
             </span>
           ))}
-
         </div>
 
         <div className="flex gap-2">
-
           <input
             autoFocus
             value={input}
-            onChange={(event) =>
-              setInput(
-                event.target.value
-              )
-            }
+            onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
-              if (
-                event.key ===
-                "Enter"
-              ) {
+              if (event.key === "Enter") {
                 event.preventDefault();
                 addSkill();
               }
@@ -2147,21 +1506,13 @@ function SkillsModal({
           >
             Add
           </button>
-
         </div>
-
       </div>
 
-      <ModalActions
-        onClose={onClose}
-        onSave={onSave}
-        saving={saving}
-      />
-
+      <ModalActions onClose={onClose} onSave={onSave} saving={saving} />
     </ModalShell>
   );
 }
-
 
 /* =========================================================
    SERVICES MODAL
@@ -2183,51 +1534,32 @@ function ServicesModal({
       description="Add the services you offer."
       onClose={onClose}
     >
-
       <div className="space-y-3">
-
         {services.map((service) => (
           <div
             key={service}
             className="flex items-center justify-between rounded-xl border border-slate-200 p-3"
           >
-
-            <span className="text-sm text-slate-700">
-              {service}
-            </span>
+            <span className="text-sm text-slate-700">{service}</span>
 
             <button
               type="button"
-              onClick={() =>
-                removeService(
-                  service
-                )
-              }
+              onClick={() => removeService(service)}
               className="text-slate-400 hover:text-slate-950"
             >
               <X size={16} />
             </button>
-
           </div>
         ))}
-
       </div>
 
       <div className="mt-4 flex gap-2">
-
         <input
           autoFocus
           value={input}
-          onChange={(event) =>
-            setInput(
-              event.target.value
-            )
-          }
+          onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => {
-            if (
-              event.key ===
-              "Enter"
-            ) {
+            if (event.key === "Enter") {
               event.preventDefault();
               addService();
             }
@@ -2244,56 +1576,31 @@ function ServicesModal({
         >
           Add
         </button>
-
       </div>
 
-      <ModalActions
-        onClose={onClose}
-        onSave={onSave}
-        saving={saving}
-      />
-
+      <ModalActions onClose={onClose} onSave={onSave} saving={saving} />
     </ModalShell>
   );
 }
-
 
 /* =========================================================
    CONFIRM MODAL
 ========================================================= */
 
-function ConfirmModal({
-  type,
-  work,
-  onClose,
-  onConfirm,
-  loading,
-}) {
-  const deletingProfile =
-    type === "profile";
+function ConfirmModal({ type, work, onClose, onConfirm, loading }) {
+  const deletingProfile = type === "profile";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600">
-          {deletingProfile ? (
-            <Trash2 size={20} />
-          ) : (
-            <CircleAlert
-              size={20}
-            />
-          )}
+          {deletingProfile ? <Trash2 size={20} /> : <CircleAlert size={20} />}
         </div>
 
         <h2 className="mt-5 text-lg font-bold">
           {deletingProfile
             ? "Delete your account?"
-            : `Delete ${
-                work?.title ||
-                "this work"
-              }?`}
+            : `Delete ${work?.title || "this work"}?`}
         </h2>
 
         <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -2303,7 +1610,6 @@ function ConfirmModal({
         </p>
 
         <div className="mt-6 flex gap-3">
-
           <button
             type="button"
             onClick={onClose}
@@ -2325,41 +1631,27 @@ function ConfirmModal({
                 ? "Delete account"
                 : "Delete work"}
           </button>
-
         </div>
-
       </div>
-
     </div>
   );
 }
-
 
 /* =========================================================
    WORK MODAL
 ========================================================= */
 
-function WorkModal({
-  onClose,
-}) {
+function WorkModal({ onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
-
         <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:p-6">
-
           <div>
-
-            <h2 className="font-bold">
-              Add work
-            </h2>
+            <h2 className="font-bold">Add work</h2>
 
             <p className="mt-1 text-xs text-slate-500">
-              Showcase something you've
-              created.
+              Showcase something you've created.
             </p>
-
           </div>
 
           <button
@@ -2370,19 +1662,12 @@ function WorkModal({
           >
             <X size={19} />
           </button>
-
         </div>
 
-
         <div className="space-y-5 p-5 sm:p-6">
-
-          <Field
-            label="Project title"
-            placeholder="e.g. E-commerce website"
-          />
+          <Field label="Project title" placeholder="e.g. E-commerce website" />
 
           <div>
-
             <label className="mb-2 block text-sm font-semibold">
               Description
             </label>
@@ -2392,12 +1677,9 @@ function WorkModal({
               placeholder="Briefly describe your work..."
               className="field resize-none"
             />
-
           </div>
 
-
           <div>
-
             <label className="mb-2 block text-sm font-semibold">
               Project image
             </label>
@@ -2406,34 +1688,23 @@ function WorkModal({
               type="button"
               className="flex min-h-32 w-full items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-center transition hover:border-slate-950 hover:bg-white"
             >
-
               <div>
-
-                <ImagePlus
-                  size={28}
-                  className="mx-auto text-slate-300"
-                />
+                <ImagePlus size={28} className="mx-auto text-slate-300" />
 
                 <p className="mt-2 text-xs font-medium text-slate-500">
                   Upload project image
                 </p>
-
               </div>
-
             </button>
-
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-500">
-            Work creation will use your existing
-            works action/upload implementation.
+            Work creation will use your existing works action/upload
+            implementation.
           </div>
-
         </div>
 
-
         <div className="flex justify-end gap-3 border-t border-slate-100 p-5 sm:p-6">
-
           <button
             type="button"
             onClick={onClose}
@@ -2441,35 +1712,21 @@ function WorkModal({
           >
             Cancel
           </button>
-
         </div>
-
       </div>
-
     </div>
   );
 }
-
 
 /* =========================================================
    CUSTOM SELECT
 ========================================================= */
 
-function CustomSelect({
-  label,
-  value,
-  options,
-  onSelect,
-  open,
-  onToggle,
-}) {
+function CustomSelect({ label, value, options, onSelect, open, onToggle }) {
   return (
     <div className="relative">
-
       {label && (
-        <label className="mb-2 block text-sm font-semibold">
-          {label}
-        </label>
+        <label className="mb-2 block text-sm font-semibold">{label}</label>
       )}
 
       <button
@@ -2477,62 +1734,38 @@ function CustomSelect({
         onClick={onToggle}
         className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-left text-sm outline-none transition focus:border-slate-950 focus:ring-4 focus:ring-slate-950/10"
       >
+        <span className="truncate">{value}</span>
 
-        <span className="truncate">
-          {value}
-        </span>
-
-        <ChevronDown
-          size={17}
-          className="shrink-0"
-        />
-
+        <ChevronDown size={17} className="shrink-0" />
       </button>
 
       {open && (
         <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-
           {options.length > 0 ? (
-            options.map(
-              ([optionValue, optionLabel]) => (
-                <button
-                  key={optionValue}
-                  type="button"
-                  onClick={() =>
-                    onSelect(
-                      optionValue
-                    )
-                  }
-                  className="flex w-full items-center rounded-[10px] px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                >
-                  {optionLabel}
-                </button>
-              )
-            )
+            options.map(([optionValue, optionLabel]) => (
+              <button
+                key={optionValue}
+                type="button"
+                onClick={() => onSelect(optionValue)}
+                className="flex w-full items-center rounded-[10px] px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+              >
+                {optionLabel}
+              </button>
+            ))
           ) : (
-            <p className="p-3 text-xs text-slate-400">
-              No options available.
-            </p>
+            <p className="p-3 text-xs text-slate-400">No options available.</p>
           )}
-
         </div>
       )}
-
     </div>
   );
 }
-
 
 /* =========================================================
    SECTION BUTTON
 ========================================================= */
 
-function SectionButton({
-  active,
-  icon,
-  label,
-  onClick,
-}) {
+function SectionButton({ active, icon, label, onClick }) {
   return (
     <button
       type="button"
@@ -2543,7 +1776,6 @@ function SectionButton({
           : "mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
       }
     >
-
       <span
         className={
           active
@@ -2555,39 +1787,23 @@ function SectionButton({
       </span>
 
       {label}
-
     </button>
   );
 }
-
 
 /* =========================================================
    MODAL SHELL
 ========================================================= */
 
-function ModalShell({
-  title,
-  description,
-  onClose,
-  children,
-}) {
+function ModalShell({ title, description, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-
       <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-
         <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:p-6">
-
           <div>
+            <h2 className="font-bold">{title}</h2>
 
-            <h2 className="font-bold">
-              {title}
-            </h2>
-
-            <p className="mt-1 text-xs text-slate-500">
-              {description}
-            </p>
-
+            <p className="mt-1 text-xs text-slate-500">{description}</p>
           </div>
 
           <button
@@ -2598,32 +1814,21 @@ function ModalShell({
           >
             <X size={19} />
           </button>
-
         </div>
 
-        <div className="p-5 sm:p-6">
-          {children}
-        </div>
-
+        <div className="p-5 sm:p-6">{children}</div>
       </div>
-
     </div>
   );
 }
-
 
 /* =========================================================
    MODAL ACTIONS
 ========================================================= */
 
-function ModalActions({
-  onClose,
-  onSave,
-  saving,
-}) {
+function ModalActions({ onClose, onSave, saving }) {
   return (
     <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-5">
-
       <button
         type="button"
         onClick={onClose}
@@ -2639,135 +1844,87 @@ function ModalActions({
         disabled={saving}
         className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
       >
-        {saving
-          ? "Saving..."
-          : "Save changes"}
+        {saving ? "Saving..." : "Save changes"}
       </button>
-
     </div>
   );
 }
-
 
 /* =========================================================
    SECTION HEADER
 ========================================================= */
 
-function SectionHeader({
-  title,
-  description,
-}) {
+function SectionHeader({ title, description }) {
   return (
     <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+      <h2 className="font-bold text-slate-950">{title}</h2>
 
-      <h2 className="font-bold text-slate-950">
-        {title}
-      </h2>
-
-      <p className="mt-1 text-sm text-slate-500">
-        {description}
-      </p>
-
+      <p className="mt-1 text-sm text-slate-500">{description}</p>
     </div>
   );
 }
-
 
 /* =========================================================
    FIELD
 ========================================================= */
 
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  disabled = false,
-}) {
+function Field({ label, value, onChange, placeholder, disabled = false }) {
   return (
     <div>
-
       {label && (
-        <label className="mb-2 block text-sm font-semibold">
-          {label}
-        </label>
+        <label className="mb-2 block text-sm font-semibold">{label}</label>
       )}
 
       <input
         value={value ?? ""}
         onChange={
-          onChange
-            ? (event) =>
-                onChange(
-                  event.target.value
-                )
-            : undefined
+          onChange ? (event) => onChange(event.target.value) : undefined
         }
         placeholder={placeholder}
         disabled={disabled}
         className="field disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
       />
-
     </div>
   );
 }
-
 
 /* =========================================================
    SAVE BUTTON
 ========================================================= */
 
-function SaveButton({
-  loading,
-  label,
-}) {
+function SaveButton({ loading, label }) {
   return (
     <button
       type="submit"
       disabled={loading}
       className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {loading
-        ? "Saving..."
-        : label}
+      {loading ? "Saving..." : label}
     </button>
   );
 }
-
 
 /* =========================================================
    SUMMARY ROW
 ========================================================= */
 
-function SummaryRow({
-  label,
-  value,
-}) {
+function SummaryRow({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-5 border-b border-slate-100 py-3 last:border-0 last:pb-0 first:pt-0">
-
-      <span className="text-sm font-medium text-slate-500">
-        {label}
-      </span>
+      <span className="text-sm font-medium text-slate-500">{label}</span>
 
       <span className="text-right text-sm font-semibold text-slate-950">
         {value}
       </span>
-
     </div>
   );
 }
-
 
 /* =========================================================
    AVATAR
 ========================================================= */
 
-function Avatar({
-  src,
-  name,
-  size = "md",
-}) {
+function Avatar({ src, name, size = "md" }) {
   const sizes = {
     sm: "h-9 w-9",
     md: "h-12 w-12",
@@ -2789,30 +1946,15 @@ function Avatar({
   return (
     <Image
       src={src}
-      width={
-        size === "xl"
-          ? 96
-          : size === "sm"
-            ? 36
-            : 48
-      }
-      height={
-        size === "xl"
-          ? 96
-          : size === "sm"
-            ? 36
-            : 48
-      }
+      width={size === "xl" ? 96 : size === "sm" ? 36 : 48}
+      height={size === "xl" ? 96 : size === "sm" ? 36 : 48}
       alt={name || "Profile"}
       className={`${sizes[size] || sizes.md} shrink-0 rounded-2xl object-cover ${
-        size === "xl"
-          ? "ring-4 ring-slate-50"
-          : ""
+        size === "xl" ? "ring-4 ring-slate-50" : ""
       }`}
     />
   );
 }
-
 
 /* =========================================================
    HELPERS
@@ -2825,22 +1967,12 @@ function normalizeServices(value) {
 
   return value
     .map((item) => {
-      if (
-        typeof item === "string"
-      ) {
+      if (typeof item === "string") {
         return item.trim();
       }
 
-      if (
-        item &&
-        typeof item === "object"
-      ) {
-        return String(
-          item.name ||
-            item.title ||
-            item.service ||
-            ""
-        ).trim();
+      if (item && typeof item === "object") {
+        return String(item.name || item.title || item.service || "").trim();
       }
 
       return "";
@@ -2848,96 +1980,26 @@ function normalizeServices(value) {
     .filter(Boolean);
 }
 
-
 function firstName(name) {
   if (!name) return "Profile";
 
-  return String(name)
-    .trim()
-    .split(/\s+/)[0];
+  return String(name).trim().split(/\s+/)[0];
 }
-
 
 function getInitials(name) {
   if (!name) return "Y";
 
-  const parts = String(name)
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
 
   if (parts.length === 1) {
-    return parts[0]
-      .slice(0, 1)
-      .toUpperCase();
+    return parts[0].slice(0, 1).toUpperCase();
   }
 
-  return (
-    parts[0][0] +
-    parts[parts.length - 1][0]
-  ).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
-
 
 function capitalize(value) {
   if (!value) return "";
 
-  return (
-    value.charAt(0).toUpperCase() +
-    value.slice(1)
-  );
-}
-
-
-function getDistrictsForProvince(
-  province
-) {
-  if (!province) return [];
-
-  /*
-   * Supports either:
-   *
-   * {
-   *   Lusaka: ["Lusaka", "Chongwe"]
-   * }
-   *
-   * or
-   *
-   * [
-   *   {
-   *     name: "Lusaka",
-   *     districts: [...]
-   *   }
-   * ]
-   */
-
-  if (
-    districts &&
-    !Array.isArray(districts) &&
-    typeof districts === "object"
-  ) {
-    return districts[province] || [];
-  }
-
-  if (Array.isArray(districts)) {
-    const found = districts.find(
-      (item) =>
-        item?.name === province ||
-        item?.province === province
-    );
-
-    if (Array.isArray(found)) {
-      return found;
-    }
-
-    if (
-      Array.isArray(
-        found?.districts
-      )
-    ) {
-      return found.districts;
-    }
-  }
-
-  return [];
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
