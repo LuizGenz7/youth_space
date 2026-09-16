@@ -212,14 +212,16 @@ function decodeCursor(
       categoryId:
         payload.categoryId,
 
-      likes: payload.likes,
+      likes:
+        payload.likes,
 
       createdAt:
         Timestamp.fromMillis(
           payload.createdAt,
         ),
 
-      id: payload.id,
+      id:
+        payload.id,
     };
   } catch {
     throw new Error(
@@ -231,30 +233,6 @@ function decodeCursor(
 /*
  * =========================================================
  * LIKE HELPERS
- * =========================================================
- *
- * Firestore:
- *
- * talents/{talentId}
- *
- * {
- *   likes: [
- *     {
- *       userId: "...",
- *       createdAt: Timestamp,
- *       updatedAt: Timestamp
- *     }
- *   ],
- *
- *   likeCount: 1
- * }
- *
- * Public talent object:
- *
- * {
- *   likes: 1,
- *   likedByMe: true
- * }
  * =========================================================
  */
 
@@ -301,16 +279,11 @@ function hasUserLiked(
  *
  * IMPORTANT:
  *
- * This function does NOT read the current user.
+ * This function is completely public-safe.
  *
- * The public talent data is safe to cache.
- *
- * `likedByMe` is added later by:
- *
- * addLikedByMeToTalents()
- *
- * This prevents user-specific data from being
- * stored inside a shared Next.js cache.
+ * It does NOT access the current user.
+ * It does NOT call headers().
+ * It can safely run inside "use cache".
  * =========================================================
  */
 
@@ -318,86 +291,115 @@ function serializeTalent(snapshot) {
   const data = snapshot.data();
 
   const storedLikes =
-    normalizeLikesArray(data.likes);
+    normalizeLikesArray(
+      data.likes,
+    );
 
   const likeCount =
-    Number.isFinite(data.likeCount)
+    Number.isFinite(
+      data.likeCount,
+    )
       ? Math.max(
         0,
-        Math.floor(data.likeCount),
+        Math.floor(
+          data.likeCount,
+        ),
       )
       : getLikeCount(
         storedLikes,
       );
 
   return {
-    id: snapshot.id,
+    id:
+      snapshot.id,
 
     uid:
       data.uid ??
       snapshot.id,
 
     username:
-      data.username ?? "",
+      data.username ??
+      "",
 
     displayName:
-      data.displayName ?? "",
+      data.displayName ??
+      "",
 
     email:
-      data.email ?? "",
+      data.email ??
+      "",
 
     role:
-      data.role ?? "",
+      data.role ??
+      "",
 
     categoryId:
-      data.categoryId ?? "",
+      data.categoryId ??
+      "",
 
     category:
-      data.category ?? "",
+      data.category ??
+      "",
 
     province:
-      data.province ?? "",
+      data.province ??
+      "",
 
     district:
-      data.district ?? "",
+      data.district ??
+      "",
 
     bio:
-      data.bio ?? "",
+      data.bio ??
+      "",
 
     phone:
-      data.phone ?? "",
+      data.phone ??
+      "",
 
     whatsapp:
-      data.whatsapp ?? "",
+      data.whatsapp ??
+      "",
 
     available:
-      Boolean(data.available),
+      Boolean(
+        data.available,
+      ),
 
     avatar:
-      data.avatar ?? "",
+      data.avatar ??
+      "",
 
     skills:
-      Array.isArray(data.skills)
+      Array.isArray(
+        data.skills,
+      )
         ? data.skills
         : [],
 
     services:
-      Array.isArray(data.services)
+      Array.isArray(
+        data.services,
+      )
         ? data.services
         : [],
 
     verified:
-      Boolean(data.verified),
+      Boolean(
+        data.verified,
+      ),
 
-    likes: likeCount,
+    likes:
+      likeCount,
 
     /*
-     * Public cached data must not contain
-     * a user-specific value.
+     * Always false in public cached data.
      *
-     * It is added later.
+     * The authenticated UI can determine the
+     * real value separately.
      */
-    likedByMe: false,
+    likedByMe:
+      false,
 
     workCount:
       Number.isFinite(
@@ -427,103 +429,6 @@ function serializeTalent(snapshot) {
 
 /*
  * =========================================================
- * CURRENT USER
- * =========================================================
- */
-
-async function getCurrentUserId() {
-  const { auth } =
-    await getServerFirebase();
-
-  await auth.authStateReady();
-
-  return auth.currentUser?.uid ??
-    null;
-}
-
-/*
- * =========================================================
- * ADD USER-SPECIFIC LIKE STATE
- * =========================================================
- *
- * Takes already-loaded public talents and adds:
- *
- * likedByMe: true / false
- *
- * This function is NOT cached.
- * =========================================================
- */
-
-async function addLikedByMeToTalents(
-  talents,
-) {
-  if (
-    !Array.isArray(talents) ||
-    !talents.length
-  ) {
-    return talents ?? [];
-  }
-
-  const currentUserId =
-    await getCurrentUserId();
-
-  if (!currentUserId) {
-    return talents.map(
-      (talent) => ({
-        ...talent,
-        likedByMe: false,
-      }),
-    );
-  }
-
-  const talentIds =
-    talents.map(
-      (talent) => talent.id,
-    );
-
-  const likedIds =
-    await getCurrentUserTalentLikes(
-      talentIds,
-    );
-
-  return talents.map(
-    (talent) => ({
-      ...talent,
-
-      likedByMe:
-        likedIds.has(
-          talent.id,
-        ),
-    }),
-  );
-}
-
-/*
- * =========================================================
- * ADD LIKE STATE TO CATEGORY PAGE
- * =========================================================
- */
-
-async function addLikedByMeToPage(
-  page,
-) {
-  if (!page) {
-    return page;
-  }
-
-  const talents =
-    await addLikedByMeToTalents(
-      page.talents ?? [],
-    );
-
-  return {
-    ...page,
-    talents,
-  };
-}
-
-/*
- * =========================================================
  * CATEGORY PAGE QUERY
  * =========================================================
  */
@@ -532,7 +437,9 @@ async function queryCategoryTalentsPage(
   db,
   categoryId,
   {
-    limitCount = TALENTS_PER_LOAD,
+    limitCount =
+      TALENTS_PER_LOAD,
+
     cursor = null,
   } = {},
 ) {
@@ -541,14 +448,15 @@ async function queryCategoryTalentsPage(
       categoryId,
     );
 
-  const safeLimit = Math.min(
-    Math.max(
-      Number(limitCount) ||
-        TALENTS_PER_LOAD,
-      1,
-    ),
-    TALENTS_PER_LOAD,
-  );
+  const safeLimit =
+    Math.min(
+      Math.max(
+        Number(limitCount) ||
+          TALENTS_PER_LOAD,
+        1,
+      ),
+      TALENTS_PER_LOAD,
+    );
 
   const decodedCursor =
     decodeCursor(
@@ -618,8 +526,11 @@ async function queryCategoryTalentsPage(
     snapshot.docs.at(-1) ??
     null;
 
-  let nextCursor = null;
-  let lastItemId = null;
+  let nextCursor =
+    null;
+
+  let lastItemId =
+    null;
 
   if (lastDocument) {
     const lastData =
@@ -694,7 +605,9 @@ async function getCachedCategoryTalents(
       categoryId,
     );
 
-  cacheLife("minutes");
+  cacheLife(
+    "minutes",
+  );
 
   cacheTag(
     categoryTalentsCacheTag(
@@ -726,7 +639,10 @@ async function getCachedCategoryTalents(
 async function getCachedInitialTalentsData() {
   "use cache";
 
-  cacheLife("minutes");
+  cacheLife(
+    "minutes",
+  );
+
   cacheTag(
     TALENTS_CACHE_TAG,
   );
@@ -752,10 +668,12 @@ async function getCachedInitialTalentsData() {
       .sort(
         (a, b) =>
           Number(
-            b.totalTalents ?? 0,
+            b.totalTalents ??
+              0,
           ) -
           Number(
-            a.totalTalents ?? 0,
+            a.totalTalents ??
+              0,
           ),
       );
 
@@ -771,7 +689,9 @@ async function getCachedInitialTalentsData() {
   const initialResults =
     await Promise.all(
       initialCategories.map(
-        async (category) => {
+        async (
+          category,
+        ) => {
           const page =
             await queryCategoryTalentsPage(
               db,
@@ -814,7 +734,8 @@ async function getCachedInitialTalentsData() {
           ...category,
 
           talents:
-            result?.talents ?? [],
+            result?.talents ??
+            [],
 
           nextCursor:
             result?.nextCursor ??
@@ -852,53 +773,17 @@ async function getCachedInitialTalentsData() {
  * PUBLIC INITIAL TALENTS DATA
  * =========================================================
  *
- * Cached public data is loaded first.
- * User-specific likedByMe is added afterwards.
+ * IMPORTANT:
+ *
+ * No authenticated lookup happens here.
+ *
+ * This function is safe for Home/Discover
+ * prerendering and caching.
  * =========================================================
  */
 
 export async function getInitialTalentsData() {
-  const result =
-    await getCachedInitialTalentsData();
-
-  if (!result.talents.length) {
-    return result;
-  }
-
-  const likedTalents =
-    await addLikedByMeToTalents(
-      result.talents,
-    );
-
-  const likedMap =
-    new Map(
-      likedTalents.map(
-        (talent) => [
-          talent.id,
-          talent,
-        ],
-      ),
-    );
-
-  const categories =
-    result.categories.map(
-      (category) => ({
-        ...category,
-
-        talents:
-          category.talents.map(
-            (talent) =>
-              likedMap.get(
-                talent.id,
-              ) ?? talent,
-          ),
-      }),
-    );
-
-  return {
-    categories,
-    talents: likedTalents,
-  };
+  return getCachedInitialTalentsData();
 }
 
 /*
@@ -910,14 +795,9 @@ export async function getInitialTalentsData() {
 export async function getCategoryTalents(
   categoryId,
 ) {
-  const page =
-    await getCachedCategoryTalents(
-      categoryId,
-      null,
-    );
-
-  return addLikedByMeToPage(
-    page,
+  return getCachedCategoryTalents(
+    categoryId,
+    null,
   );
 }
 
@@ -937,7 +817,9 @@ export async function getMoreTalents({
     );
 
   const normalizedCursor =
-    normalizeCursor(cursor);
+    normalizeCursor(
+      cursor,
+    );
 
   if (!normalizedCursor) {
     throw new Error(
@@ -945,30 +827,19 @@ export async function getMoreTalents({
     );
   }
 
-  /*
-   * Cursor pages are not cached.
-   * The returned page is user-specific
-   * after likedByMe is added.
-   */
-
   const { db } =
     await getPublicServerFirebase();
 
-  const page =
-    await queryCategoryTalentsPage(
-      db,
-      normalizedCategoryId,
-      {
-        limitCount:
-          TALENTS_PER_LOAD,
+  return queryCategoryTalentsPage(
+    db,
+    normalizedCategoryId,
+    {
+      limitCount:
+        TALENTS_PER_LOAD,
 
-        cursor:
-          normalizedCursor,
-      },
-    );
-
-  return addLikedByMeToPage(
-    page,
+      cursor:
+        normalizedCursor,
+    },
   );
 }
 
@@ -988,7 +859,9 @@ export async function getTalentsByCategory({
     );
 
   const normalizedCursor =
-    normalizeCursor(cursor);
+    normalizeCursor(
+      cursor,
+    );
 
   if (normalizedCursor) {
     return getMoreTalents({
@@ -1014,7 +887,9 @@ export async function getTalentsByCategory({
 async function getCachedTopTalents() {
   "use cache";
 
-  cacheLife("minutes");
+  cacheLife(
+    "minutes",
+  );
 
   cacheTag(
     TALENTS_CACHE_TAG,
@@ -1064,15 +939,14 @@ async function getCachedTopTalents() {
  * =========================================================
  * TOP TALENTS
  * =========================================================
+ *
+ * Public cached data only.
+ * No authentication lookup.
+ * =========================================================
  */
 
 export async function getTopTalents() {
-  const talents =
-    await getCachedTopTalents();
-
-  return addLikedByMeToTalents(
-    talents,
-  );
+  return getCachedTopTalents();
 }
 
 /*
@@ -1084,7 +958,9 @@ export async function getTopTalents() {
 async function getCachedNewTalents() {
   "use cache";
 
-  cacheLife("minutes");
+  cacheLife(
+    "minutes",
+  );
 
   cacheTag(
     TALENTS_CACHE_TAG,
@@ -1129,15 +1005,14 @@ async function getCachedNewTalents() {
  * =========================================================
  * NEW TALENTS
  * =========================================================
+ *
+ * Public cached data only.
+ * No authentication lookup.
+ * =========================================================
  */
 
 export async function getNewTalents() {
-  const talents =
-    await getCachedNewTalents();
-
-  return addLikedByMeToTalents(
-    talents,
-  );
+  return getCachedNewTalents();
 }
 
 /*
@@ -1162,7 +1037,9 @@ async function getCachedTalentById(
     return null;
   }
 
-  cacheLife("minutes");
+  cacheLife(
+    "minutes",
+  );
 
   cacheTag(
     talentCacheTag(
@@ -1198,33 +1075,20 @@ async function getCachedTalentById(
  * =========================================================
  * GET TALENT BY ID
  * =========================================================
+ *
+ * Public data only.
+ *
+ * User-specific like state should be loaded
+ * separately when required.
+ * =========================================================
  */
 
 export async function getTalentById(
   talentId,
 ) {
-  const talent =
-    await getCachedTalentById(
-      talentId,
-    );
-
-  if (!talent) {
-    return null;
-  }
-
-  const likedIds =
-    await getCurrentUserTalentLikes(
-      [talent.id],
-    );
-
-  return {
-    ...talent,
-
-    likedByMe:
-      likedIds.has(
-        talent.id,
-      ),
-  };
+  return getCachedTalentById(
+    talentId,
+  );
 }
 
 /*
@@ -1258,7 +1122,9 @@ async function getCachedTalentByUsername(
     return null;
   }
 
-  cacheLife("minutes");
+  cacheLife(
+    "minutes",
+  );
 
   const { db } =
     await getPublicServerFirebase();
@@ -1326,33 +1192,17 @@ async function getCachedTalentByUsername(
  * =========================================================
  * GET TALENT BY USERNAME
  * =========================================================
+ *
+ * Public data only.
+ * =========================================================
  */
 
 export async function getTalentByUsername(
   username,
 ) {
-  const talent =
-    await getCachedTalentByUsername(
-      username,
-    );
-
-  if (!talent) {
-    return null;
-  }
-
-  const likedIds =
-    await getCurrentUserTalentLikes(
-      [talent.id],
-    );
-
-  return {
-    ...talent,
-
-    likedByMe:
-      likedIds.has(
-        talent.id,
-      ),
-  };
+  return getCachedTalentByUsername(
+    username,
+  );
 }
 
 /*
@@ -1491,10 +1341,6 @@ export async function toggleTalentLike({
       async (
         transaction,
       ) => {
-        /*
-         * READ
-         */
-
         const talentSnapshot =
           await transaction.get(
             talentRef,
@@ -1684,12 +1530,6 @@ export async function toggleTalentLike({
     );
   }
 
-  /*
-   * =======================================================
-   * RESPONSE
-   * =======================================================
-   */
-
   return {
     success: true,
 
@@ -1706,15 +1546,10 @@ export async function toggleTalentLike({
  * GET CURRENT USER TALENT LIKES
  * =========================================================
  *
- * Returns:
+ * This is intentionally NOT cached.
  *
- * Set {
- *   "talent123",
- *   "talent456"
- * }
- *
- * These IDs are the talents liked by the
- * currently authenticated user.
+ * It is allowed to use getServerFirebase()
+ * because it is user-specific.
  * =========================================================
  */
 
