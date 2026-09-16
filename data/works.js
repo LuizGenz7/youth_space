@@ -11,11 +11,11 @@ import {
   getDoc,
   getDocs,
   increment,
-  limit as firestoreLimit,
   orderBy,
   query,
   runTransaction,
   where,
+  limit as firestoreLimit,
 } from "firebase/firestore";
 
 import {
@@ -29,7 +29,8 @@ const WORKS_COLLECTION =
 const TALENTS_COLLECTION =
   "talents";
 
-const TRENDING_WORKS_LIMIT = 10;
+const TRENDING_WORKS_LIMIT =
+  10;
 
 /*
  * --------------------------------------------------
@@ -43,7 +44,9 @@ const WORKS_CACHE_TAG =
 const TRENDING_WORKS_CACHE_TAG =
   "trending-works";
 
-function workCacheTag(workId) {
+function workCacheTag(
+  workId
+) {
   return `work:${String(
     workId
   ).trim()}`;
@@ -68,10 +71,6 @@ function talentCacheTag(
 /*
  * --------------------------------------------------
  * CACHE INVALIDATION
- * --------------------------------------------------
- *
- * Mutations invalidate only the caches that can
- * contain the changed data.
  * --------------------------------------------------
  */
 
@@ -103,12 +102,16 @@ function invalidateTalentWorksCache(
   );
 
   revalidateTag(
-    talentWorksCacheTag(talentId),
+    talentWorksCacheTag(
+      talentId
+    ),
     "max"
   );
 
   revalidateTag(
-    talentCacheTag(talentId),
+    talentCacheTag(
+      talentId
+    ),
     "max"
   );
 }
@@ -119,18 +122,28 @@ function invalidateTalentWorksCache(
  * --------------------------------------------------
  */
 
-function normalizeString(value) {
-  if (typeof value !== "string") {
+function normalizeString(
+  value
+) {
+  if (
+    typeof value !==
+    "string"
+  ) {
     return "";
   }
 
   return value.trim();
 }
 
-function normalizeNumber(value) {
-  const number = Number(value);
+function normalizeNumber(
+  value
+) {
+  const number =
+    Number(value);
 
-  return Number.isFinite(number)
+  return Number.isFinite(
+    number
+  )
     ? number
     : 0;
 }
@@ -138,20 +151,27 @@ function normalizeNumber(value) {
 function normalizeStringArray(
   value
 ) {
-  if (!Array.isArray(value)) {
+  if (
+    !Array.isArray(value)
+  ) {
     return [];
   }
 
   return value
     .filter(
       (item) =>
-        typeof item === "string"
+        typeof item ===
+        "string"
     )
-    .map((item) => item.trim())
+    .map((item) =>
+      item.trim()
+    )
     .filter(Boolean);
 }
 
-function normalizeBoolean(value) {
+function normalizeBoolean(
+  value
+) {
   return value === true;
 }
 
@@ -159,9 +179,12 @@ function normalizeLimit(
   limit,
   defaultLimit
 ) {
-  const value = Number(limit);
+  const value =
+    Number(limit);
 
-  if (!Number.isFinite(value)) {
+  if (
+    !Number.isFinite(value)
+  ) {
     return defaultLimit;
   }
 
@@ -191,7 +214,9 @@ function emptyWorkResult() {
 function normalizeServices(
   value
 ) {
-  if (!Array.isArray(value)) {
+  if (
+    !Array.isArray(value)
+  ) {
     return [];
   }
 
@@ -199,7 +224,8 @@ function normalizeServices(
     .map((service) => {
       if (
         !service ||
-        typeof service !== "object" ||
+        typeof service !==
+          "object" ||
         Array.isArray(service)
       ) {
         return null;
@@ -227,8 +253,11 @@ function normalizeServices(
         price:
           service.price !==
             undefined &&
-            service.price !== null
-            ? String(service.price)
+          service.price !==
+            null
+            ? String(
+                service.price
+              )
             : "",
 
         image:
@@ -260,7 +289,8 @@ function normalizeWork(
 
   return {
     id:
-      typeof work.id === "string"
+      typeof work.id ===
+        "string"
         ? work.id
         : "",
 
@@ -317,12 +347,14 @@ function normalizeTalent(
 
   return {
     id:
-      typeof talent.id === "string"
+      typeof talent.id ===
+        "string"
         ? talent.id
         : "",
 
     uid:
-      typeof talent.uid === "string"
+      typeof talent.uid ===
+        "string"
         ? talent.uid
         : talent.id || "",
 
@@ -483,7 +515,9 @@ export async function getWorkById(
   const normalizedWorkId =
     normalizeString(workId);
 
-  if (!normalizedWorkId) {
+  if (
+    !normalizedWorkId
+  ) {
     return null;
   }
 
@@ -537,7 +571,9 @@ export async function getWorksByTalent(
       talentId
     );
 
-  if (!normalizedTalentId) {
+  if (
+    !normalizedTalentId
+  ) {
     return [];
   }
 
@@ -706,6 +742,211 @@ export async function getTrendingWorks(
 
 /*
  * --------------------------------------------------
+ * CREATE WORK
+ * --------------------------------------------------
+ *
+ * Authenticated user UID is supplied by the
+ * server action.
+ *
+ * The talent document must exist and its ID
+ * must match the authenticated user's UID.
+ *
+ * Work creation and talent workCount update
+ * happen in one transaction.
+ * --------------------------------------------------
+ */
+
+export async function createWork({
+  userId,
+  title,
+  description = "",
+  category = "",
+  categoryId = "",
+  image = "",
+}) {
+  const normalizedUserId =
+    normalizeString(userId);
+
+  const normalizedTitle =
+    normalizeString(title);
+
+  const normalizedDescription =
+    normalizeString(
+      description
+    );
+
+  const normalizedCategory =
+    normalizeString(category);
+
+  const normalizedCategoryId =
+    normalizeString(
+      categoryId
+    );
+
+  const normalizedImage =
+    normalizeString(image);
+
+  if (
+    !normalizedUserId
+  ) {
+    throw new Error(
+      "User ID is required."
+    );
+  }
+
+  if (
+    !normalizedTitle
+  ) {
+    throw new Error(
+      "Work title is required."
+    );
+  }
+
+  const {
+    db,
+  } =
+    await getServerFirebase();
+
+  const talentRef =
+    doc(
+      db,
+      TALENTS_COLLECTION,
+      normalizedUserId
+    );
+
+  /*
+   * Generate the work ID before the transaction.
+   */
+
+  const workRef =
+    doc(
+      collection(
+        db,
+        WORKS_COLLECTION
+      )
+    );
+
+  const createdAt =
+    new Date();
+
+  let createdWork = null;
+
+  await runTransaction(
+    db,
+    async (transaction) => {
+      const talentSnapshot =
+        await transaction.get(
+          talentRef
+        );
+
+      if (
+        !talentSnapshot.exists()
+      ) {
+        throw new Error(
+          "Profile not found."
+        );
+      }
+
+      const talent =
+        talentSnapshot.data();
+
+      const talentUid =
+        normalizeString(
+          talent?.uid
+        );
+
+      /*
+       * Normally the talent document ID is the
+       * Firebase Auth UID. The additional UID check
+       * protects against inconsistent data.
+       */
+
+      if (
+        talentUid &&
+        talentUid !==
+          normalizedUserId
+      ) {
+        throw new Error(
+          "You do not own this profile."
+        );
+      }
+
+      const currentWorkCount =
+        normalizeNumber(
+          talent?.workCount
+        );
+
+      const workData = {
+        talentId:
+          normalizedUserId,
+
+        title:
+          normalizedTitle,
+
+        description:
+          normalizedDescription,
+
+        category:
+          normalizedCategory,
+
+        categoryId:
+          normalizedCategoryId,
+
+        image:
+          normalizedImage,
+
+        likes: 0,
+
+        createdAt,
+
+        updatedAt:
+          createdAt,
+      };
+
+      transaction.set(
+        workRef,
+        workData
+      );
+
+      transaction.update(
+        talentRef,
+        {
+          workCount:
+            currentWorkCount + 1,
+
+          updatedAt:
+            createdAt,
+        }
+      );
+
+      createdWork =
+        normalizeWork({
+          id:
+            workRef.id,
+
+          ...workData,
+        });
+    }
+  );
+
+  /*
+   * Invalidate caches only after the transaction
+   * successfully commits.
+   */
+
+  invalidateWorkCache(
+    workRef.id
+  );
+
+  invalidateTalentWorksCache(
+    normalizedUserId
+  );
+
+  return createdWork;
+}
+
+/*
+ * --------------------------------------------------
  * TOGGLE WORK LIKE
  * --------------------------------------------------
  *
@@ -726,13 +967,17 @@ export async function toggleWorkLike({
   const normalizedUserId =
     normalizeString(userId);
 
-  if (!normalizedWorkId) {
+  if (
+    !normalizedWorkId
+  ) {
     throw new Error(
       "Work ID is required."
     );
   }
 
-  if (!normalizedUserId) {
+  if (
+    !normalizedUserId
+  ) {
     throw new Error(
       "User ID is required."
     );
@@ -843,7 +1088,7 @@ export async function toggleWorkLike({
           likes,
         };
       }
-    ); 
+    );
 
   /*
    * Invalidate only after the transaction
@@ -876,13 +1121,17 @@ export async function deleteWork({
   const normalizedUserId =
     normalizeString(userId);
 
-  if (!normalizedWorkId) {
+  if (
+    !normalizedWorkId
+  ) {
     throw new Error(
       "Work ID is required."
     );
   }
 
-  if (!normalizedUserId) {
+  if (
+    !normalizedUserId
+  ) {
     throw new Error(
       "User ID is required."
     );
@@ -986,14 +1235,6 @@ export async function deleteWork({
   /*
    * Invalidate only after the transaction
    * successfully commits.
-   *
-   * Deleting a work affects:
-   *
-   * - all works
-   * - the individual work
-   * - this talent's works
-   * - this talent's workCount
-   * - trending works
    */
 
   invalidateWorkCache(

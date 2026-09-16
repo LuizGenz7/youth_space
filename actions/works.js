@@ -6,6 +6,7 @@ import {
   getTrendingWorks,
   toggleWorkLike,
   deleteWork,
+  createWork,
 } from "@/data/works";
 
 import {
@@ -66,6 +67,60 @@ const deleteWorkSchema =
     .object({
       workId:
         workIdSchema,
+    })
+    .strict();
+
+const createWorkSchema =
+  z
+    .object({
+      title:
+        z
+          .string()
+          .trim()
+          .min(
+            1,
+            "Work title is required."
+          )
+          .max(
+            100,
+            "Work title is too long."
+          ),
+
+      description:
+        z
+          .string()
+          .trim()
+          .max(
+            1000,
+            "Work description is too long."
+          )
+          .default(""),
+
+      category:
+        z
+          .string()
+          .trim()
+          .max(
+            100,
+            "Work category is too long."
+          )
+          .default(""),
+
+      image:
+        z
+          .string()
+          .trim()
+          .url(
+            "Please provide a valid image URL."
+          )
+          .max(
+            2000,
+            "Image URL is too long."
+          )
+          .or(
+            z.literal("")
+          )
+          .default(""),
     })
     .strict();
 
@@ -155,10 +210,141 @@ export async function getTrendingWorksAction(
     return {
       success: false,
       works: [],
+
       error:
         getErrorMessage(
           error,
           "Unable to load trending works."
+        ),
+    };
+  }
+}
+
+/*
+ * ==================================================
+ * CREATE WORK
+ * ==================================================
+ *
+ * AUTHENTICATED USERS ONLY
+ *
+ * Client sends:
+ *
+ * {
+ *   title,
+ *   description,
+ *   category,
+ *   image
+ * }
+ *
+ * UID comes from authentication.
+ *
+ * The client does NOT provide:
+ *
+ * - uid
+ * - talentId
+ *
+ * This prevents users from creating work
+ * under another user's account.
+ *
+ * Cache invalidation is handled by
+ * data/works.js.
+ * ==================================================
+ */
+
+export async function createWorkAction(
+  input = {}
+) {
+  const safeInput =
+    normalizeInput(input);
+
+  const validation =
+    createWorkSchema.safeParse(
+      safeInput
+    );
+
+  if (!validation.success) {
+    return {
+      success: false,
+      work: null,
+      error: "Invalid request.",
+    };
+  }
+
+  /*
+   * --------------------------------------------------
+   * AUTHENTICATE
+   * --------------------------------------------------
+   */
+
+  let user;
+
+  try {
+    user =
+      await requireAuthAction();
+  } catch (error) {
+    if (
+      error?.code ===
+      "AUTH_REQUIRED"
+    ) {
+      return {
+        success: false,
+        work: null,
+        error:
+          "You must be logged in.",
+      };
+    }
+
+    return {
+      success: false,
+      work: null,
+      error:
+        "Authentication failed.",
+    };
+  }
+
+  /*
+   * --------------------------------------------------
+   * CREATE
+   * --------------------------------------------------
+   */
+
+  try {
+    const work =
+      await createWork({
+        userId:
+          user.uid,
+
+        title:
+          validation.data.title,
+
+        description:
+          validation.data.description,
+
+        category:
+          validation.data.category,
+
+        image:
+          validation.data.image,
+      });
+
+    return {
+      success: true,
+
+      work:
+        work ?? null,
+
+      error: null,
+    };
+  } catch (error) {
+    return {
+      success: false,
+
+      work: null,
+
+      error:
+        getErrorMessage(
+          error,
+          "Unable to create work."
         ),
     };
   }
