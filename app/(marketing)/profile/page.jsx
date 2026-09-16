@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth-server";
 import { getMyProfile } from "@/data/profile";
 import { getWorksByTalent } from "@/data/works";
+import { getCategories } from "@/data/categories";
 
 import ProfileClient from "@/components/profile/ProfileClient";
 
@@ -9,7 +10,11 @@ export const instant = false;
 export default async function ProfilePage() {
   const user = await requireAuth();
 
-  const profile = await getMyProfile();
+  const [profile, works, categories] = await Promise.all([
+    getMyProfile(),
+    getWorksByTalent(user.uid),
+    getCategories(),
+  ]);
 
   if (!profile) {
     return (
@@ -20,15 +25,19 @@ export default async function ProfilePage() {
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Your account is signed in, but your Youth Space profile could not be
-            found.
+            Your account is signed in, but your Youth Space profile could not
+            be found.
           </p>
         </div>
       </main>
     );
   }
 
-  const works = await getWorksByTalent(user.uid);
-
-  return <ProfileClient profile={profile} works={works} />;
+  return (
+    <ProfileClient
+      profile={profile}
+      works={works}
+      categories={categories}
+    />
+  );
 }
