@@ -45,7 +45,7 @@ export default function TalentsHero() {
           scroll: false,
         }
       );
-    }, 150);
+    }, 100);
 
     return () => clearTimeout(timer);
   }, [search, pathname, router, searchParams]);
