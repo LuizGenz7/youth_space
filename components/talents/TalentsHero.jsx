@@ -2,45 +2,81 @@
 
 import Image from "next/image";
 import { ArrowRight, Search } from "lucide-react";
-
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function TalentsHero({ talentsLoading = false }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const search = searchParams.get("search") || "";
+  const initialSearch = searchParams.get("search") || "";
 
-  function updateSearch(value) {
+  const [search, setSearch] = useState(initialSearch);
+
+  useEffect(() => {
+    const trimmedSearch = search.trim();
+
+    const currentSearch = searchParams.get("search") || "";
+
+    if (trimmedSearch === currentSearch) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (trimmedSearch) {
+        params.set("search", trimmedSearch);
+      } else {
+        params.delete("search");
+      }
+
+      const query = params.toString();
+
+      router.replace(
+        query ? `${pathname}?${query}` : pathname,
+        {
+          scroll: false,
+        }
+      );
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, pathname, router, searchParams]);
+
+  function handleChange(event) {
+    setSearch(event.target.value);
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    const trimmedSearch = search.trim();
     const params = new URLSearchParams(searchParams.toString());
 
-    const trimmedValue = value.trim();
-
-    if (trimmedValue) {
-      params.set("search", trimmedValue);
+    if (trimmedSearch) {
+      params.set("search", trimmedSearch);
     } else {
       params.delete("search");
     }
 
     const query = params.toString();
 
-    router.replace(query ? `${pathname}?${query}` : pathname, {
-      scroll: false,
-    });
-  }
-
-  function handleChange(event) {
-    updateSearch(event.target.value);
-  }
-
-  function handleSubmit(event) {
-    event.preventDefault();
+    router.replace(
+      query ? `${pathname}?${query}` : pathname,
+      {
+        scroll: false,
+      }
+    );
   }
 
   return (
     <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
-      {/* Hero image */}
       <Image
         src="/images/hero/talents-hero.webp"
         alt="Young people sharing their skills and creative work"
@@ -50,8 +86,10 @@ export default function TalentsHero({ talentsLoading = false }) {
         className="object-cover"
       />
 
-      {/* Overlays */}
-      <div className="absolute inset-0 bg-slate-950/2" aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-slate-950/2"
+        aria-hidden="true"
+      />
 
       <div
         className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-950/50"
@@ -63,7 +101,6 @@ export default function TalentsHero({ talentsLoading = false }) {
         aria-hidden="true"
       />
 
-      {/* Content */}
       <div className="relative mx-auto max-w-7xl px-5 pb-10 pt-28 sm:px-6 sm:pb-14 sm:pt-32 lg:px-8 lg:pb-16">
         <div className="max-w-3xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-white/60">
@@ -72,7 +109,9 @@ export default function TalentsHero({ talentsLoading = false }) {
 
           <h1 className="mt-4 text-4xl font-black tracking-tighter text-white sm:text-5xl lg:text-6xl">
             Find the right
-            <span className="block text-white/60">person for the job.</span>
+            <span className="block text-white/60">
+              person for the job.
+            </span>
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75 sm:text-base sm:leading-7">
@@ -80,8 +119,11 @@ export default function TalentsHero({ talentsLoading = false }) {
             professional services, and local expertise.
           </p>
 
-          {/* Search */}
-          <form onSubmit={handleSubmit} className="mt-7" role="search">
+          <form
+            onSubmit={handleSubmit}
+            className="mt-7"
+            role="search"
+          >
             <div
               className={`flex items-center rounded-2xl border border-white/20 bg-white p-2 shadow-xl transition ${
                 talentsLoading
@@ -99,7 +141,6 @@ export default function TalentsHero({ talentsLoading = false }) {
               <input
                 type="search"
                 value={search}
-                disabled={talentsLoading}
                 onChange={handleChange}
                 placeholder={
                   talentsLoading
@@ -107,7 +148,7 @@ export default function TalentsHero({ talentsLoading = false }) {
                     : "Search talents, skills or services..."
                 }
                 aria-label="Search talents, skills or services"
-                className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:text-base"
+                className="min-w-0 flex-1 bg-transparent px-1 text-sm font-medium text-slate-950 outline-none placeholder:text-slate-400 sm:text-base"
               />
 
               <button
@@ -119,7 +160,10 @@ export default function TalentsHero({ talentsLoading = false }) {
                   {talentsLoading ? "Loading..." : "Search"}
                 </span>
 
-                <ArrowRight size={16} aria-hidden="true" />
+                <ArrowRight
+                  size={16}
+                  aria-hidden="true"
+                />
               </button>
             </div>
           </form>
