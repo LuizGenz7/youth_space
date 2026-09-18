@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   ZAMBIA_PROVINCES,
-  getDistrictsByProvince,
+  getDistrictsByProvince
 } from "@/data/zambia-locations";
 
 export default function ProfileSection({
