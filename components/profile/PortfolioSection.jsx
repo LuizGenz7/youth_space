@@ -1,7 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { BriefcaseBusiness, ImagePlus, Plus, Trash2 } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  ImagePlus,
+  Plus,
+  Trash2,
+} from "lucide-react";
 
 export default function PortfolioSection({
   works = [],
@@ -11,16 +16,18 @@ export default function PortfolioSection({
 }) {
   return (
     <div className="space-y-6">
-      {/* ------------------------------------------------------------------ */}
-      {/* Portfolio header                                                    */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
+      {/* Portfolio Header                                                   */}
+      {/* ================================================================== */}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-6">
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-950">Portfolio</h2>
+            <h2 className="text-sm font-black text-slate-950">
+              Portfolio
+            </h2>
 
-            <p className="mt-1 text-xs leading-5 text-slate-500">
+            <p className="mt-1 text-xs leading-5 font-medium text-slate-400">
               Showcase your work and give people a better idea of what you can
               do.
             </p>
@@ -29,9 +36,13 @@ export default function PortfolioSection({
           <button
             type="button"
             onClick={onAddWork}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-slate-950 px-3 text-[11px] font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-200"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-slate-950 px-3.5 text-xs font-bold text-white outline-none transition hover:bg-slate-800 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98]"
           >
-            <Plus size={14} strokeWidth={2.2} aria-hidden="true" />
+            <Plus
+              size={14}
+              strokeWidth={2.5}
+              aria-hidden="true"
+            />
 
             <span className="hidden sm:inline">Add work</span>
           </button>
@@ -49,7 +60,6 @@ export default function PortfolioSection({
                 />
               ))}
 
-              {/* Add another work */}
               <AddWorkCard onClick={onAddWork} />
             </div>
           ) : (
@@ -65,14 +75,29 @@ export default function PortfolioSection({
 /* Work Card                                                                  */
 /* ========================================================================== */
 
-function WorkCard({ work, deleting = false, onDelete }) {
-  const image = work.image || work.imageUrl || work.thumbnail || "";
+function WorkCard({
+  work,
+  deleting = false,
+  onDelete,
+}) {
+  const image =
+    work.image ||
+    work.imageUrl ||
+    work.thumbnail ||
+    "";
 
-  const title = work.title || "Untitled work";
+  const title =
+    work.title ||
+    "Untitled work";
 
-  const description = work.description || "";
+  const description =
+    work.description ||
+    "";
 
-  const category = work.category || work.categoryName || "";
+  const category =
+    work.category ||
+    work.categoryName ||
+    "";
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:border-slate-300">
@@ -88,7 +113,7 @@ function WorkCard({ work, deleting = false, onDelete }) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
               <ImagePlus
                 size={20}
                 strokeWidth={1.8}
@@ -105,16 +130,24 @@ function WorkCard({ work, deleting = false, onDelete }) {
           disabled={deleting}
           onClick={onDelete}
           aria-label={`Delete ${title}`}
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-500 shadow-sm outline-none transition hover:border-slate-300 hover:bg-white hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-500 shadow-sm outline-none backdrop-blur-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          <Trash2 size={15} strokeWidth={2} aria-hidden="true" />
+          {deleting ? (
+            <LoadingSpinner />
+          ) : (
+            <Trash2
+              size={15}
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+          )}
         </button>
       </div>
 
       {/* Content */}
       <div className="p-4">
         {category && (
-          <span className="inline-flex max-w-full rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600">
+          <span className="inline-flex max-w-full rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-600">
             <span className="truncate">{category}</span>
           </span>
         )}
@@ -124,7 +157,7 @@ function WorkCard({ work, deleting = false, onDelete }) {
         </h3>
 
         {description && (
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+          <p className="mt-1 line-clamp-2 text-xs leading-5 font-medium text-slate-500">
             {description}
           </p>
         )}
@@ -142,9 +175,9 @@ function AddWorkCard({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 text-center outline-none transition hover:border-slate-300 hover:bg-white focus:border-slate-950 focus:ring-4 focus:ring-slate-100"
+      className="group flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 text-center outline-none transition hover:border-slate-300 hover:bg-white focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.99]"
     >
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white transition group-hover:bg-slate-100">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm transition group-hover:bg-slate-100">
         <Plus
           size={20}
           strokeWidth={2}
@@ -153,11 +186,11 @@ function AddWorkCard({ onClick }) {
         />
       </span>
 
-      <span className="mt-3 text-xs font-bold text-slate-700">
+      <span className="mt-3 text-sm font-bold text-slate-700">
         Add another work
       </span>
 
-      <span className="mt-1 max-w-[220px] text-[11px] leading-5 text-slate-400">
+      <span className="mt-1 max-w-[220px] text-xs leading-5 font-medium text-slate-400">
         Showcase another project, service, or piece of work.
       </span>
     </button>
@@ -170,8 +203,8 @@ function AddWorkCard({ onClick }) {
 
 function PortfolioEmptyState({ onClick }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-12 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white">
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">
         <BriefcaseBusiness
           size={22}
           strokeWidth={1.8}
@@ -180,22 +213,40 @@ function PortfolioEmptyState({ onClick }) {
         />
       </div>
 
-      <h3 className="mt-4 text-sm font-bold text-slate-950">
+      <h3 className="mt-4 text-sm font-black text-slate-950">
         Your portfolio is empty
       </h3>
 
-      <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-slate-500">
+      <p className="mx-auto mt-1 max-w-sm text-xs leading-5 font-medium text-slate-400">
         Add examples of your work so visitors can see what you are capable of.
       </p>
 
       <button
         type="button"
         onClick={onClick}
-        className="mt-5 inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-xs font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-200"
+        className="mt-5 inline-flex h-12 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white outline-none transition hover:bg-slate-800 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98]"
       >
-        <Plus size={14} strokeWidth={2.2} aria-hidden="true" />
+        <Plus
+          size={15}
+          strokeWidth={2.5}
+          aria-hidden="true"
+        />
+
         Add your first work
       </button>
     </div>
+  );
+}
+
+/* ========================================================================== */
+/* Loading Spinner                                                            */
+/* ========================================================================== */
+
+function LoadingSpinner() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300/40 border-t-current"
+    />
   );
 }

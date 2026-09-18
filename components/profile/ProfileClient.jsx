@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -17,6 +18,7 @@ import PortfolioSection from "./PortfolioSection";
 import AccountSection from "./AccountSection";
 
 import { updateProfileAction, deleteProfileAction } from "@/actions/profile";
+
 import { deleteWorkAction } from "@/actions/works";
 
 import {
@@ -39,8 +41,22 @@ import {
   logout,
   reauthenticateWithPassword,
 } from "@/lib/auth";
-import Link from "next/link";
+
 import YouthSpaceBrand from "../brand/YouthSpaceBrand";
+
+/* ========================================================================== */
+/* Constants                                                                  */
+/* ========================================================================== */
+
+const USERNAME_REGEX = /^[a-z0-9_]{3,30}$/;
+
+const MAX_BIO_LENGTH = 500;
+const MAX_SKILLS = 20;
+const MAX_SERVICES = 20;
+
+/* ========================================================================== */
+/* Component                                                                  */
+/* ========================================================================== */
 
 export default function ProfileClient({
   profile,
@@ -60,7 +76,6 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   const [currentProfile, setCurrentProfile] = useState(profile);
-
   const [currentWorks, setCurrentWorks] = useState(works);
 
   /* ====================================================================== */
@@ -74,21 +89,19 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   const [activeModal, setActiveModal] = useState(null);
-
   const [confirmAction, setConfirmAction] = useState(null);
 
   const [saving, setSaving] = useState(false);
-
   const [savingAvailability, setSavingAvailability] = useState(false);
+
+  const [formError, setFormError] = useState("");
 
   /* ====================================================================== */
   /* Destructive actions                                                    */
   /* ====================================================================== */
 
   const [deletingProfile, setDeletingProfile] = useState(false);
-
   const [loggingOut, setLoggingOut] = useState(false);
-
   const [deletingWorkId, setDeletingWorkId] = useState(null);
 
   /* ====================================================================== */
@@ -96,13 +109,11 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   const [deletePasswordOpen, setDeletePasswordOpen] = useState(false);
-
   const [deletePasswordLoading, setDeletePasswordLoading] = useState(false);
-
   const [deletePasswordError, setDeletePasswordError] = useState("");
 
   /* ====================================================================== */
-  /* Profile form                                                            */
+  /* Profile form                                                           */
   /* ====================================================================== */
 
   const [profileForm, setProfileForm] = useState({
@@ -118,7 +129,7 @@ export default function ProfileClient({
   });
 
   /* ====================================================================== */
-  /* Professional                                                            */
+  /* Professional                                                           */
   /* ====================================================================== */
 
   const [skills, setSkills] = useState(
@@ -166,11 +177,12 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   function selectSection(section) {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
     setActiveSection(section);
+    setFormError("");
   }
 
   /* ====================================================================== */
@@ -178,10 +190,106 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   function updateForm(field, value) {
+    setFormError("");
+
     setProfileForm((current) => ({
       ...current,
       [field]: value,
     }));
+  }
+
+  /* ====================================================================== */
+  /* Profile validation                                                     */
+  /* ====================================================================== */
+
+  function validateProfileForm() {
+    const displayName = profileForm.displayName.trim();
+    const username = profileForm.username.trim().toLowerCase();
+    const role = profileForm.role.trim();
+    const categoryId = profileForm.categoryId.trim();
+    const province = profileForm.province.trim();
+    const district = profileForm.district.trim();
+    const bio = profileForm.bio.trim();
+    const phone = profileForm.phone.trim();
+    const whatsapp = profileForm.whatsapp.trim();
+
+    if (displayName.length < 2) {
+      return "Your name is too short.";
+    }
+
+    if (displayName.length > 80) {
+      return "Your name is too long.";
+    }
+
+    if (!USERNAME_REGEX.test(username)) {
+      return "Username must be 3–30 characters and use only lowercase letters, numbers and underscores.";
+    }
+
+    if (role.length < 2) {
+      return "Your role is too short.";
+    }
+
+    if (role.length > 60) {
+      return "Your role is too long.";
+    }
+
+    if (!categoryId) {
+      return "Please select a category.";
+    }
+
+    if (!province) {
+      return "Please select your province.";
+    }
+
+    if (!district) {
+      return "Please select your district.";
+    }
+
+    if (bio.length < 20) {
+      return "Your bio should be at least 20 characters.";
+    }
+
+    if (bio.length > MAX_BIO_LENGTH) {
+      return "Your bio is too long.";
+    }
+
+    if (phone.length < 7) {
+      return "Please enter a valid phone number.";
+    }
+
+    if (phone.length > 20) {
+      return "Your phone number is too long.";
+    }
+
+    if (whatsapp.length < 7) {
+      return "Please enter a valid WhatsApp number.";
+    }
+
+    if (whatsapp.length > 20) {
+      return "Your WhatsApp number is too long.";
+    }
+
+    return null;
+  }
+
+  /* ====================================================================== */
+  /* Common update payload                                                  */
+  /* ====================================================================== */
+
+  function getProfilePayload(overrides = {}) {
+    return {
+      displayName: profileForm.displayName.trim(),
+      username: profileForm.username.trim().toLowerCase(),
+      role: profileForm.role.trim(),
+      categoryId: profileForm.categoryId.trim(),
+      province: profileForm.province.trim(),
+      district: profileForm.district.trim(),
+      bio: profileForm.bio.trim(),
+      phone: profileForm.phone.trim(),
+      whatsapp: profileForm.whatsapp.trim(),
+      available: Boolean(currentProfile?.available),
+      ...overrides,
+    };
   }
 
   /* ====================================================================== */
@@ -193,43 +301,69 @@ export default function ProfileClient({
       return;
     }
 
+    setFormError("");
+
+    const validationError = validateProfileForm();
+
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
     try {
       setSaving(true);
 
-      const result = await updateProfileAction({
-        displayName: profileForm.displayName,
-        username: profileForm.username,
-        role: profileForm.role,
-        categoryId: profileForm.categoryId,
-        province: profileForm.province,
-        district: profileForm.district,
-        bio: profileForm.bio,
-        phone: profileForm.phone,
-        whatsapp: profileForm.whatsapp,
-        avatar: currentProfile.avatar,
-        available: currentProfile.available,
-      });
+      /*
+       * Do NOT send avatarPreview here.
+       *
+       * avatarPreview can be a local FileReader data URL.
+       * The server expects a real URL.
+       *
+       * Avatar upload should have its own upload flow.
+       */
+      const result = await updateProfileAction(
+        getProfilePayload({
+          avatar: currentProfile?.avatar || null,
+        }),
+      );
 
       if (!result?.success) {
-        throw new Error(result?.message || "Failed to update profile.");
+        throw new Error(
+          result?.error ||
+            "Your profile could not be updated. Please try again.",
+        );
       }
+
+      const updatedProfile = result.profile;
 
       setCurrentProfile((current) => ({
         ...current,
-        displayName: profileForm.displayName,
-        username: profileForm.username,
-        role: profileForm.role,
-        categoryId: profileForm.categoryId,
-        province: profileForm.province,
-        district: profileForm.district,
-        bio: profileForm.bio,
-        phone: profileForm.phone,
-        whatsapp: profileForm.whatsapp,
+        ...updatedProfile,
       }));
+
+      setProfileForm((current) => ({
+        ...current,
+        displayName: updatedProfile?.displayName ?? current.displayName,
+        username: updatedProfile?.username ?? current.username,
+        role: updatedProfile?.role ?? current.role,
+        categoryId: updatedProfile?.categoryId ?? current.categoryId,
+        province: updatedProfile?.province ?? current.province,
+        district: updatedProfile?.district ?? current.district,
+        bio: updatedProfile?.bio ?? current.bio,
+        phone: updatedProfile?.phone ?? current.phone,
+        whatsapp: updatedProfile?.whatsapp ?? current.whatsapp,
+      }));
+
+      setFormError("");
 
       router.refresh();
     } catch (error) {
       console.error("Failed to save profile:", error);
+
+      setFormError(
+        error?.message ||
+          "Your profile could not be updated. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -244,42 +378,60 @@ export default function ProfileClient({
       return;
     }
 
+    setFormError("");
+
+    const validationError = validateProfileForm();
+
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
+    if (skills.length > MAX_SKILLS) {
+      setFormError("You can have up to 20 skills.");
+      return;
+    }
+
+    if (services.length > MAX_SERVICES) {
+      setFormError("You can have up to 20 services.");
+      return;
+    }
+
     try {
       setSaving(true);
 
-      const result = await updateProfileAction({
-        displayName: profileForm.displayName,
-        username: profileForm.username,
-        role: profileForm.role,
-        categoryId: profileForm.categoryId,
-        province: profileForm.province,
-        district: profileForm.district,
-        bio: profileForm.bio,
-        phone: profileForm.phone,
-        whatsapp: profileForm.whatsapp,
-        avatar: currentProfile.avatar,
-        available: currentProfile.available,
-        skills,
-        services,
-      });
+      const cleanServices = normalizeServices(services);
+
+      const result = await updateProfileAction(
+        getProfilePayload({
+          avatar: currentProfile?.avatar || null,
+          skills,
+          services: cleanServices,
+        }),
+      );
 
       if (!result?.success) {
         throw new Error(
-          result?.message || "Failed to update professional information.",
+          result?.error || "Professional information could not be updated.",
         );
       }
 
+      setServices(cleanServices);
+
       setCurrentProfile((current) => ({
         ...current,
-        role: profileForm.role,
-        categoryId: profileForm.categoryId,
+        ...result.profile,
         skills,
-        services,
+        services: cleanServices,
       }));
 
       router.refresh();
     } catch (error) {
       console.error("Failed to save professional information:", error);
+
+      setFormError(
+        error?.message || "Professional information could not be updated.",
+      );
     } finally {
       setSaving(false);
     }
@@ -290,13 +442,23 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   function addSkill() {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
     const value = skillInput.trim();
 
     if (!value) {
+      return;
+    }
+
+    if (value.length > 60) {
+      setFormError("Skill is too long.");
+      return;
+    }
+
+    if (skills.length >= MAX_SKILLS) {
+      setFormError("You can have up to 20 skills.");
       return;
     }
 
@@ -312,48 +474,47 @@ export default function ProfileClient({
     }
 
     setSkills((current) => [...current, value]);
-
     setSkillInput("");
+    setFormError("");
   }
 
   function removeSkill(skillToRemove) {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
     setSkills((current) => current.filter((skill) => skill !== skillToRemove));
   }
 
+  /* ====================================================================== */
+  /* Save skills                                                            */
+  /* ====================================================================== */
+
   async function handleSaveSkills() {
     if (saving || destructiveActionRunning) {
       return;
     }
 
+    setFormError("");
+
     try {
       setSaving(true);
 
-      const result = await updateProfileAction({
-        displayName: profileForm.displayName,
-        username: profileForm.username,
-        role: profileForm.role,
-        categoryId: profileForm.categoryId,
-        province: profileForm.province,
-        district: profileForm.district,
-        bio: profileForm.bio,
-        phone: profileForm.phone,
-        whatsapp: profileForm.whatsapp,
-        avatar: currentProfile.avatar,
-        available: currentProfile.available,
-        skills,
-        services,
-      });
+      const result = await updateProfileAction(
+        getProfilePayload({
+          avatar: currentProfile?.avatar || null,
+          skills,
+          services: normalizeServices(services),
+        }),
+      );
 
       if (!result?.success) {
-        throw new Error(result?.message || "Failed to save skills.");
+        throw new Error(result?.error || "Failed to save skills.");
       }
 
       setCurrentProfile((current) => ({
         ...current,
+        ...result.profile,
         skills,
       }));
 
@@ -362,6 +523,8 @@ export default function ProfileClient({
       router.refresh();
     } catch (error) {
       console.error("Failed to save skills:", error);
+
+      setFormError(error?.message || "Failed to save skills.");
     } finally {
       setSaving(false);
     }
@@ -374,21 +537,46 @@ export default function ProfileClient({
   function normalizeService(service) {
     if (typeof service === "string") {
       return {
+        id: crypto.randomUUID(),
         name: service,
         description: "",
-        minPrice: "",
+        price: "",
+        image: null,
       };
     }
 
     return {
+      id: service?.id || crypto.randomUUID(),
       name: service?.name || "",
       description: service?.description || "",
-      minPrice: service?.minPrice || "",
+      price: service?.price ?? service?.minPrice ?? "",
+      image: service?.image || null,
     };
   }
 
+  function normalizeServices(list = []) {
+    return list
+      .map(normalizeService)
+      .filter((service) => service.name.trim())
+      .map((service) => ({
+        id: service.id,
+        name: service.name.trim(),
+        description: service.description.trim(),
+        price:
+          typeof service.price === "number"
+            ? service.price
+            : String(service.price || "").trim(),
+        image: service.image || null,
+      }));
+  }
+
   function addService(service) {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
+      return;
+    }
+
+    if (services.length >= MAX_SERVICES) {
+      setFormError("You can have up to 20 services.");
       return;
     }
 
@@ -400,10 +588,15 @@ export default function ProfileClient({
       return;
     }
 
+    if (name.length > 100) {
+      setFormError("Service name is too long.");
+      return;
+    }
+
     const exists = services.some((existingService) => {
       const existing = normalizeService(existingService);
 
-      return existing.name.toLowerCase() === name.toLowerCase();
+      return existing.name.trim().toLowerCase() === name.toLowerCase();
     });
 
     if (exists) {
@@ -413,15 +606,16 @@ export default function ProfileClient({
     setServices((current) => [
       ...current,
       {
+        ...normalized,
         name,
-        description: normalized.description.trim(),
-        minPrice: normalized.minPrice.trim(),
       },
     ]);
+
+    setFormError("");
   }
 
   function removeService(serviceToRemove) {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
@@ -430,47 +624,44 @@ export default function ProfileClient({
     );
   }
 
+  /* ====================================================================== */
+  /* Save services                                                          */
+  /* ====================================================================== */
+
   async function handleSaveServices() {
     if (saving || destructiveActionRunning) {
+      return;
+    }
+
+    setFormError("");
+
+    const cleanServices = normalizeServices(services);
+
+    if (cleanServices.length > MAX_SERVICES) {
+      setFormError("You can have up to 20 services.");
       return;
     }
 
     try {
       setSaving(true);
 
-      const cleanServices = services
-        .map(normalizeService)
-        .filter((service) => service.name.trim())
-        .map((service) => ({
-          name: service.name.trim(),
-          description: service.description.trim(),
-          minPrice: service.minPrice.trim(),
-        }));
-
-      const result = await updateProfileAction({
-        displayName: profileForm.displayName,
-        username: profileForm.username,
-        role: profileForm.role,
-        categoryId: profileForm.categoryId,
-        province: profileForm.province,
-        district: profileForm.district,
-        bio: profileForm.bio,
-        phone: profileForm.phone,
-        whatsapp: profileForm.whatsapp,
-        avatar: currentProfile.avatar,
-        available: currentProfile.available,
-        skills,
-        services: cleanServices,
-      });
+      const result = await updateProfileAction(
+        getProfilePayload({
+          avatar: currentProfile?.avatar || null,
+          skills,
+          services: cleanServices,
+        }),
+      );
 
       if (!result?.success) {
-        throw new Error(result?.message || "Failed to save services.");
+        throw new Error(result?.error || "Failed to save services.");
       }
 
       setServices(cleanServices);
 
       setCurrentProfile((current) => ({
         ...current,
+        ...result.profile,
         services: cleanServices,
       }));
 
@@ -479,6 +670,8 @@ export default function ProfileClient({
       router.refresh();
     } catch (error) {
       console.error("Failed to save services:", error);
+
+      setFormError(error?.message || "Failed to save services.");
     } finally {
       setSaving(false);
     }
@@ -489,41 +682,46 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   async function toggleAvailability(value) {
-    if (savingAvailability || destructiveActionRunning) {
+    if (saving || savingAvailability || destructiveActionRunning) {
+      return;
+    }
+
+    setFormError("");
+
+    const validationError = validateProfileForm();
+
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
     try {
       setSavingAvailability(true);
 
-      const result = await updateProfileAction({
-        displayName: profileForm.displayName,
-        username: profileForm.username,
-        role: profileForm.role,
-        categoryId: profileForm.categoryId,
-        province: profileForm.province,
-        district: profileForm.district,
-        bio: profileForm.bio,
-        phone: profileForm.phone,
-        whatsapp: profileForm.whatsapp,
-        avatar: currentProfile.avatar,
-        available: value,
-        skills,
-        services,
-      });
+      const result = await updateProfileAction(
+        getProfilePayload({
+          avatar: currentProfile?.avatar || null,
+          available: Boolean(value),
+          skills,
+          services: normalizeServices(services),
+        }),
+      );
 
       if (!result?.success) {
-        throw new Error(result?.message || "Failed to update availability.");
+        throw new Error(result?.error || "Failed to update availability.");
       }
 
       setCurrentProfile((current) => ({
         ...current,
-        available: value,
+        ...result.profile,
+        available: Boolean(value),
       }));
 
       router.refresh();
     } catch (error) {
       console.error("Failed to update availability:", error);
+
+      setFormError(error?.message || "Failed to update availability.");
     } finally {
       setSavingAvailability(false);
     }
@@ -534,7 +732,7 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   function handleAvatarClick() {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
@@ -542,7 +740,7 @@ export default function ProfileClient({
   }
 
   function handleAvatarSelect(event) {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
@@ -553,6 +751,14 @@ export default function ProfileClient({
     }
 
     if (!file.type.startsWith("image/")) {
+      setFormError("Please select an image file.");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setFormError("Profile images must be smaller than 5MB.");
       return;
     }
 
@@ -560,6 +766,9 @@ export default function ProfileClient({
 
     reader.onload = () => {
       setAvatarPreview(reader.result);
+      setFormError(
+        "Photo preview updated. Upload handling must save the image before it becomes permanent.",
+      );
     };
 
     reader.readAsDataURL(file);
@@ -570,19 +779,21 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   function openSkills() {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
     setActiveModal("skills");
+    setFormError("");
   }
 
   function openServices() {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
     setActiveModal("services");
+    setFormError("");
   }
 
   function openAddWork() {
@@ -594,7 +805,7 @@ export default function ProfileClient({
   }
 
   function closeModal() {
-    if (destructiveActionRunning) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
@@ -637,7 +848,7 @@ export default function ProfileClient({
       const result = await deleteWorkAction(workId);
 
       if (!result?.success) {
-        throw new Error(result?.message || "Failed to delete work.");
+        throw new Error(result?.error || "Failed to delete work.");
       }
 
       setCurrentWorks((current) =>
@@ -655,7 +866,7 @@ export default function ProfileClient({
   }
 
   /* ====================================================================== */
-  /* Service-worker authentication                                          */
+  /* Service worker authentication                                          */
   /* ====================================================================== */
 
   async function clearServiceWorkerAuth() {
@@ -779,7 +990,7 @@ export default function ProfileClient({
 
       if (!result?.success) {
         throw new Error(
-          result?.message || "Failed to delete your Youth Space account data.",
+          result?.error || "Failed to delete your Youth Space account data.",
         );
       }
 
@@ -892,6 +1103,7 @@ export default function ProfileClient({
 
     if (confirmAction.type === "work") {
       handleDeleteWork(confirmAction.workId);
+
       return;
     }
 
@@ -899,6 +1111,7 @@ export default function ProfileClient({
       setConfirmAction(null);
       setDeletePasswordError("");
       setDeletePasswordOpen(true);
+
       return;
     }
 
@@ -944,10 +1157,6 @@ export default function ProfileClient({
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
-          {/* ================================================================
-        BRAND
-    ================================================================ */}
-
           <Link href="/" className="group shrink-0">
             <div className="transition-transform duration-300 group-hover:scale-[1.02]">
               <YouthSpaceBrand
@@ -959,49 +1168,38 @@ export default function ProfileClient({
             </div>
           </Link>
 
-          {/* ================================================================
-        RIGHT ACTIONS
-    ================================================================ */}
+          <Link
+            href="/profile"
+            aria-label="Open profile"
+            className="group flex items-center gap-2 rounded-2xl p-1.5 outline-none transition hover:bg-slate-100 focus:ring-4 focus:ring-slate-100"
+          >
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-xs font-black text-white">
+              {currentProfile?.avatar ? (
+                <Image
+                  src={currentProfile.avatar}
+                  alt={currentProfile.displayName || "Profile"}
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                />
+              ) : (
+                currentProfile?.displayName?.trim()?.charAt(0)?.toUpperCase() ||
+                "U"
+              )}
+            </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-           
-            {/* Profile */}
+            <div className="hidden min-w-0 text-left md:block">
+              <p className="max-w-[140px] truncate text-xs font-black text-slate-950">
+                {currentProfile?.displayName || "User"}
+              </p>
 
-            <Link
-              href="/profile"
-              aria-label="Open profile"
-              className="group flex items-center gap-2 rounded-2xl p-1.5 outline-none transition hover:bg-slate-100 focus:ring-4 focus:ring-slate-100"
-            >
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-xs font-black text-white">
-                {currentProfile?.avatar ? (
-                  <Image
-                    src={currentProfile.avatar}
-                    alt={currentProfile.displayName || "Profile"}
-                    fill
-                    sizes="40px"
-                    className="object-cover"
-                  />
-                ) : (
-                  currentProfile?.displayName
-                    ?.trim()
-                    ?.charAt(0)
-                    ?.toUpperCase() || "U"
-                )}
-              </div>
-
-              <div className="hidden min-w-0 text-left md:block">
-                <p className="max-w-[140px] truncate text-xs font-black text-slate-950">
-                  {currentProfile?.displayName || "User"}
+              {currentProfile?.email && (
+                <p className="mt-0.5 max-w-[140px] truncate text-[10px] font-medium text-slate-400">
+                  {currentProfile.email}
                 </p>
-
-                {currentProfile?.email && (
-                  <p className="mt-0.5 max-w-[140px] truncate text-[10px] font-medium text-slate-400">
-                    {currentProfile.email}
-                  </p>
-                )}
-              </div>
-            </Link>
-          </div>
+              )}
+            </div>
+          </Link>
         </div>
       </header>
 
@@ -1025,7 +1223,7 @@ export default function ProfileClient({
                 icon={UserRound}
                 label="Profile"
                 active={activeSection === "profile"}
-                disabled={destructiveActionRunning}
+                disabled={destructiveActionRunning || saving}
                 onClick={() => selectSection("profile")}
               />
 
@@ -1033,7 +1231,7 @@ export default function ProfileClient({
                 icon={BriefcaseBusiness}
                 label="Professional"
                 active={activeSection === "professional"}
-                disabled={destructiveActionRunning}
+                disabled={destructiveActionRunning || saving}
                 onClick={() => selectSection("professional")}
               />
 
@@ -1041,7 +1239,7 @@ export default function ProfileClient({
                 icon={ImageIcon}
                 label="Portfolio"
                 active={activeSection === "portfolio"}
-                disabled={destructiveActionRunning}
+                disabled={destructiveActionRunning || saving}
                 onClick={() => selectSection("portfolio")}
               />
 
@@ -1049,7 +1247,7 @@ export default function ProfileClient({
                 icon={Settings}
                 label="Account"
                 active={activeSection === "account"}
-                disabled={destructiveActionRunning}
+                disabled={destructiveActionRunning || saving}
                 onClick={() => selectSection("account")}
               />
             </nav>
@@ -1064,7 +1262,7 @@ export default function ProfileClient({
               full
               placeholder="Select section"
               onChange={(value) => {
-                if (destructiveActionRunning) {
+                if (destructiveActionRunning || saving) {
                   return;
                 }
 
@@ -1090,6 +1288,7 @@ export default function ProfileClient({
                 onOpenServices={openServices}
                 onSave={handleSaveProfile}
                 saving={saving}
+                error={formError}
               />
             )}
 
@@ -1107,6 +1306,7 @@ export default function ProfileClient({
                 onSave={handleSaveProfessional}
                 saving={saving}
                 savingAvailability={savingAvailability}
+                error={formError}
               />
             )}
 
@@ -1184,7 +1384,7 @@ export default function ProfileClient({
         />
       )}
 
-      {/* Work / logout / account confirmation */}
+      {/* Confirmation */}
       {confirmAction && (
         <ConfirmModal
           type={confirmAction.type}
@@ -1194,7 +1394,7 @@ export default function ProfileClient({
         />
       )}
 
-      {/* Account deletion password */}
+      {/* Account deletion */}
       {deletePasswordOpen && (
         <DeleteAccountPasswordModal
           email={currentProfile?.email}

@@ -290,10 +290,14 @@ export function ServicesModal({
 /* Work Modal                                                                 */
 /* ========================================================================== */
 
+/ * ========================================================================== */;
+/* Work Modal                                                                 */
+/* ========================================================================== */
+
 export function WorkModal({ categories = [], onClose, onCreated }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [category, setCategory] = useState("");
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -301,11 +305,7 @@ export function WorkModal({ categories = [], onClose, onCreated }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const categoryOptions = categories.map((category) => category.name);
-
-  const selectedCategory = categories.find(
-    (category) => category.id === categoryId,
-  );
+  const categoryOptions = categories.map((item) => item.name);
 
   useEffect(() => {
     return () => {
@@ -316,9 +316,8 @@ export function WorkModal({ categories = [], onClose, onCreated }) {
   }, [imagePreview]);
 
   function handleCategoryChange(categoryName) {
-    const category = categories.find((item) => item.name === categoryName);
-
-    setCategoryId(category?.id || "");
+    setCategory(categoryName || "");
+    setError("");
   }
 
   function handleImageChange(event) {
@@ -355,13 +354,14 @@ export function WorkModal({ categories = [], onClose, onCreated }) {
 
     const cleanTitle = title.trim();
     const cleanDescription = description.trim();
+    const cleanCategory = category.trim();
 
     if (!cleanTitle) {
       setError("Please enter a title for your work.");
       return;
     }
 
-    if (!categoryId) {
+    if (!cleanCategory) {
       setError("Please select a category.");
       return;
     }
@@ -370,15 +370,42 @@ export function WorkModal({ categories = [], onClose, onCreated }) {
       setSaving(true);
       setError("");
 
+      /*
+       * IMPORTANT
+       *
+       * createWorkAction currently expects:
+       *
+       * {
+       *   title,
+       *   description,
+       *   category,
+       *   image
+       * }
+       *
+       * It does NOT expect categoryId.
+       *
+       * Also, the server action expects image to be a URL.
+       * The local File selected above is only used for preview
+       * until you add your image-upload flow.
+       */
+
       const result = await createWorkAction({
         title: cleanTitle,
         description: cleanDescription,
-        categoryId,
+        category: cleanCategory,
         image: "",
       });
 
       if (!result?.success) {
-        throw new Error(result?.error || "Failed to create work.");
+        setError(result?.error || "Failed to create work.");
+        return;
+      }
+
+      /*
+       * Clear the object URL before closing the modal.
+       */
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
       }
 
       onCreated?.(result.work || null);
@@ -431,7 +458,7 @@ export function WorkModal({ categories = [], onClose, onCreated }) {
           <FilterButton
             icon={FolderKanban}
             options={categoryOptions}
-            value={selectedCategory?.name || ""}
+            value={category}
             full
             placeholder={
               categories.length > 0
@@ -458,14 +485,22 @@ export function WorkModal({ categories = [], onClose, onCreated }) {
             }`}
           >
             {imagePreview ? (
-              <Image
-                src={imagePreview}
-                alt="Work preview"
-                fill
-                unoptimized
-                sizes="(max-width: 640px) 100vw, 512px"
-                className="object-cover"
-              />
+              <>
+                <Image
+                  src={imagePreview}
+                  alt="Work preview"
+                  fill
+                  unoptimized
+                  sizes="(max-width: 640px) 100vw, 512px"
+                  className="object-cover"
+                />
+
+                <div className="absolute inset-x-0 bottom-0 z-10 bg-slate-950/70 px-3 py-2">
+                  <p className="truncate text-[10px] font-bold text-white">
+                    {imageFile?.name}
+                  </p>
+                </div>
+              </>
             ) : (
               <div className="flex flex-col items-center px-6 text-center">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm">
@@ -482,14 +517,6 @@ export function WorkModal({ categories = [], onClose, onCreated }) {
               </div>
             )}
 
-            {imagePreview && (
-              <div className="absolute inset-x-0 bottom-0 z-10 bg-slate-950/70 px-3 py-2">
-                <p className="truncate text-[10px] font-bold text-white">
-                  {imageFile?.name}
-                </p>
-              </div>
-            )}
-
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -498,6 +525,13 @@ export function WorkModal({ categories = [], onClose, onCreated }) {
               className="sr-only"
             />
           </label>
+
+          {imageFile && (
+            <p className="mt-1.5 text-[10px] leading-4 text-slate-400">
+              Image selected. Upload handling must be connected before this
+              image can be stored with the work.
+            </p>
+          )}
         </Field>
 
         {/* Error */}

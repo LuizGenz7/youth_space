@@ -18,13 +18,6 @@ export default function ProfessionalSection({
   saving = false,
   savingAvailability = false,
 }) {
-  /*
-   * FilterButton expects string options.
-   *
-   * categoryOptions can still contain Firestore category objects.
-   * We display their names while keeping the real category ID
-   * in profileForm.categoryId.
-   */
   const categoryLabels = categoryOptions
     .map((category) =>
       typeof category === "string"
@@ -47,6 +40,8 @@ export default function ProfessionalSection({
       : selectedCategory?.name || selectedCategory?.label || "";
 
   function handleCategoryChange(label) {
+    if (saving) return;
+
     const selected = categoryOptions.find((category) => {
       if (typeof category === "string") {
         return category === label;
@@ -66,27 +61,22 @@ export default function ProfessionalSection({
   return (
     <div className="space-y-6">
       {/* ================================================================== */}
-      {/* Professional information                                           */}
+      {/* Professional Information                                          */}
       {/* ================================================================== */}
 
       <section className="relative rounded-2xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
-              <BriefcaseBusiness
-                size={18}
-                strokeWidth={2}
-                className="text-slate-600"
-                aria-hidden="true"
-              />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <BriefcaseBusiness size={18} strokeWidth={2} aria-hidden="true" />
             </div>
 
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-slate-950">
+              <h2 className="text-sm font-black text-slate-950">
                 Professional information
               </h2>
 
-              <p className="mt-1 text-xs leading-5 text-slate-500">
+              <p className="mt-1 text-xs leading-5 font-medium text-slate-400">
                 Tell people what you do and what you offer.
               </p>
             </div>
@@ -96,22 +86,28 @@ export default function ProfessionalSection({
         <div className="space-y-5 px-5 py-6 sm:px-6">
           {/* Role */}
           <div>
-            <label className="mb-2 block text-xs font-bold text-slate-700">
+            <label
+              htmlFor="professional-role"
+              className="mb-2 block text-sm font-bold text-slate-800"
+            >
               Role
             </label>
 
             <input
+              id="professional-role"
               type="text"
               value={profileForm.role || ""}
               placeholder="e.g. Graphic Designer"
+              disabled={saving}
+              autoComplete="organization-title"
               onChange={(event) => onUpdateForm("role", event.target.value)}
-              className="block h-10 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-100"
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
             />
           </div>
 
           {/* Category */}
           <div className="relative z-30">
-            <label className="mb-2 block text-xs font-bold text-slate-700">
+            <label className="mb-2 block text-sm font-bold text-slate-800">
               Category
             </label>
 
@@ -126,24 +122,25 @@ export default function ProfessionalSection({
               }
               icon={BriefcaseBusiness}
               onChange={handleCategoryChange}
+              disabled={saving}
             />
           </div>
 
           {/* Availability */}
           <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
             <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-950">
+              <p className="text-sm font-bold text-slate-900">
                 Available for work
               </p>
 
-              <p className="mt-1 text-[11px] leading-5 text-slate-500">
+              <p className="mt-1 text-xs leading-5 font-medium text-slate-500">
                 Let people know whether you are currently available.
               </p>
             </div>
 
             <AvailabilitySwitch
               checked={Boolean(profile?.available)}
-              loading={savingAvailability}
+              loading={savingAvailability || saving}
               onChange={onToggleAvailability}
             />
           </div>
@@ -161,10 +158,11 @@ export default function ProfessionalSection({
           action={
             <button
               type="button"
+              disabled={saving}
               onClick={onOpenSkills}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-950 px-3 text-[11px] font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-200"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-950 px-3.5 text-xs font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-950/[0.06] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Plus size={14} strokeWidth={2.2} aria-hidden="true" />
+              <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
               Add skill
             </button>
           }
@@ -173,9 +171,16 @@ export default function ProfessionalSection({
         <div className="px-5 py-6 sm:px-6">
           {skills.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {skills.map((skill) => (
-                <SkillChip key={skill} skill={skill} />
-              ))}
+              {skills.map((skill, index) => {
+                const value =
+                  typeof skill === "string" ? skill : skill?.name || "";
+
+                if (!value.trim()) return null;
+
+                return (
+                  <SkillChip key={`${value}-${index}`} skill={value.trim()} />
+                );
+              })}
             </div>
           ) : (
             <EmptyState
@@ -183,6 +188,7 @@ export default function ProfessionalSection({
               description="Add skills so people can understand what you are good at."
               action="Add your first skill"
               onClick={onOpenSkills}
+              disabled={saving}
             />
           )}
         </div>
@@ -199,10 +205,11 @@ export default function ProfessionalSection({
           action={
             <button
               type="button"
+              disabled={saving}
               onClick={onOpenServices}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-950 px-3 text-[11px] font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-200"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-950 px-3.5 text-xs font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-950/[0.06] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Plus size={14} strokeWidth={2.2} aria-hidden="true" />
+              <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
               Add service
             </button>
           }
@@ -228,6 +235,7 @@ export default function ProfessionalSection({
               description="Add the services you provide so people know what they can contact you for."
               action="Add your first service"
               onClick={onOpenServices}
+              disabled={saving}
             />
           )}
         </div>
@@ -242,12 +250,32 @@ export default function ProfessionalSection({
           type="button"
           disabled={saving}
           onClick={onSave}
-          className="inline-flex h-10 min-w-[100px] items-center justify-center rounded-xl bg-slate-950 px-4 text-xs font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-12 min-w-[125px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white outline-none transition hover:bg-slate-800 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {saving ? "Saving..." : "Save changes"}
+          {saving ? (
+            <>
+              <LoadingSpinner />
+              Saving...
+            </>
+          ) : (
+            "Save changes"
+          )}
         </button>
       </div>
     </div>
+  );
+}
+
+/* ========================================================================== */
+/* Loading Spinner                                                            */
+/* ========================================================================== */
+
+function LoadingSpinner() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300/40 border-t-current"
+    />
   );
 }
 
@@ -264,17 +292,23 @@ function AvailabilitySwitch({ checked, loading, onChange }) {
       aria-label="Toggle availability"
       disabled={loading}
       onClick={() => onChange(!checked)}
-      className={`relative h-7 w-12 shrink-0 rounded-full border outline-none transition-all duration-200 focus:ring-4 focus:ring-slate-100 ${
+      className={`relative h-7 w-12 shrink-0 rounded-full border outline-none transition-all duration-200 focus:ring-4 focus:ring-slate-950/[0.04] ${
         checked
           ? "border-slate-950 bg-slate-950"
           : "border-slate-300 bg-slate-200"
-      } ${loading ? "cursor-wait opacity-60" : "cursor-pointer"}`}
+      } ${loading ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
     >
-      <span
-        className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-transform duration-200 ease-out ${
-          checked ? "translate-x-5" : "translate-x-0"
-        }`}
-      />
+      {loading ? (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700" />
+        </span>
+      ) : (
+        <span
+          className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-transform duration-200 ease-out ${
+            checked ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      )}
     </button>
   );
 }
@@ -287,9 +321,11 @@ function SectionHeader({ title, description, action }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-6">
       <div className="min-w-0">
-        <h2 className="text-sm font-bold text-slate-950">{title}</h2>
+        <h2 className="text-sm font-black text-slate-950">{title}</h2>
 
-        <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+        <p className="mt-1 text-xs leading-5 font-medium text-slate-400">
+          {description}
+        </p>
       </div>
 
       {action}
@@ -303,17 +339,12 @@ function SectionHeader({ title, description, action }) {
 
 function SkillChip({ skill }) {
   return (
-    <div className="inline-flex max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <span className="truncate text-[11px] font-bold text-slate-700">
-        {skill}
+    <div className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 shadow-sm">
+        <Check size={11} strokeWidth={3} aria-hidden="true" />
       </span>
 
-      <Check
-        size={12}
-        strokeWidth={2.5}
-        className="shrink-0 text-slate-500"
-        aria-hidden="true"
-      />
+      <span className="truncate text-xs font-bold text-slate-700">{skill}</span>
     </div>
   );
 }
@@ -337,32 +368,27 @@ function ServiceRow({ service }) {
         };
 
   return (
-    <div className="rounded-xl border border-slate-200 px-4 py-3.5">
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition hover:border-slate-300">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-          <BriefcaseBusiness
-            size={15}
-            strokeWidth={2}
-            className="text-slate-500"
-            aria-hidden="true"
-          />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+          <BriefcaseBusiness size={16} strokeWidth={2} aria-hidden="true" />
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="truncate text-xs font-bold text-slate-900">
+            <p className="truncate text-sm font-bold text-slate-900">
               {normalized.name}
             </p>
 
             {normalized.minPrice && (
-              <span className="shrink-0 rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-700">
+              <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-700">
                 From {normalized.minPrice}
               </span>
             )}
           </div>
 
           {normalized.description && (
-            <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
+            <p className="mt-1.5 text-xs leading-5 font-medium text-slate-500">
               {normalized.description}
             </p>
           )}
@@ -376,21 +402,26 @@ function ServiceRow({ service }) {
 /* Empty State                                                                */
 /* ========================================================================== */
 
-function EmptyState({ title, description, action, onClick }) {
+function EmptyState({ title, description, action, onClick, disabled = false }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
-      <p className="text-xs font-bold text-slate-700">{title}</p>
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
+      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+        <BriefcaseBusiness size={20} strokeWidth={2} aria-hidden="true" />
+      </div>
 
-      <p className="mx-auto mt-1 max-w-sm text-[11px] leading-5 text-slate-400">
+      <p className="mt-3 text-sm font-black text-slate-700">{title}</p>
+
+      <p className="mx-auto mt-1 max-w-sm text-xs leading-5 font-medium text-slate-400">
         {description}
       </p>
 
       <button
         type="button"
+        disabled={disabled}
         onClick={onClick}
-        className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-100"
+        className="mt-5 inline-flex h-11 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <Plus size={13} strokeWidth={2.2} aria-hidden="true" />
+        <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
 
         {action}
       </button>

@@ -14,7 +14,7 @@ export default function JoinCTA() {
     "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=2000&q=85";
 
   return (
-    <section className="group relative min-h-[320px] overflow-hidden bg-slate-950">
+    <section className="group relative min-h-80 overflow-hidden bg-slate-950">
       {!imageError ? (
         <Image
           src={image}
