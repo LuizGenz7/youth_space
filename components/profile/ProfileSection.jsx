@@ -1,21 +1,26 @@
 "use client";
 
+import Image from "next/image";
 import {
   BriefcaseBusiness,
   ChevronDown,
   ImagePlus,
+  MapPin,
   Pencil,
   User,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import {
+  ZAMBIA_PROVINCES,
+  getDistrictsByProvince,
+} from "@/data/zambia-locations";
+
 export default function ProfileSection({
   profile,
   profileForm,
-  skills,
-  services,
-  availableDistricts = [],
-  provinceOptions = [],
+  skills = [],
+  services = [],
   onUpdateForm,
   onSave,
   onOpenSkills,
@@ -23,34 +28,23 @@ export default function ProfileSection({
   onAvatarClick,
   saving = false,
 }) {
+  const availableDistricts = profileForm?.province
+    ? getDistrictsByProvince(profileForm.province) || []
+    : [];
+
   return (
     <div className="space-y-6">
-      {/* ------------------------------------------------------------------ */}
-      {/* Personal information                                              */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
+      {/* Personal information                                               */}
+      {/* ================================================================== */}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <section className="rounded-2xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
-              <User
-                size={18}
-                strokeWidth={2}
-                className="text-slate-600"
-                aria-hidden="true"
-              />
-            </div>
-
-            <div className="min-w-0">
-              <h2 className="text-sm font-bold text-slate-950">
-                Personal information
-              </h2>
-
-              <p className="mt-1 text-xs leading-5 text-slate-500">
-                Manage the information people see on your profile.
-              </p>
-            </div>
-          </div>
+          <SectionHeading
+            icon={User}
+            title="Personal information"
+            description="Manage the information people see on your profile."
+          />
         </div>
 
         <div className="space-y-6 px-5 py-6 sm:px-6">
@@ -61,11 +55,7 @@ export default function ProfileSection({
             </label>
 
             <div className="flex items-center gap-4">
-              <Avatar
-                src={profile?.avatar}
-                name={profile?.displayName}
-                size="xl"
-              />
+              <Avatar src={profile?.avatar} name={profile?.displayName} />
 
               <button
                 type="button"
@@ -78,18 +68,18 @@ export default function ProfileSection({
             </div>
           </div>
 
-          {/* Basic fields */}
+          {/* Basic information */}
           <div className="grid gap-5 md:grid-cols-2">
             <Field
               label="Display name"
-              value={profileForm.displayName}
+              value={profileForm?.displayName}
               placeholder="Your name"
               onChange={(value) => onUpdateForm("displayName", value)}
             />
 
             <Field
               label="Username"
-              value={profileForm.username}
+              value={profileForm?.username}
               placeholder="yourusername"
               onChange={(value) => onUpdateForm("username", value)}
             />
@@ -98,14 +88,14 @@ export default function ProfileSection({
 
             <Field
               label="Phone"
-              value={profileForm.phone}
+              value={profileForm?.phone}
               placeholder="097..."
               onChange={(value) => onUpdateForm("phone", value)}
             />
 
             <Field
               label="WhatsApp"
-              value={profileForm.whatsapp}
+              value={profileForm?.whatsapp}
               placeholder="097..."
               onChange={(value) => onUpdateForm("whatsapp", value)}
             />
@@ -118,38 +108,46 @@ export default function ProfileSection({
             </label>
 
             <textarea
-              value={profileForm.bio}
+              value={profileForm?.bio || ""}
               onChange={(event) => onUpdateForm("bio", event.target.value)}
               rows={4}
+              maxLength={500}
               placeholder="Tell people a little about yourself..."
               className="block w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-xs font-medium leading-5 text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-100"
             />
+
+            <div className="mt-1.5 flex justify-end">
+              <span className="text-[10px] font-medium text-slate-400">
+                {(profileForm?.bio || "").length}/500
+              </span>
+            </div>
           </div>
 
+          {/* Save */}
           <div className="flex justify-end border-t border-slate-100 pt-5">
             <SaveButton saving={saving} onClick={onSave} />
           </div>
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Location                                                           */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
+      {/* Location                                                            */}
+      {/* ================================================================== */}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <section className="relative z-20 rounded-2xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-          <h2 className="text-sm font-bold text-slate-950">Location</h2>
-
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            Help people discover talents in your area.
-          </p>
+          <SectionHeading
+            icon={MapPin}
+            title="Location"
+            description="Help people discover talents in your area."
+          />
         </div>
 
         <div className="grid gap-5 px-5 py-6 sm:grid-cols-2 sm:px-6">
           <CustomSelect
             label="Province"
-            value={profileForm.province}
-            options={provinceOptions}
+            value={profileForm?.province || ""}
+            options={ZAMBIA_PROVINCES}
             placeholder="Select province"
             onChange={(value) => {
               onUpdateForm("province", value);
@@ -159,12 +157,16 @@ export default function ProfileSection({
 
           <CustomSelect
             label="District"
-            value={profileForm.district}
+            value={profileForm?.district || ""}
             options={availableDistricts}
-            placeholder="Select district"
-            disabled={!profileForm.province}
+            placeholder={
+              profileForm?.province
+                ? "Select district"
+                : "Select province first"
+            }
+            disabled={!profileForm?.province}
             emptyMessage={
-              profileForm.province
+              profileForm?.province
                 ? "No districts available."
                 : "Select a province first."
             }
@@ -173,11 +175,11 @@ export default function ProfileSection({
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Profile overview                                                   */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
+      {/* Profile overview                                                    */}
+      {/* ================================================================== */}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <section className="rounded-2xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
           <h2 className="text-sm font-bold text-slate-950">Profile overview</h2>
 
@@ -202,14 +204,25 @@ export default function ProfileSection({
           <SummaryRow
             icon={BriefcaseBusiness}
             label="Skills"
-            value={skills?.length ? skills.join(", ") : "No skills added"}
+            value={skills.length > 0 ? skills.join(", ") : "No skills added"}
             action={<EditButton onClick={onOpenSkills} />}
           />
 
           <SummaryRow
             icon={BriefcaseBusiness}
             label="Services"
-            value={services?.length ? services.join(", ") : "No services added"}
+            value={
+              services.length > 0
+                ? services
+                    .map((service) =>
+                      typeof service === "string"
+                        ? service
+                        : service?.name || "",
+                    )
+                    .filter(Boolean)
+                    .join(", ")
+                : "No services added"
+            }
             action={<EditButton onClick={onOpenServices} />}
           />
         </div>
@@ -219,40 +232,56 @@ export default function ProfileSection({
 }
 
 /* ========================================================================== */
+/* Section Heading                                                            */
+/* ========================================================================== */
+
+function SectionHeading({ icon: Icon, title, description }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+        <Icon
+          size={18}
+          strokeWidth={2}
+          className="text-slate-600"
+          aria-hidden="true"
+        />
+      </div>
+
+      <div className="min-w-0">
+        <h2 className="text-sm font-bold text-slate-950">{title}</h2>
+
+        <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ========================================================================== */
 /* Avatar                                                                     */
 /* ========================================================================== */
 
-function Avatar({ src, name = "", size = "md" }) {
+function Avatar({ src, name = "" }) {
   const [imageError, setImageError] = useState(false);
-
-  const sizes = {
-    sm: "h-8 w-8 text-[10px]",
-    md: "h-10 w-10 text-xs",
-    lg: "h-14 w-14 text-sm",
-    xl: "h-16 w-16 text-base",
-  };
-
-  const sizeClass = sizes[size] || sizes.md;
 
   const initials =
     name
-      ?.trim()
-      ?.split(/\s+/)
-      ?.slice(0, 2)
-      ?.map((part) => part.charAt(0).toUpperCase())
-      ?.join("") || "U";
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "U";
 
   const hasImage = Boolean(src) && !imageError;
 
   return (
-    <div
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 font-bold text-slate-500 ${sizeClass}`}
-    >
+    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 text-base font-bold text-slate-500">
       {hasImage ? (
-        <img
+        <Image
           src={src}
           alt={name ? `${name} profile photo` : "Profile photo"}
-          className="h-full w-full object-cover"
+          fill
+          sizes="64px"
+          className="object-cover"
           onError={() => setImageError(true)}
         />
       ) : (
@@ -305,11 +334,25 @@ function CustomSelect({
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
-  const selectedOption = options.find((option) => option === value);
+  const normalizedOptions = options
+    .map((option) => {
+      if (typeof option === "string") {
+        return {
+          value: option,
+          label: option,
+        };
+      }
 
-  const displayValue = selectedOption || placeholder;
+      return {
+        value: option?.value ?? option?.name ?? option?.label ?? "",
+        label: option?.label ?? option?.name ?? option?.value ?? "",
+      };
+    })
+    .filter((option) => option.value && option.label);
 
-  const hasValue = Boolean(selectedOption);
+  const selectedOption = normalizedOptions.find(
+    (option) => option.value === value,
+  );
 
   useEffect(() => {
     function handlePointerDown(event) {
@@ -328,8 +371,16 @@ function CustomSelect({
     };
   }, []);
 
+  function handleToggle() {
+    if (disabled) return;
+
+    setOpen((current) => !current);
+  }
+
   function handleSelect(option) {
-    onChange?.(option);
+    if (disabled) return;
+
+    onChange?.(option.value);
     setOpen(false);
   }
 
@@ -339,11 +390,10 @@ function CustomSelect({
         {label}
       </label>
 
-      {/* Trigger */}
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
+        onClick={handleToggle}
         aria-haspopup="listbox"
         aria-expanded={open}
         className={`flex h-10 w-full items-center justify-between gap-2 rounded-xl border bg-white px-3.5 text-left text-xs font-bold outline-none transition ${
@@ -356,37 +406,36 @@ function CustomSelect({
       >
         <span
           className={`min-w-0 flex-1 truncate ${
-            hasValue ? "text-slate-700" : "text-slate-400"
+            selectedOption ? "text-slate-700" : "text-slate-400"
           }`}
         >
-          {displayValue}
+          {selectedOption?.label || placeholder}
         </span>
 
         <ChevronDown
           size={14}
           strokeWidth={2}
-          className={`shrink-0 text-slate-400 transition-transform ${
+          className={`shrink-0 text-slate-400 transition-transform duration-200 ${
             open ? "rotate-180" : ""
           }`}
           aria-hidden="true"
         />
       </button>
 
-      {/* Dropdown */}
-      {open && !disabled && (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-300/30">
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+8px)] z-[100] w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-300/30">
           <div
             className="max-h-72 overflow-y-auto"
             role="listbox"
             aria-label={label}
           >
-            {options.length > 0 ? (
-              options.map((option) => {
-                const selected = option === value;
+            {normalizedOptions.length > 0 ? (
+              normalizedOptions.map((option) => {
+                const selected = option.value === value;
 
                 return (
                   <button
-                    key={option}
+                    key={option.value}
                     type="button"
                     role="option"
                     aria-selected={selected}
@@ -400,7 +449,7 @@ function CustomSelect({
                         selected ? "text-slate-950" : "text-slate-700"
                       }`}
                     >
-                      {option}
+                      {option.label}
                     </span>
 
                     {selected && (

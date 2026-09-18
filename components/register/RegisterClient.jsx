@@ -781,108 +781,95 @@ export default function RegisterClient({
    * --------------------------------------------------
    */
 
-  async function handleGoogleSignUp() {
-    if (isLoading) {
-      return;
-    }
-
-    if (!agree) {
-      showError(
-        "You must agree to the Terms and Privacy Policy."
-      );
-
-      return;
-    }
-
-    /*
-     * Get the current form data before opening
-     * the Google authentication popup.
-     */
-
-    const form =
-      document.querySelector(
-        "form"
-      );
-
-    if (!form) {
-      showError(
-        "Unable to read the registration form."
-      );
-
-      return;
-    }
-
-    const formData =
-      new FormData(form);
-
-    /*
-     * Validate profile first.
-     */
-
-    const profile =
-      getProfileData(
-        formData
-      );
-
-    if (!profile) {
-      return;
-    }
-
-    setGoogleLoading(true);
-
-    try {
-      /*
-       * ------------------------------------------------
-       * USERNAME PRE-CHECK
-       * ------------------------------------------------
-       *
-       * Google authentication does NOT happen
-       * until the username is confirmed available.
-       */
-
-      const usernameAvailable =
-        await checkUsernameBeforeAccountCreation(
-          profile.username
-        );
-
-      if (!usernameAvailable) {
-        return;
-      }
-
-      /*
-       * ------------------------------------------------
-       * GOOGLE AUTHENTICATION
-       * ------------------------------------------------
-       */
-
-      const user =
-        await signInWithGoogle();
-
-      /*
-       * ------------------------------------------------
-       * CREATE PROFILE
-       * ------------------------------------------------
-       */
-
-      setGoogleUser(
-        user
-      );
-
-      await finishRegistration(
-        profile
-      );
-    } catch (error) {
-      showError(
-        getRegistrationError(
-          error
-        )
-      );
-    } finally {
-      setGoogleLoading(
-        false
-      );
-    }
+ async function handleGoogleSignUp() {
+  if (isLoading) {
+    return;
   }
+
+  if (!agree) {
+    showError(
+      "You must agree to the Terms and Privacy Policy."
+    );
+
+    return;
+  }
+
+  /*
+   * Get the current form data.
+   */
+
+  const form =
+    document.querySelector(
+      "form"
+    );
+
+  if (!form) {
+    showError(
+      "Unable to read the registration form."
+    );
+
+    return;
+  }
+
+  const formData =
+    new FormData(form);
+
+  /*
+   * Validate profile first.
+   */
+
+  const profile =
+    getProfileData(
+      formData
+    );
+
+  if (!profile) {
+    return;
+  }
+
+  setGoogleLoading(true);
+
+  try {
+    /*
+     * ------------------------------------------------
+     * GOOGLE SIGN UP
+     * ------------------------------------------------
+     *
+     * Google authentication is currently disabled.
+     * ------------------------------------------------
+     */
+
+    const message =
+      await signInWithGoogle();
+
+    /*
+     * Show the coming-soon message and stop.
+     *
+     * Do NOT:
+     * - check username
+     * - create Firebase account
+     * - create profile
+     * - call finishRegistration()
+     */
+
+    showSnackbar({
+      type: "info",
+      message,
+    });
+
+    return;
+  } catch (error) {
+    showError(
+      getRegistrationError(
+        error
+      )
+    );
+  } finally {
+    setGoogleLoading(
+      false
+    );
+  }
+}
 
   /*
    * --------------------------------------------------

@@ -26,11 +26,7 @@ import {
 
 import YouthSpaceBrand from "@/components/brand/YouthSpaceBrand";
 
-import {
-  signInWithEmail,
-  signInWithGoogle,
-  logout,
-} from "@/lib/auth";
+import { signInWithEmail, signInWithGoogle, logout } from "@/lib/auth";
 
 import { auth } from "@/lib/client";
 
@@ -44,9 +40,7 @@ const LOGIN_IMAGE =
 export default function LoginPage() {
   const router = useRouter();
 
-  const showSnackbar = useSnackbarStore(
-    (state) => state.showSnackbar,
-  );
+  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
 
   /*
    * ==================================================
@@ -54,23 +48,17 @@ export default function LoginPage() {
    * ==================================================
    */
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [rememberMe, setRememberMe] =
-    useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [googleLoading, setGoogleLoading] =
-    useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const [imageError, setImageError] =
-    useState(false);
+  const [imageError, setImageError] = useState(false);
 
-  const isLoading =
-    loading || googleLoading;
+  const isLoading = loading || googleLoading;
 
   /*
    * ==================================================
@@ -94,9 +82,7 @@ export default function LoginPage() {
   async function configurePersistence() {
     await setPersistence(
       auth,
-      rememberMe
-        ? browserLocalPersistence
-        : browserSessionPersistence,
+      rememberMe ? browserLocalPersistence : browserSessionPersistence,
     );
   }
 
@@ -117,10 +103,7 @@ export default function LoginPage() {
    */
 
   async function syncAuthTokenToServiceWorker() {
-    if (
-      typeof window === "undefined" ||
-      !("serviceWorker" in navigator)
-    ) {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
       return;
     }
 
@@ -133,9 +116,7 @@ export default function LoginPage() {
     const user = auth.currentUser;
 
     if (!user) {
-      throw new Error(
-        "Authentication session was not established.",
-      );
+      throw new Error("Authentication session was not established.");
     }
 
     /*
@@ -150,15 +131,10 @@ export default function LoginPage() {
      * ------------------------------------------------
      */
 
-    const token = await getIdToken(
-      user,
-      true,
-    );
+    const token = await getIdToken(user, true);
 
     if (!token) {
-      throw new Error(
-        "Unable to establish your authentication session.",
-      );
+      throw new Error("Unable to establish your authentication session.");
     }
 
     /*
@@ -167,8 +143,7 @@ export default function LoginPage() {
      * ------------------------------------------------
      */
 
-    const registration =
-      await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.ready;
 
     /*
      * ------------------------------------------------
@@ -183,9 +158,7 @@ export default function LoginPage() {
      * ------------------------------------------------
      */
 
-    const worker =
-      navigator.serviceWorker.controller ||
-      registration.active;
+    const worker = navigator.serviceWorker.controller || registration.active;
 
     if (!worker) {
       throw new Error(
@@ -199,53 +172,41 @@ export default function LoginPage() {
      * ------------------------------------------------
      */
 
-    await new Promise(
-      (resolve, reject) => {
-        const channel =
-          new MessageChannel();
+    await new Promise((resolve, reject) => {
+      const channel = new MessageChannel();
 
-        const timeout =
-          setTimeout(() => {
-            reject(
-              new Error(
-                "Authentication service did not respond. Please refresh the page and try again.",
-              ),
-            );
-          }, 5000);
+      const timeout = setTimeout(() => {
+        reject(
+          new Error(
+            "Authentication service did not respond. Please refresh the page and try again.",
+          ),
+        );
+      }, 5000);
 
-        channel.port1.onmessage =
-          (event) => {
-            clearTimeout(timeout);
+      channel.port1.onmessage = (event) => {
+        clearTimeout(timeout);
 
-            if (
-              event.data?.type ===
-              "AUTH_TOKEN_SYNCED"
-            ) {
-              resolve();
-              return;
-            }
-
-            reject(
-              new Error(
-                "Unable to synchronize your authentication session.",
-              ),
-            );
-          };
-
-        try {
-          worker.postMessage(
-            {
-              type: "SET_AUTH_TOKEN",
-              token,
-            },
-            [channel.port2],
-          );
-        } catch (error) {
-          clearTimeout(timeout);
-          reject(error);
+        if (event.data?.type === "AUTH_TOKEN_SYNCED") {
+          resolve();
+          return;
         }
-      },
-    );
+
+        reject(new Error("Unable to synchronize your authentication session."));
+      };
+
+      try {
+        worker.postMessage(
+          {
+            type: "SET_AUTH_TOKEN",
+            token,
+          },
+          [channel.port2],
+        );
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(error);
+      }
+    });
   }
 
   /*
@@ -255,54 +216,43 @@ export default function LoginPage() {
    */
 
   async function clearServiceWorkerAuth() {
-    if (
-      typeof window === "undefined" ||
-      !("serviceWorker" in navigator)
-    ) {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
       return;
     }
 
     try {
-      const registration =
-        await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.ready;
 
-      const worker =
-        navigator.serviceWorker.controller ||
-        registration.active;
+      const worker = navigator.serviceWorker.controller || registration.active;
 
       if (!worker) {
         return;
       }
 
-      await new Promise(
-        (resolve) => {
-          const channel =
-            new MessageChannel();
+      await new Promise((resolve) => {
+        const channel = new MessageChannel();
 
-          const timeout =
-            setTimeout(() => {
-              resolve();
-            }, 2000);
+        const timeout = setTimeout(() => {
+          resolve();
+        }, 2000);
 
-          channel.port1.onmessage =
-            () => {
-              clearTimeout(timeout);
-              resolve();
-            };
+        channel.port1.onmessage = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
 
-          try {
-            worker.postMessage(
-              {
-                type: "CLEAR_AUTH_TOKEN",
-              },
-              [channel.port2],
-            );
-          } catch {
-            clearTimeout(timeout);
-            resolve();
-          }
-        },
-      );
+        try {
+          worker.postMessage(
+            {
+              type: "CLEAR_AUTH_TOKEN",
+            },
+            [channel.port2],
+          );
+        } catch {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
     } catch {
       /*
        * Service-worker cleanup must never prevent
@@ -341,8 +291,7 @@ export default function LoginPage() {
      * ------------------------------------------------
      */
 
-    const result =
-      await getMyProfileAction();
+    const result = await getMyProfileAction();
 
     /*
      * ------------------------------------------------
@@ -350,10 +299,7 @@ export default function LoginPage() {
      * ------------------------------------------------
      */
 
-    if (
-      result?.code ===
-      "PROFILE_NOT_FOUND"
-    ) {
+    if (result?.code === "PROFILE_NOT_FOUND") {
       await clearServiceWorkerAuth();
 
       await logout();
@@ -378,8 +324,7 @@ export default function LoginPage() {
 
     if (!result?.success) {
       throw new Error(
-        result?.error ||
-          "Unable to load your Youth Space profile.",
+        result?.error || "Unable to load your Youth Space profile.",
       );
     }
 
@@ -409,23 +354,15 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const form =
-      event.currentTarget;
+    const form = event.currentTarget;
 
-    const formData =
-      new FormData(form);
+    const formData = new FormData(form);
 
-    const email =
-      String(
-        formData.get("email") || "",
-      )
-        .trim()
-        .toLowerCase();
+    const email = String(formData.get("email") || "")
+      .trim()
+      .toLowerCase();
 
-    const password =
-      String(
-        formData.get("password") || "",
-      );
+    const password = String(formData.get("password") || "");
 
     /*
      * ------------------------------------------------
@@ -434,9 +371,7 @@ export default function LoginPage() {
      */
 
     if (!email || !password) {
-      showError(
-        "Please enter your email and password.",
-      );
+      showError("Please enter your email and password.");
 
       setLoading(false);
 
@@ -458,16 +393,10 @@ export default function LoginPage() {
        * ------------------------------------------------
        */
 
-      const user =
-        await signInWithEmail(
-          email,
-          password,
-        );
+      const user = await signInWithEmail(email, password);
 
       if (!user) {
-        throw new Error(
-          "Unable to authenticate your account.",
-        );
+        throw new Error("Unable to authenticate your account.");
       }
 
       /*
@@ -481,25 +410,18 @@ export default function LoginPage() {
        * ------------------------------------------------
        */
 
-      const profileResolved =
-        await resolveUserAfterLogin();
+      const profileResolved = await resolveUserAfterLogin();
 
       if (profileResolved) {
         showSnackbar({
           type: "success",
-          message:
-            "Welcome back. You are now signed in.",
+          message: "Welcome back. You are now signed in.",
         });
       }
     } catch (error) {
-      console.error(
-        "Login error:",
-        error,
-      );
+      console.error("Login error:", error);
 
-      showError(
-        getFirebaseAuthError(error),
-      );
+      showError(getFirebaseAuthError(error));
     } finally {
       setLoading(false);
     }
@@ -510,7 +432,6 @@ export default function LoginPage() {
    * GOOGLE LOGIN
    * ==================================================
    */
-
   async function handleGoogleSignIn() {
     if (isLoading) {
       return;
@@ -519,59 +440,20 @@ export default function LoginPage() {
     setGoogleLoading(true);
 
     try {
-      /*
-       * ------------------------------------------------
-       * PERSISTENCE
-       * ------------------------------------------------
-       */
+      const message = await signInWithGoogle();
 
-      await configurePersistence();
-
-      /*
-       * ------------------------------------------------
-       * GOOGLE AUTH
-       * ------------------------------------------------
-       */
-
-      const user =
-        await signInWithGoogle();
-
-      if (!user) {
-        throw new Error(
-          "Unable to authenticate with Google.",
-        );
-      }
-
-      /*
-       * ------------------------------------------------
-       * PROFILE
-       * ------------------------------------------------
-       */
-
-      const profileResolved =
-        await resolveUserAfterLogin();
-
-      if (profileResolved) {
-        showSnackbar({
-          type: "success",
-          message:
-            "Welcome back. You are now signed in.",
-        });
-      }
+      showSnackbar({
+        type: "info",
+        message,
+      });
     } catch (error) {
-      console.error(
-        "Google login error:",
-        error,
-      );
+      console.error("Google login error:", error);
 
-      showError(
-        getFirebaseAuthError(error),
-      );
+      showError(getFirebaseAuthError(error));
     } finally {
       setGoogleLoading(false);
     }
   }
-
   /*
    * ==================================================
    * UI
@@ -581,20 +463,15 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <div className="mx-auto flex min-h-screen w-full max-w-[1920px]">
-
         {/* ================================================
             LOGIN PANEL
         ================================================= */}
 
         <section className="flex min-h-screen w-full flex-col lg:w-[54%] xl:w-[50%]">
-
           {/* Header */}
 
           <header className="flex items-center justify-between px-5 py-5 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
-            <Link
-              href="/"
-              className="group flex items-center gap-2.5"
-            >
+            <Link href="/" className="group flex items-center gap-2.5">
               <YouthSpaceBrand />
             </Link>
 
@@ -610,7 +487,6 @@ export default function LoginPage() {
 
           <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8 lg:px-10 xl:px-14 2xl:px-16">
             <div className="w-full max-w-[440px]">
-
               {/* Heading */}
 
               <div>
@@ -627,8 +503,7 @@ export default function LoginPage() {
                 </h1>
 
                 <p className="mt-3 max-w-md text-sm leading-6 text-slate-500">
-                  Continue discovering talent,
-                  sharing your work and connecting
+                  Continue discovering talent, sharing your work and connecting
                   with people across Zambia.
                 </p>
               </div>
@@ -640,7 +515,6 @@ export default function LoginPage() {
                 noValidate
                 className="mt-8 space-y-5"
               >
-
                 {/* Email */}
 
                 <div>
@@ -699,11 +573,7 @@ export default function LoginPage() {
                     <input
                       id="password"
                       name="password"
-                      type={
-                        showPassword
-                          ? "text"
-                          : "password"
-                      }
+                      type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       placeholder="Enter your password"
                       required
@@ -713,24 +583,14 @@ export default function LoginPage() {
 
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowPassword(
-                          (value) => !value,
-                        )
-                      }
+                      onClick={() => setShowPassword((value) => !value)}
                       disabled={isLoading}
                       aria-label={
-                        showPassword
-                          ? "Hide password"
-                          : "Show password"
+                        showPassword ? "Hide password" : "Show password"
                       }
                       className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {showPassword ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
@@ -741,11 +601,7 @@ export default function LoginPage() {
                   <input
                     type="checkbox"
                     checked={rememberMe}
-                    onChange={(event) =>
-                      setRememberMe(
-                        event.target.checked,
-                      )
-                    }
+                    onChange={(event) => setRememberMe(event.target.checked)}
                     disabled={isLoading}
                     className="h-4 w-4 rounded border-slate-300 accent-slate-950"
                   />
@@ -770,7 +626,6 @@ export default function LoginPage() {
                   ) : (
                     <>
                       Sign in
-
                       <ArrowRight
                         size={16}
                         className="transition-transform group-hover:translate-x-1"
@@ -800,22 +655,15 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
-                {googleLoading ? (
-                  <LoadingSpinner />
-                ) : (
-                  <GoogleIcon />
-                )}
+                {googleLoading ? <LoadingSpinner /> : <GoogleIcon />}
 
-                {googleLoading
-                  ? "Connecting..."
-                  : "Continue with Google"}
+                {googleLoading ? "Connecting..." : "Continue with Google"}
               </button>
 
               {/* Register */}
 
               <p className="mt-8 text-center text-sm text-slate-500">
                 Don't have an account?{" "}
-
                 <Link
                   href="/register"
                   className="font-black text-slate-950 hover:underline"
@@ -828,7 +676,6 @@ export default function LoginPage() {
 
               <p className="mx-auto mt-7 max-w-sm text-center text-[10px] leading-5 text-slate-400">
                 By continuing, you agree to Youth Space's{" "}
-
                 <Link
                   href="/terms"
                   className="font-bold text-slate-600 hover:text-slate-950"
@@ -836,7 +683,6 @@ export default function LoginPage() {
                   Terms
                 </Link>{" "}
                 and{" "}
-
                 <Link
                   href="/privacy"
                   className="font-bold text-slate-600 hover:text-slate-950"
@@ -862,7 +708,6 @@ export default function LoginPage() {
         ================================================= */}
 
         <section className="relative hidden min-h-screen flex-1 overflow-hidden bg-slate-950 lg:block">
-
           <div className="absolute inset-0 bg-slate-950" />
 
           {!imageError && (
@@ -872,9 +717,7 @@ export default function LoginPage() {
               fill
               priority
               sizes="(min-width: 1280px) 50vw, 46vw"
-              onError={() =>
-                setImageError(true)
-              }
+              onError={() => setImageError(true)}
               className="object-cover"
             />
           )}
@@ -892,10 +735,8 @@ export default function LoginPage() {
             style={{
               backgroundImage:
                 "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
-              backgroundSize:
-                "64px 64px",
-              maskImage:
-                "linear-gradient(to bottom, black, transparent 80%)",
+              backgroundSize: "64px 64px",
+              maskImage: "linear-gradient(to bottom, black, transparent 80%)",
               WebkitMaskImage:
                 "linear-gradient(to bottom, black, transparent 80%)",
             }}
@@ -922,7 +763,6 @@ export default function LoginPage() {
           )}
 
           <div className="relative z-10 flex h-full flex-col p-8 xl:p-12 2xl:p-16">
-
             {/* Top */}
 
             <div className="flex items-center justify-between">
@@ -957,24 +797,16 @@ export default function LoginPage() {
               </h2>
 
               <p className="mt-6 max-w-lg text-sm leading-7 text-white/65 xl:text-base">
-                Youth Space connects young Zambians
-                with people, businesses and
-                opportunities that value what they
-                can do.
+                Youth Space connects young Zambians with people, businesses and
+                opportunities that value what they can do.
               </p>
 
               <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3">
-                <VisualFeature>
-                  Discover young talent
-                </VisualFeature>
+                <VisualFeature>Discover young talent</VisualFeature>
 
-                <VisualFeature>
-                  Showcase your skills
-                </VisualFeature>
+                <VisualFeature>Showcase your skills</VisualFeature>
 
-                <VisualFeature>
-                  Connect locally
-                </VisualFeature>
+                <VisualFeature>Connect locally</VisualFeature>
               </div>
             </div>
 
@@ -983,8 +815,7 @@ export default function LoginPage() {
             <div className="mt-auto pt-16">
               <div className="max-w-xl border-l border-white/20 pl-5">
                 <p className="text-sm font-medium leading-6 text-white/55">
-                  "Your skills can open doors.
-                  Youth Space helps people find
+                  "Your skills can open doors. Youth Space helps people find
                   them."
                 </p>
 
@@ -1060,10 +891,7 @@ function getFirebaseAuthError(error) {
       return "This sign-in method is currently unavailable.";
 
     default:
-      return (
-        error?.message ||
-        "Unable to sign you in. Please try again."
-      );
+      return error?.message || "Unable to sign you in. Please try again.";
   }
 }
 
@@ -1073,9 +901,7 @@ function getFirebaseAuthError(error) {
  * ==================================================
  */
 
-function VisualFeature({
-  children,
-}) {
+function VisualFeature({ children }) {
   return (
     <div className="flex items-center gap-2 text-xs font-bold text-white/70">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10">
@@ -1095,11 +921,7 @@ function VisualFeature({
 
 function GoogleIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M21.35 12.23c0-.72-.06-1.41-.18-2.08H12v3.94h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.25Z"
