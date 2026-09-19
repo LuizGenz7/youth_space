@@ -25,6 +25,18 @@ import {
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,30}$/;
 
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+
+const ALLOWED_AVATAR_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+];
+
+const CLOUDINARY_AVATAR_UPLOAD_PRESET =
+    process.env.CLOUDINARY_AVATAR_UPLOAD_PRESET ||
+    "youth_space_avatar";
+
 /* ========================================================================== */
 /* Shared Schemas                                                             */
 /* ========================================================================== */
@@ -87,12 +99,6 @@ const whatsappSchema = z
 /* Avatar Schemas                                                             */
 /* ========================================================================== */
 
-/*
- * Cloudinary secure URL.
- *
- * Nullable because an existing profile may intentionally
- * have no avatar.
- */
 const avatarSchema = z
     .string()
     .trim()
@@ -100,15 +106,6 @@ const avatarSchema = z
     .nullable()
     .optional();
 
-/*
- * Cloudinary public_id.
- *
- * Example:
- * youth-space/avatars/abc123xyz
- *
- * This is intentionally optional because existing profiles
- * may not have an avatarPublicId yet.
- */
 const avatarPublicIdSchema = z
     .string()
     .trim()
@@ -129,10 +126,6 @@ const skillsSchema = z
 
 const serviceSchema = z
     .object({
-        /*
-         * Existing services may have an ID.
-         * Newly created services from the client do not.
-         */
         id: z.string().trim().min(1).optional(),
 
         name: z
@@ -148,16 +141,10 @@ const serviceSchema = z
             .optional()
             .default(""),
 
-        /*
-         * Current ProfileClient uses minPrice.
-         */
         minPrice: z
             .union([z.string().trim(), z.number()])
             .optional(),
 
-        /*
-         * Keep compatibility with older service records.
-         */
         price: z
             .union([z.string().trim(), z.number()])
             .optional(),
@@ -201,9 +188,6 @@ const completeProfileSchema = z
 
         available: z.boolean(),
 
-        /*
-         * Avatar is optional during profile completion.
-         */
         avatar: avatarSchema,
 
         avatarPublicId: avatarPublicIdSchema,
@@ -216,21 +200,9 @@ const completeProfileSchema = z
 
 const updateProfileSchema = z
     .object({
-        /*
-         * ----------------------------------------------------------------------
-         * Profile
-         * ----------------------------------------------------------------------
-         */
-
         displayName: displayNameSchema.optional(),
 
         username: usernameSchema.optional(),
-
-        /*
-         * ----------------------------------------------------------------------
-         * Professional
-         * ----------------------------------------------------------------------
-         */
 
         role: roleSchema.optional(),
 
@@ -248,36 +220,11 @@ const updateProfileSchema = z
 
         available: z.boolean().optional(),
 
-        /*
-         * ----------------------------------------------------------------------
-         * Avatar
-         * ----------------------------------------------------------------------
-         *
-         * avatar:
-         * Cloudinary secure URL.
-         *
-         * avatarPublicId:
-         * Cloudinary public_id used later if we need to replace/delete
-         * the image through Cloudinary's server-side API.
-         */
-
         avatar: avatarSchema,
 
         avatarPublicId: avatarPublicIdSchema,
 
-        /*
-         * ----------------------------------------------------------------------
-         * Skills
-         * ----------------------------------------------------------------------
-         */
-
         skills: skillsSchema.optional(),
-
-        /*
-         * ----------------------------------------------------------------------
-         * Services
-         * ----------------------------------------------------------------------
-         */
 
         services: servicesSchema.optional(),
     })
@@ -302,6 +249,156 @@ async function validateCategory(categoryId) {
 }
 
 /* ========================================================================== */
+/* Upload Avatar                                                              */
+/* ========================================================================== */
+
+export async function uploadAvatarAction(formData) {
+    try {
+        await requireAuthAction();
+
+        if (!(formData instanceof FormData)) {
+            return {
+                success: false,
+                secureUrl: null,
+                publicId: null,
+                error: "Invalid upload data.",
+            };
+        }
+
+        const file = formData.get("file");
+
+        if (!(file instanceof File)) {
+            return {
+                success: false,
+                secureUrl: null,
+                publicId: null,
+                error: "Please select a profile photo.",
+            };
+        }
+
+        if (!file.size) {
+            return {
+                success: false,
+                secureUrl: null,
+                publicId: null,
+                error: "The selected image is empty.",
+            };
+        }
+
+        if (file.size > MAX_AVATAR_SIZE) {
+            return {
+                success: false,
+                secureUrl: null,
+                publicId: null,
+                error: "Your profile photo must be 5 MB or smaller.",
+            };
+        }
+
+        if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+            return {
+                success: false,
+                secureUrl: null,
+                publicId: null,
+                error: "Please choose a JPG, PNG or WebP image.",
+            };
+        }
+
+        const cloudName =
+            process.env.CLOUDINARY_CLOUD_NAME;
+
+        if (!cloudName) {
+            console.error(
+                "CLOUDINARY_CLOUD_NAME is missing.",
+            );
+
+            return {
+                success: false,
+                secureUrl: null,
+                publicId: null,
+                error: "Image upload is not configured.",
+            };
+        }
+
+        /*
+         * Cloudinary unsigned upload.
+         *
+         * No API key.
+         * No API secret.
+         * No crypto signature.
+         *
+         * The upload preset must be configured as
+         * an unsigned preset in the Cloudinary dashboard.
+         */
+
+        const cloudinaryFormData = new FormData();
+
+        cloudinaryFormData.append("file", file);
+
+        cloudinaryFormData.append(
+            "upload_preset",
+            CLOUDINARY_AVATAR_UPLOAD_PRESET,
+        );
+
+        const uploadUrl =
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+        const response = await fetch(uploadUrl, {
+            method: "POST",
+            body: cloudinaryFormData,
+        });
+
+        let result;
+
+        try {
+            result = await response.json();
+        } catch {
+            result = null;
+        }
+
+        if (
+            !response.ok ||
+            !result?.secure_url ||
+            !result?.public_id
+        ) {
+            console.error(
+                "Cloudinary unsigned upload failed:",
+                result,
+            );
+
+            return {
+                success: false,
+                secureUrl: null,
+                publicId: null,
+                error:
+                    result?.error?.message ||
+                    "Cloudinary could not upload your profile photo.",
+            };
+        }
+
+        return {
+            success: true,
+            secureUrl: result.secure_url,
+            publicId: result.public_id,
+            error: null,
+        };
+    } catch (error) {
+        console.error(
+            "uploadAvatarAction failed:",
+            error,
+        );
+
+        return {
+            success: false,
+            secureUrl: null,
+            publicId: null,
+            error:
+                error?.message ||
+                "We could not upload your profile photo. Please try again.",
+        };
+    }
+}
+
+/* ========================================================================== */
 /* Complete Profile                                                           */
 /* ========================================================================== */
 
@@ -321,12 +418,6 @@ export async function completeProfileAction(input = {}) {
     try {
         const user = await requireAuthAction();
 
-        /*
-         * UX check only.
-         *
-         * createProfile() remains the authoritative
-         * profile creation operation.
-         */
         const existingProfile = await getProfileByUid(user.uid);
 
         if (existingProfile) {
@@ -514,25 +605,12 @@ export async function updateProfileAction(input = {}) {
             };
         }
 
-        /*
-         * Validate category before sending the update
-         * to the data layer.
-         */
         if (validation.data.categoryId) {
             await validateCategory(
                 validation.data.categoryId,
             );
         }
 
-        /*
-         * Keep the update scoped to fields that were
-         * actually supplied by the client.
-         *
-         * This now includes:
-         *
-         * avatar
-         * avatarPublicId
-         */
         const updateData = {
             ...validation.data,
         };
