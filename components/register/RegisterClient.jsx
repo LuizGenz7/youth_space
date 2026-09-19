@@ -232,13 +232,29 @@ export default function RegisterClient({
    *
    * Collects and validates profile fields.
    *
+   * displayName is taken from the account
+   * name field for email registration.
+   *
+   * For Google registration, the Google
+   * displayName is used when available.
+   *
    * Final validation also happens on the
    * server inside completeProfileAction().
    */
 
   function getProfileData(
-    formData
+    formData,
+    fallbackDisplayName = ""
   ) {
+    const displayName =
+      String(
+        formData.get(
+          "name"
+        ) ||
+          fallbackDisplayName ||
+          ""
+      ).trim();
+
     const username =
       String(
         formData.get(
@@ -277,7 +293,43 @@ export default function RegisterClient({
       ).trim();
 
     /*
-     * Username
+     * ------------------------------------------------
+     * DISPLAY NAME
+     * ------------------------------------------------
+     */
+
+    if (!displayName) {
+      showError(
+        "Please enter your full name."
+      );
+
+      return null;
+    }
+
+    if (
+      displayName.length < 2
+    ) {
+      showError(
+        "Your name is too short."
+      );
+
+      return null;
+    }
+
+    if (
+      displayName.length > 80
+    ) {
+      showError(
+        "Your name is too long."
+      );
+
+      return null;
+    }
+
+    /*
+     * ------------------------------------------------
+     * USERNAME
+     * ------------------------------------------------
      */
 
     if (!username) {
@@ -301,7 +353,9 @@ export default function RegisterClient({
     }
 
     /*
-     * Role
+     * ------------------------------------------------
+     * ROLE
+     * ------------------------------------------------
      */
 
     if (!role) {
@@ -333,7 +387,9 @@ export default function RegisterClient({
     }
 
     /*
-     * Categories
+     * ------------------------------------------------
+     * CATEGORY
+     * ------------------------------------------------
      */
 
     if (
@@ -358,7 +414,9 @@ export default function RegisterClient({
     }
 
     /*
-     * Province
+     * ------------------------------------------------
+     * PROVINCE
+     * ------------------------------------------------
      */
 
     if (
@@ -375,7 +433,9 @@ export default function RegisterClient({
     }
 
     /*
-     * District
+     * ------------------------------------------------
+     * DISTRICT
+     * ------------------------------------------------
      */
 
     if (
@@ -392,7 +452,9 @@ export default function RegisterClient({
     }
 
     /*
-     * Bio
+     * ------------------------------------------------
+     * BIO
+     * ------------------------------------------------
      */
 
     if (!bio) {
@@ -424,7 +486,9 @@ export default function RegisterClient({
     }
 
     /*
-     * Phone
+     * ------------------------------------------------
+     * PHONE
+     * ------------------------------------------------
      */
 
     if (
@@ -441,7 +505,9 @@ export default function RegisterClient({
     }
 
     /*
-     * WhatsApp
+     * ------------------------------------------------
+     * WHATSAPP
+     * ------------------------------------------------
      */
 
     if (
@@ -458,13 +524,22 @@ export default function RegisterClient({
     }
 
     /*
-     * Only profile fields are returned.
+     * ------------------------------------------------
+     * PROFILE PAYLOAD
+     * ------------------------------------------------
      *
-     * uid/email/displayName are never
-     * accepted from the form.
+     * uid is intentionally NOT accepted
+     * from the client.
+     *
+     * email is intentionally NOT accepted
+     * from the client.
+     *
+     * The server obtains the authenticated
+     * Firebase user through FirebaseServerApp.
      */
 
     return {
+      displayName,
       username,
       role,
       categoryId:
@@ -567,7 +642,9 @@ export default function RegisterClient({
     }
 
     /*
-     * Terms
+     * ------------------------------------------------
+     * TERMS
+     * ------------------------------------------------
      */
 
     if (!agree) {
@@ -640,6 +717,16 @@ export default function RegisterClient({
         return;
       }
 
+      if (
+        name.length > 80
+      ) {
+        showError(
+          "Your name is too long."
+        );
+
+        return;
+      }
+
       /*
        * Email
        */
@@ -686,11 +773,19 @@ export default function RegisterClient({
      * ------------------------------------------------
      * PROFILE VALIDATION
      * ------------------------------------------------
+     *
+     * For email registration:
+     * displayName comes from "name".
+     *
+     * For Google registration:
+     * displayName comes from googleUser.displayName
+     * if the form does not contain a name field.
      */
 
     const profile =
       getProfileData(
-        formData
+        formData,
+        googleUser?.displayName || ""
       );
 
     if (!profile) {
@@ -755,7 +850,9 @@ export default function RegisterClient({
        * CREATE FIRESTORE PROFILE
        * ------------------------------------------------
        *
-       * uid/email/displayName are NOT passed.
+       * displayName is now included.
+       *
+       * uid/email are NOT passed.
        *
        * The server gets the authenticated
        * Firebase user through FirebaseServerApp.
@@ -781,95 +878,101 @@ export default function RegisterClient({
    * --------------------------------------------------
    */
 
- async function handleGoogleSignUp() {
-  if (isLoading) {
-    return;
-  }
+  async function handleGoogleSignUp() {
+    if (isLoading) {
+      return;
+    }
 
-  if (!agree) {
-    showError(
-      "You must agree to the Terms and Privacy Policy."
-    );
+    if (!agree) {
+      showError(
+        "You must agree to the Terms and Privacy Policy."
+      );
 
-    return;
-  }
-
-  /*
-   * Get the current form data.
-   */
-
-  const form =
-    document.querySelector(
-      "form"
-    );
-
-  if (!form) {
-    showError(
-      "Unable to read the registration form."
-    );
-
-    return;
-  }
-
-  const formData =
-    new FormData(form);
-
-  /*
-   * Validate profile first.
-   */
-
-  const profile =
-    getProfileData(
-      formData
-    );
-
-  if (!profile) {
-    return;
-  }
-
-  setGoogleLoading(true);
-
-  try {
-    /*
-     * ------------------------------------------------
-     * GOOGLE SIGN UP
-     * ------------------------------------------------
-     *
-     * Google authentication is currently disabled.
-     * ------------------------------------------------
-     */
-
-    const message =
-      await signInWithGoogle();
+      return;
+    }
 
     /*
-     * Show the coming-soon message and stop.
-     *
-     * Do NOT:
-     * - check username
-     * - create Firebase account
-     * - create profile
-     * - call finishRegistration()
+     * Get the current form data.
      */
 
-    showSnackbar({
-      type: "info",
-      message,
-    });
+    const form =
+      document.querySelector(
+        "form"
+      );
 
-    return;
-  } catch (error) {
-    showError(
-      getRegistrationError(
-        error
-      )
-    );
-  } finally {
-    setGoogleLoading(
-      false
-    );
+    if (!form) {
+      showError(
+        "Unable to read the registration form."
+      );
+
+      return;
+    }
+
+    const formData =
+      new FormData(form);
+
+    /*
+     * Validate profile first.
+     *
+     * Google authentication is currently
+     * disabled, so this only validates the
+     * form before showing the coming-soon
+     * message.
+     */
+
+    const profile =
+      getProfileData(
+        formData,
+        googleUser?.displayName || ""
+      );
+
+    if (!profile) {
+      return;
+    }
+
+    setGoogleLoading(true);
+
+    try {
+      /*
+       * ------------------------------------------------
+       * GOOGLE SIGN UP
+       * ------------------------------------------------
+       *
+       * Google authentication is currently disabled.
+       * ------------------------------------------------
+       */
+
+      const message =
+        await signInWithGoogle();
+
+      /*
+       * Show the coming-soon message and stop.
+       *
+       * Do NOT:
+       * - check username
+       * - create Firebase account
+       * - create profile
+       * - call finishRegistration()
+       */
+
+      showSnackbar({
+        type: "info",
+        message,
+      });
+
+      return;
+    } catch (error) {
+      showError(
+        getRegistrationError(
+          error
+        )
+      );
+    } finally {
+      setGoogleLoading(
+        false
+      );
+    }
   }
-}
 
   /*
    * --------------------------------------------------
