@@ -148,13 +148,6 @@ const serviceSchema = z
         price: z
             .union([z.string().trim(), z.number()])
             .optional(),
-
-        image: z
-            .string()
-            .trim()
-            .url("Please provide a valid service image URL.")
-            .nullable()
-            .optional(),
     })
     .strict();
 
