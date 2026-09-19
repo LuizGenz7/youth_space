@@ -37,9 +37,7 @@ export default function ProfileSection({
     ? getDistrictsByProvince(profileForm.province) || []
     : [];
 
-  const likeCount = Number.isFinite(
-    Number(profile?.likeCount),
-  )
+  const likeCount = Number.isFinite(Number(profile?.likeCount))
     ? Math.max(0, Number(profile.likeCount))
     : 0;
 
@@ -66,10 +64,7 @@ export default function ProfileSection({
             </label>
 
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-              <Avatar
-                src={profile?.avatar}
-                name={profile?.displayName}
-              />
+              <Avatar src={profile?.avatar} name={profile?.displayName} />
 
               <div className="min-w-0">
                 <button
@@ -78,12 +73,7 @@ export default function ProfileSection({
                   disabled={saving}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <ImagePlus
-                    size={17}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  />
-
+                  <ImagePlus size={17} strokeWidth={2} aria-hidden="true" />
                   Change photo
                 </button>
 
@@ -104,12 +94,7 @@ export default function ProfileSection({
               icon={UserRound}
               autoComplete="name"
               disabled={saving}
-              onChange={(value) =>
-                onUpdateForm(
-                  "displayName",
-                  value,
-                )
-              }
+              onChange={(value) => onUpdateForm("displayName", value)}
             />
 
             <Field
@@ -119,12 +104,7 @@ export default function ProfileSection({
               icon={User}
               autoComplete="username"
               disabled={saving}
-              onChange={(value) =>
-                onUpdateForm(
-                  "username",
-                  value,
-                )
-              }
+              onChange={(value) => onUpdateForm("username", value)}
             />
 
             <Field
@@ -143,12 +123,7 @@ export default function ProfileSection({
               inputMode="tel"
               autoComplete="tel"
               disabled={saving}
-              onChange={(value) =>
-                onUpdateForm(
-                  "phone",
-                  value,
-                )
-              }
+              onChange={(value) => onUpdateForm("phone", value)}
             />
 
             <Field
@@ -160,12 +135,7 @@ export default function ProfileSection({
               inputMode="tel"
               autoComplete="tel"
               disabled={saving}
-              onChange={(value) =>
-                onUpdateForm(
-                  "whatsapp",
-                  value,
-                )
-              }
+              onChange={(value) => onUpdateForm("whatsapp", value)}
             />
           </div>
 
@@ -190,12 +160,7 @@ export default function ProfileSection({
               <textarea
                 id="profile-bio"
                 value={profileForm?.bio || ""}
-                onChange={(event) =>
-                  onUpdateForm(
-                    "bio",
-                    event.target.value,
-                  )
-                }
+                onChange={(event) => onUpdateForm("bio", event.target.value)}
                 rows={4}
                 maxLength={500}
                 placeholder="Tell people a little about yourself..."
@@ -218,10 +183,7 @@ export default function ProfileSection({
           {/* Save */}
 
           <div className="flex justify-stretch border-t border-slate-100 pt-5 sm:justify-end">
-            <SaveButton
-              saving={saving}
-              onClick={onSave}
-            />
+            <SaveButton saving={saving} onClick={onSave} />
           </div>
         </div>
       </section>
@@ -262,10 +224,10 @@ export default function ProfileSection({
                 : "Select province first"
             }
             icon={MapPin}
-            disabled={
-              saving ||
-              !profileForm?.province
-            }
+            disabled={saving || !profileForm?.province}
+            onChange={(value) => {
+              onUpdateForm("district", value);
+            }}
           />
         </div>
       </section>
@@ -293,28 +255,19 @@ export default function ProfileSection({
           <SummaryRow
             icon={Heart}
             label="Profile likes"
-            value={`${likeCount} ${
-              likeCount === 1
-                ? "like"
-                : "likes"
-            }`}
+            value={`${likeCount} ${likeCount === 1 ? "like" : "likes"}`}
           />
 
           <SummaryRow
             icon={BriefcaseBusiness}
             label="Role"
-            value={
-              profile?.role || "Not set"
-            }
+            value={profile?.role || "Not set"}
           />
 
           <SummaryRow
             icon={BriefcaseBusiness}
             label="Category"
-            value={
-              profile?.category ||
-              "Not set"
-            }
+            value={profile?.category || "Not set"}
           />
 
           <SummaryRow
@@ -324,19 +277,13 @@ export default function ProfileSection({
               skills.length > 0
                 ? skills
                     .map((skill) =>
-                      typeof skill === "string"
-                        ? skill
-                        : skill?.name || "",
+                      typeof skill === "string" ? skill : skill?.name || "",
                     )
                     .filter(Boolean)
                     .join(", ")
                 : "No skills added"
             }
-            action={
-              <EditButton
-                onClick={onOpenSkills}
-              />
-            }
+            action={<EditButton onClick={onOpenSkills} />}
           />
 
           <SummaryRow
@@ -354,11 +301,7 @@ export default function ProfileSection({
                     .join(", ")
                 : "No services added"
             }
-            action={
-              <EditButton
-                onClick={onOpenServices}
-              />
-            }
+            action={<EditButton onClick={onOpenServices} />}
           />
         </div>
       </section>
@@ -370,20 +313,11 @@ export default function ProfileSection({
 /* Section Header                                                             */
 /* ========================================================================== */
 
-function SectionHeader({
-  icon: Icon,
-  eyebrow,
-  title,
-  description,
-}) {
+function SectionHeader({ icon: Icon, eyebrow, title, description }) {
   return (
     <div className="flex items-start gap-3 border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
-        <Icon
-          size={18}
-          strokeWidth={2}
-          aria-hidden="true"
-        />
+        <Icon size={18} strokeWidth={2} aria-hidden="true" />
       </div>
 
       <div className="min-w-0">
@@ -409,47 +343,32 @@ function SectionHeader({
 /* Avatar                                                                     */
 /* ========================================================================== */
 
-function Avatar({
-  src,
-  name = "",
-}) {
-  const [imageError, setImageError] =
-    useState(false);
+function Avatar({ src, name = "" }) {
+  const [imageError, setImageError] = useState(false);
 
   const initials =
     name
       .trim()
       .split(/\s+/)
       .slice(0, 2)
-      .map((part) =>
-        part.charAt(0).toUpperCase(),
-      )
+      .map((part) => part.charAt(0).toUpperCase())
       .join("") || "U";
 
-  const hasImage =
-    Boolean(src) && !imageError;
+  const hasImage = Boolean(src) && !imageError;
 
   return (
     <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 text-base font-black text-slate-500 ring-1 ring-slate-200">
       {hasImage ? (
         <Image
           src={src}
-          alt={
-            name
-              ? `${name} profile photo`
-              : "Profile photo"
-          }
+          alt={name ? `${name} profile photo` : "Profile photo"}
           fill
           sizes="64px"
           className="object-cover"
-          onError={() =>
-            setImageError(true)
-          }
+          onError={() => setImageError(true)}
         />
       ) : (
-        <span aria-hidden="true">
-          {initials}
-        </span>
+        <span aria-hidden="true">{initials}</span>
       )}
     </div>
   );
@@ -470,9 +389,7 @@ function Field({
   inputMode,
   autoComplete,
 }) {
-  const id = `profile-${label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")}`;
+  const id = `profile-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
   return (
     <div className="min-w-0">
@@ -499,11 +416,7 @@ function Field({
           placeholder={placeholder}
           inputMode={inputMode}
           autoComplete={autoComplete}
-          onChange={(event) =>
-            onChange?.(
-              event.target.value,
-            )
-          }
+          onChange={(event) => onChange?.(event.target.value)}
           className={`h-12 w-full rounded-xl border pl-11 pr-4 text-sm font-medium outline-none transition ${
             disabled
               ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
@@ -532,10 +445,7 @@ function LocationFilter({
     .map((option) =>
       typeof option === "string"
         ? option
-        : option?.name ||
-          option?.label ||
-          option?.value ||
-          "",
+        : option?.name || option?.label || option?.value || "",
     )
     .filter(Boolean);
 
@@ -562,12 +472,7 @@ function LocationFilter({
 /* Summary Row                                                                */
 /* ========================================================================== */
 
-function SummaryRow({
-  icon: Icon,
-  label,
-  value,
-  action,
-}) {
+function SummaryRow({ icon: Icon, label, value, action }) {
   return (
     <div className="flex items-start gap-4 px-5 py-5 sm:px-6">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
@@ -598,21 +503,14 @@ function SummaryRow({
 /* Edit Button                                                                */
 /* ========================================================================== */
 
-function EditButton({
-  onClick,
-}) {
+function EditButton({ onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none transition duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98]"
     >
-      <Pencil
-        size={13}
-        strokeWidth={2}
-        aria-hidden="true"
-      />
-
+      <Pencil size={13} strokeWidth={2} aria-hidden="true" />
       Edit
     </button>
   );
@@ -622,10 +520,7 @@ function EditButton({
 /* Save Button                                                                */
 /* ========================================================================== */
 
-function SaveButton({
-  saving,
-  onClick,
-}) {
+function SaveButton({ saving, onClick }) {
   return (
     <button
       type="button"

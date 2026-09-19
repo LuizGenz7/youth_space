@@ -33,7 +33,6 @@ import {
   WorkModal,
 } from "./ProfileModals";
 
-
 import {
   deleteCurrentAuthUser,
   logout,
@@ -217,6 +216,17 @@ export default function ProfileClient({
     setProfileForm((current) => ({
       ...current,
       [field]: value,
+
+      /*
+       * A district belongs to a province.
+       * Clear the previous district whenever
+       * the province changes.
+       */
+      ...(field === "province"
+        ? {
+            district: "",
+          }
+        : {}),
     }));
   }
 
@@ -254,7 +264,7 @@ export default function ProfileClient({
       return "Your role is too short.";
     }
 
-    if (role.length > 60) {
+    if (role.length > 100) {
       return "Your role is too long.";
     }
 
@@ -262,45 +272,146 @@ export default function ProfileClient({
       return "Please select a category.";
     }
 
+    if (province.length > 100) {
+      return "Your province is too long.";
+    }
+
     if (!province) {
       return "Please select your province.";
+    }
+
+    if (district.length > 100) {
+      return "Your district is too long.";
     }
 
     if (!district) {
       return "Please select your district.";
     }
 
+    if (bio.length > 1000) {
+      return "Your bio is too long.";
+    }
+
     if (bio.length < 20) {
       return "Your bio should be at least 20 characters.";
     }
 
-    if (bio.length > MAX_BIO_LENGTH) {
-      return "Your bio is too long.";
+    if (phone.length > 30) {
+      return "Your phone number is too long.";
     }
 
     if (phone.length < 7) {
       return "Please enter a valid phone number.";
     }
 
-    if (phone.length > 20) {
-      return "Your phone number is too long.";
+    if (whatsapp.length > 30) {
+      return "Your WhatsApp number is too long.";
     }
 
     if (whatsapp.length < 7) {
       return "Please enter a valid WhatsApp number.";
     }
 
-    if (whatsapp.length > 20) {
-      return "Your WhatsApp number is too long.";
+    return null;
+  }
+
+  /* ====================================================================== */
+  /* Skills normalization                                                   */
+  /* ====================================================================== */
+
+  function normalizeSkills(list = []) {
+    if (!Array.isArray(list)) {
+      return [];
     }
 
-    return null;
+    return list
+      .map((skill) => {
+        if (typeof skill === "string") {
+          return skill.trim();
+        }
+
+        if (
+          skill &&
+          typeof skill === "object" &&
+          typeof skill.name === "string"
+        ) {
+          return skill.name.trim();
+        }
+
+        return "";
+      })
+      .filter(Boolean)
+      .slice(0, MAX_SKILLS);
+  }
+
+  /* ====================================================================== */
+  /* Services normalization                                                 */
+  /* ====================================================================== */
+
+  function normalizeService(service) {
+    if (typeof service === "string") {
+      return {
+        id: crypto.randomUUID(),
+        name: service.trim(),
+        description: "",
+        price: "",
+        image: "",
+      };
+    }
+
+    if (!service || typeof service !== "object" || Array.isArray(service)) {
+      return null;
+    }
+
+    return {
+      id:
+        typeof service.id === "string" && service.id.trim()
+          ? service.id.trim()
+          : crypto.randomUUID(),
+
+      name: typeof service.name === "string" ? service.name.trim() : "",
+
+      description:
+        typeof service.description === "string"
+          ? service.description.trim()
+          : "",
+
+      price:
+        service.price !== undefined && service.price !== null
+          ? String(service.price).trim()
+          : service.minPrice !== undefined && service.minPrice !== null
+            ? String(service.minPrice).trim()
+            : "",
+
+      image: typeof service.image === "string" ? service.image.trim() : "",
+    };
+  }
+
+  function normalizeServices(list = []) {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+
+    return list
+      .map(normalizeService)
+      .filter(Boolean)
+      .filter((service) => service.name)
+      .map((service) => ({
+        id: service.id,
+        name: service.name.trim(),
+        description: service.description.trim(),
+        price:
+          typeof service.price === "number"
+            ? String(service.price)
+            : String(service.price || "").trim(),
+        image: service.image || "",
+      }))
+      .slice(0, MAX_SERVICES);
   }
 
   /* ====================================================================== */
   /* Common update payload                                                  */
   /* ====================================================================== */
-
   function getProfilePayload(overrides = {}) {
     return {
       displayName: profileForm.displayName.trim(),
@@ -312,10 +423,20 @@ export default function ProfileClient({
       bio: profileForm.bio.trim(),
       phone: profileForm.phone.trim(),
       whatsapp: profileForm.whatsapp.trim(),
-      available: Boolean(currentProfile?.available),
+      available: Boolean(profileForm.available),
       ...overrides,
     };
   }
+
+  /*
+   * IMPORTANT:
+   *
+   * displayName is intentionally NOT sent here because your current
+   * data/profile.js profileUpdateSchema does not accept displayName.
+   *
+   * Avatar is also intentionally NOT sent because the selected image
+   * is currently only a local preview and has not been uploaded.
+   */
 
   /* ====================================================================== */
   /* Save profile                                                           */
@@ -336,11 +457,7 @@ export default function ProfileClient({
     try {
       setSaving(true);
 
-      const result = await updateProfileAction(
-        getProfilePayload({
-          avatar: currentProfile?.avatar || null,
-        }),
-      );
+      const result = await updateProfileAction(getProfilePayload());
 
       if (!result?.success) {
         throw new Error(
@@ -358,14 +475,20 @@ export default function ProfileClient({
 
       setProfileForm((current) => ({
         ...current,
-        displayName: updatedProfile?.displayName ?? current.displayName,
         username: updatedProfile?.username ?? current.username,
+
         role: updatedProfile?.role ?? current.role,
+
         categoryId: updatedProfile?.categoryId ?? current.categoryId,
+
         province: updatedProfile?.province ?? current.province,
+
         district: updatedProfile?.district ?? current.district,
+
         bio: updatedProfile?.bio ?? current.bio,
+
         phone: updatedProfile?.phone ?? current.phone,
+
         whatsapp: updatedProfile?.whatsapp ?? current.whatsapp,
       }));
 
@@ -400,12 +523,15 @@ export default function ProfileClient({
       return;
     }
 
-    if (skills.length > MAX_SKILLS) {
+    const cleanSkills = normalizeSkills(skills);
+    const cleanServices = normalizeServices(services);
+
+    if (cleanSkills.length > MAX_SKILLS) {
       showError("You can have up to 20 skills.");
       return;
     }
 
-    if (services.length > MAX_SERVICES) {
+    if (cleanServices.length > MAX_SERVICES) {
       showError("You can have up to 20 services.");
       return;
     }
@@ -413,12 +539,9 @@ export default function ProfileClient({
     try {
       setSaving(true);
 
-      const cleanServices = normalizeServices(services);
-
       const result = await updateProfileAction(
         getProfilePayload({
-          avatar: currentProfile?.avatar || null,
-          skills,
+          skills: cleanSkills,
           services: cleanServices,
         }),
       );
@@ -429,12 +552,13 @@ export default function ProfileClient({
         );
       }
 
+      setSkills(cleanSkills);
       setServices(cleanServices);
 
       setCurrentProfile((current) => ({
         ...current,
         ...result.profile,
-        skills,
+        skills: cleanSkills,
         services: cleanServices,
       }));
 
@@ -467,7 +591,7 @@ export default function ProfileClient({
       return;
     }
 
-    if (value.length > 60) {
+    if (value.length > 100) {
       showError("Skill is too long.");
       return;
     }
@@ -477,10 +601,10 @@ export default function ProfileClient({
       return;
     }
 
-    const exists = skills.some(
-      (skill) =>
-        typeof skill === "string" &&
-        skill.toLowerCase() === value.toLowerCase(),
+    const cleanSkills = normalizeSkills(skills);
+
+    const exists = cleanSkills.some(
+      (skill) => skill.toLowerCase() === value.toLowerCase(),
     );
 
     if (exists) {
@@ -489,7 +613,8 @@ export default function ProfileClient({
       return;
     }
 
-    setSkills((current) => [...current, value]);
+    setSkills((current) => [...normalizeSkills(current), value]);
+
     setSkillInput("");
   }
 
@@ -498,9 +623,11 @@ export default function ProfileClient({
       return;
     }
 
-    setSkills((current) =>
-      current.filter((skill) => skill !== skillToRemove),
-    );
+    setSkills((current) => {
+      const cleanSkills = normalizeSkills(current);
+
+      return cleanSkills.filter((skill) => skill !== skillToRemove);
+    });
   }
 
   /* ====================================================================== */
@@ -512,7 +639,10 @@ export default function ProfileClient({
       return;
     }
 
-    if (skills.length > MAX_SKILLS) {
+    const cleanSkills = normalizeSkills(skills);
+    const cleanServices = normalizeServices(services);
+
+    if (cleanSkills.length > MAX_SKILLS) {
       showError("You can have up to 20 skills.");
       return;
     }
@@ -520,12 +650,9 @@ export default function ProfileClient({
     try {
       setSaving(true);
 
-      const cleanServices = normalizeServices(services);
-
       const result = await updateProfileAction(
         getProfilePayload({
-          avatar: currentProfile?.avatar || null,
-          skills,
+          skills: cleanSkills,
           services: cleanServices,
         }),
       );
@@ -534,10 +661,14 @@ export default function ProfileClient({
         throw new Error(result?.error || "Failed to save skills.");
       }
 
+      setSkills(cleanSkills);
+      setServices(cleanServices);
+
       setCurrentProfile((current) => ({
         ...current,
         ...result.profile,
-        skills,
+        skills: cleanSkills,
+        services: cleanServices,
       }));
 
       setActiveModal(null);
@@ -558,42 +689,6 @@ export default function ProfileClient({
   /* Services                                                               */
   /* ====================================================================== */
 
-  function normalizeService(service) {
-    if (typeof service === "string") {
-      return {
-        id: crypto.randomUUID(),
-        name: service,
-        description: "",
-        price: "",
-        image: null,
-      };
-    }
-
-    return {
-      id: service?.id || crypto.randomUUID(),
-      name: service?.name || "",
-      description: service?.description || "",
-      price: service?.price ?? service?.minPrice ?? "",
-      image: service?.image || null,
-    };
-  }
-
-  function normalizeServices(list = []) {
-    return list
-      .map(normalizeService)
-      .filter((service) => service.name.trim())
-      .map((service) => ({
-        id: service.id,
-        name: service.name.trim(),
-        description: service.description.trim(),
-        price:
-          typeof service.price === "number"
-            ? service.price
-            : String(service.price || "").trim(),
-        image: service.image || null,
-      }));
-  }
-
   function addService(service) {
     if (destructiveActionRunning || saving) {
       return;
@@ -605,13 +700,18 @@ export default function ProfileClient({
     }
 
     const normalized = normalizeService(service);
+
+    if (!normalized) {
+      return;
+    }
+
     const name = normalized.name.trim();
 
     if (!name) {
       return;
     }
 
-    if (name.length > 100) {
+    if (name.length > 150) {
       showError("Service name is too long.");
       return;
     }
@@ -619,7 +719,7 @@ export default function ProfileClient({
     const exists = services.some((existingService) => {
       const existing = normalizeService(existingService);
 
-      return existing.name.trim().toLowerCase() === name.toLowerCase();
+      return existing?.name?.trim().toLowerCase() === name.toLowerCase();
     });
 
     if (exists) {
@@ -655,6 +755,7 @@ export default function ProfileClient({
       return;
     }
 
+    const cleanSkills = normalizeSkills(skills);
     const cleanServices = normalizeServices(services);
 
     if (cleanServices.length > MAX_SERVICES) {
@@ -667,8 +768,7 @@ export default function ProfileClient({
 
       const result = await updateProfileAction(
         getProfilePayload({
-          avatar: currentProfile?.avatar || null,
-          skills,
+          skills: cleanSkills,
           services: cleanServices,
         }),
       );
@@ -677,11 +777,13 @@ export default function ProfileClient({
         throw new Error(result?.error || "Failed to save services.");
       }
 
+      setSkills(cleanSkills);
       setServices(cleanServices);
 
       setCurrentProfile((current) => ({
         ...current,
         ...result.profile,
+        skills: cleanSkills,
         services: cleanServices,
       }));
 
@@ -722,17 +824,14 @@ export default function ProfileClient({
 
       const result = await updateProfileAction(
         getProfilePayload({
-          avatar: currentProfile?.avatar || null,
           available,
-          skills,
+          skills: normalizeSkills(skills),
           services: normalizeServices(services),
         }),
       );
 
       if (!result?.success) {
-        throw new Error(
-          result?.error || "Failed to update your availability.",
-        );
+        throw new Error(result?.error || "Failed to update your availability.");
       }
 
       setCurrentProfile((current) => ({
@@ -751,9 +850,7 @@ export default function ProfileClient({
     } catch (error) {
       console.error("Failed to update availability:", error);
 
-      showError(
-        error?.message || "Failed to update your availability.",
-      );
+      showError(error?.message || "Failed to update your availability.");
     } finally {
       setSavingAvailability(false);
     }
@@ -784,7 +881,9 @@ export default function ProfileClient({
 
     if (!file.type.startsWith("image/")) {
       showError("Please select an image file.");
+
       event.target.value = "";
+
       return;
     }
 
@@ -792,7 +891,9 @@ export default function ProfileClient({
 
     if (file.size > maxSize) {
       showError("Profile images must be smaller than 5MB.");
+
       event.target.value = "";
+
       return;
     }
 
@@ -801,15 +902,11 @@ export default function ProfileClient({
     reader.onload = () => {
       setAvatarPreview(reader.result);
 
-      showInfo(
-        "Photo preview updated. Save/upload it to make it permanent.",
-      );
+      showInfo("Photo preview updated. Upload it to make it permanent.");
     };
 
     reader.onerror = () => {
-      showError(
-        "We could not preview that image. Please try another one.",
-      );
+      showError("We could not preview that image. Please try another one.");
     };
 
     reader.readAsDataURL(file);
@@ -903,8 +1000,7 @@ export default function ProfileClient({
       console.error("Failed to delete work:", error);
 
       showError(
-        error?.message ||
-          "We could not delete that work. Please try again.",
+        error?.message || "We could not delete that work. Please try again.",
       );
     } finally {
       setDeletingWorkId(null);
@@ -1017,7 +1113,9 @@ export default function ProfileClient({
 
     if (!trimmedPassword) {
       setDeletePasswordError("Please enter your current password.");
+
       showError("Please enter your current password.");
+
       return;
     }
 
@@ -1035,8 +1133,7 @@ export default function ProfileClient({
 
       if (!result?.success) {
         throw new Error(
-          result?.error ||
-            "Failed to delete your Youth Space account data.",
+          result?.error || "Failed to delete your Youth Space account data.",
         );
       }
 
@@ -1049,17 +1146,12 @@ export default function ProfileClient({
       setDeletePasswordError("");
       setConfirmAction(null);
 
-      showSuccess(
-        "Your Youth Space account has been permanently deleted.",
-      );
+      showSuccess("Your Youth Space account has been permanently deleted.");
 
       router.replace("/");
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to permanently delete account:",
-        error,
-      );
+      console.error("Failed to permanently delete account:", error);
 
       const code = error?.code;
 
@@ -1067,13 +1159,9 @@ export default function ProfileClient({
         code === "auth/wrong-password" ||
         code === "auth/invalid-credential"
       ) {
-        setDeletePasswordError(
-          "The password is incorrect. Please try again.",
-        );
+        setDeletePasswordError("The password is incorrect. Please try again.");
 
-        showError(
-          "The password is incorrect. Please try again.",
-        );
+        showError("The password is incorrect. Please try again.");
 
         return;
       }
@@ -1095,9 +1183,7 @@ export default function ProfileClient({
           "Too many attempts. Please wait a moment and try again.",
         );
 
-        showError(
-          "Too many attempts. Please wait a moment and try again.",
-        );
+        showError("Too many attempts. Please wait a moment and try again.");
 
         return;
       }
@@ -1107,16 +1193,17 @@ export default function ProfileClient({
           "Your Youth Space account data was deleted, but we could not finish deleting your sign-in account. Please contact support.";
 
         setDeletePasswordError(message);
+
         showError(message);
 
         return;
       }
 
       const message =
-        error?.message ||
-        "We could not delete your account. Please try again.";
+        error?.message || "We could not delete your account. Please try again.";
 
       setDeletePasswordError(message);
+
       showError(message);
     } finally {
       setDeletePasswordLoading(false);
@@ -1154,9 +1241,7 @@ export default function ProfileClient({
 
       setConfirmAction(null);
 
-      showError(
-        "We could not complete the logout clean-up. Please try again.",
-      );
+      showError("We could not complete the logout clean-up. Please try again.");
 
       router.replace("/");
       router.refresh();
@@ -1259,18 +1344,14 @@ export default function ProfileClient({
               {currentProfile?.avatar ? (
                 <Image
                   src={currentProfile.avatar}
-                  alt={
-                    currentProfile.displayName || "Profile"
-                  }
+                  alt={currentProfile.displayName || "Profile"}
                   fill
                   sizes="40px"
                   className="object-cover"
                 />
               ) : (
-                currentProfile?.displayName
-                  ?.trim()
-                  ?.charAt(0)
-                  ?.toUpperCase() || "U"
+                currentProfile?.displayName?.trim()?.charAt(0)?.toUpperCase() ||
+                "U"
               )}
             </div>
 
@@ -1304,8 +1385,8 @@ export default function ProfileClient({
           </h1>
 
           <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-            Manage your Youth Space profile, professional information,
-            portfolio and account settings.
+            Manage your Youth Space profile, professional information, portfolio
+            and account settings.
           </p>
         </div>
 
@@ -1360,12 +1441,7 @@ export default function ProfileClient({
           <div className="lg:hidden">
             <FilterButton
               icon={getSectionIcon(activeSection)}
-              options={[
-                "Profile",
-                "Professional",
-                "Portfolio",
-                "Account",
-              ]}
+              options={["Profile", "Professional", "Portfolio", "Account"]}
               value={capitalize(activeSection)}
               full
               placeholder="Select section"
@@ -1499,9 +1575,7 @@ export default function ProfileClient({
             if (work) {
               setCurrentWorks((current) => [work, ...current]);
 
-              showSuccess(
-                "Your work has been added to your portfolio.",
-              );
+              showSuccess("Your work has been added to your portfolio.");
             }
 
             setActiveModal(null);
@@ -1566,11 +1640,7 @@ function SectionButton({
         "disabled:cursor-not-allowed disabled:opacity-50",
       ].join(" ")}
     >
-      <Icon
-        size={17}
-        strokeWidth={2}
-        aria-hidden="true"
-      />
+      <Icon size={17} strokeWidth={2} aria-hidden="true" />
 
       <span>{label}</span>
     </button>
