@@ -51,14 +51,19 @@ export default function ProfessionalSection({
         return category === label;
       }
 
-      return category?.name === label || category?.label === label;
+      return (
+        category?.name === label ||
+        category?.label === label
+      );
     });
 
     if (!selected) return;
 
     onUpdateForm(
       "categoryId",
-      typeof selected === "string" ? selected : selected.id,
+      typeof selected === "string"
+        ? selected
+        : selected.id,
     );
   }
 
@@ -69,61 +74,42 @@ export default function ProfessionalSection({
       {/* ================================================================== */}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        {/* Header */}
-
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
-              <BriefcaseBusiness
-                size={18}
-                strokeWidth={2}
-                aria-hidden="true"
-              />
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                Professional
-              </p>
-
-              <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">
-                Professional information
-              </h2>
-
-              <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
-                Tell people what you do, what you offer, and whether you are
-                available.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
+        <SectionHeader
+          eyebrow="Professional"
+          title="Professional information"
+          description="Tell people what you do, what you offer, and whether you are available."
+          icon={BriefcaseBusiness}
+        />
 
         <div className="space-y-5 px-5 py-6 sm:px-6">
           {/* Role */}
 
-          <div>
-            <label
-              htmlFor="professional-role"
-              className="mb-2 block text-sm font-bold text-slate-800"
-            >
-              Role
-            </label>
+          <Field label="Role" htmlFor="professional-role">
+            <div className="relative">
+              <BriefcaseBusiness
+                size={18}
+                strokeWidth={1.8}
+                aria-hidden="true"
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
 
-            <input
-              id="professional-role"
-              type="text"
-              value={profileForm.role || ""}
-              placeholder="e.g. Graphic Designer"
-              disabled={saving}
-              autoComplete="organization-title"
-              onChange={(event) =>
-                onUpdateForm("role", event.target.value)
-              }
-              className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
-            />
-          </div>
+              <input
+                id="professional-role"
+                type="text"
+                value={profileForm.role || ""}
+                placeholder="e.g. Graphic Designer"
+                disabled={saving}
+                autoComplete="organization-title"
+                onChange={(event) =>
+                  onUpdateForm(
+                    "role",
+                    event.target.value,
+                  )
+                }
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
+              />
+            </div>
+          </Field>
 
           {/* Category */}
 
@@ -150,19 +136,31 @@ export default function ProfessionalSection({
           {/* Availability */}
 
           <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-950">
-                Available for work
-              </p>
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500 ring-1 ring-slate-200">
+                <Check
+                  size={17}
+                  strokeWidth={2.2}
+                  aria-hidden="true"
+                />
+              </div>
 
-              <p className="mt-1 text-xs leading-5 font-medium text-slate-500">
-                Let people know whether you are currently available.
-              </p>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-950">
+                  Available for work
+                </p>
+
+                <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                  Let people know whether you are currently available.
+                </p>
+              </div>
             </div>
 
             <AvailabilitySwitch
               checked={Boolean(profile?.available)}
-              loading={savingAvailability || saving}
+              loading={
+                savingAvailability || saving
+              }
               onChange={onToggleAvailability}
             />
           </div>
@@ -179,26 +177,12 @@ export default function ProfessionalSection({
           title="Skills"
           description="Add the skills that best describe what you can do."
           action={
-            <button
-              type="button"
+            <AddButton
+              label="Add skill"
+              mobileLabel="Add"
               disabled={saving}
               onClick={onOpenSkills}
-              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Plus
-                size={15}
-                strokeWidth={2.5}
-                aria-hidden="true"
-              />
-
-              <span className="hidden sm:inline">
-                Add skill
-              </span>
-
-              <span className="sm:hidden">
-                Add
-              </span>
-            </button>
+            />
           }
         />
 
@@ -243,26 +227,12 @@ export default function ProfessionalSection({
           title="Services"
           description="List the services people can contact you for."
           action={
-            <button
-              type="button"
+            <AddButton
+              label="Add service"
+              mobileLabel="Add"
               disabled={saving}
               onClick={onOpenServices}
-              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Plus
-                size={15}
-                strokeWidth={2.5}
-                aria-hidden="true"
-              />
-
-              <span className="hidden sm:inline">
-                Add service
-              </span>
-
-              <span className="sm:hidden">
-                Add
-              </span>
-            </button>
+            />
           }
         />
 
@@ -301,7 +271,7 @@ export default function ProfessionalSection({
           type="button"
           disabled={saving}
           onClick={onSave}
-          className="inline-flex h-12 w-full min-w-[140px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+          className="inline-flex h-12 w-full min-w-[140px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
         >
           {saving ? (
             <>
@@ -314,6 +284,113 @@ export default function ProfessionalSection({
         </button>
       </div>
     </div>
+  );
+}
+
+/* ========================================================================== */
+/* Field                                                                      */
+/* ========================================================================== */
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}) {
+  return (
+    <div>
+      <label
+        htmlFor={htmlFor}
+        className="mb-2 block text-sm font-bold text-slate-800"
+      >
+        {label}
+      </label>
+
+      {children}
+    </div>
+  );
+}
+
+/* ========================================================================== */
+/* Section Header                                                             */
+/* ========================================================================== */
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+  icon: Icon,
+  action,
+}) {
+  return (
+    <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-6">
+      <div className="flex min-w-0 items-start gap-3">
+        {Icon && (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
+            <Icon
+              size={18}
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+          </div>
+        )}
+
+        <div className="min-w-0">
+          {eyebrow && (
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+              {eyebrow}
+            </p>
+          )}
+
+          <h2 className="mt-1 text-lg font-black tracking-[-0.025em] text-slate-950">
+            {title}
+          </h2>
+
+          <p className="mt-1 max-w-xl text-sm font-medium leading-6 text-slate-500">
+            {description}
+          </p>
+        </div>
+      </div>
+
+      {action && (
+        <div className="shrink-0 self-end sm:self-auto">
+          {action}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ========================================================================== */
+/* Add Button                                                                 */
+/* ========================================================================== */
+
+function AddButton({
+  label,
+  mobileLabel = "Add",
+  disabled = false,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <Plus
+        size={15}
+        strokeWidth={2.5}
+        aria-hidden="true"
+      />
+
+      <span className="hidden sm:inline">
+        {label}
+      </span>
+
+      <span className="sm:hidden">
+        {mobileLabel}
+      </span>
+    </button>
   );
 }
 
@@ -375,39 +452,6 @@ function AvailabilitySwitch({
 }
 
 /* ========================================================================== */
-/* Section Header                                                             */
-/* ========================================================================== */
-
-function SectionHeader({
-  eyebrow,
-  title,
-  description,
-  action,
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:items-center sm:px-6 sm:py-6">
-      <div className="min-w-0">
-        {eyebrow && (
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-            {eyebrow}
-          </p>
-        )}
-
-        <h2 className="mt-1 text-base font-black tracking-tight text-slate-950">
-          {title}
-        </h2>
-
-        <p className="mt-1 max-w-xl text-sm leading-6 font-medium text-slate-500">
-          {description}
-        </p>
-      </div>
-
-      {action}
-    </div>
-  );
-}
-
-/* ========================================================================== */
 /* Skill Chip                                                                 */
 /* ========================================================================== */
 
@@ -448,9 +492,9 @@ function ServiceRow({ service }) {
         };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:bg-slate-50/30">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 transition duration-200 hover:border-slate-300 hover:bg-slate-50/30">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
           <BriefcaseBusiness
             size={16}
             strokeWidth={2}
@@ -472,7 +516,7 @@ function ServiceRow({ service }) {
           </div>
 
           {normalized.description && (
-            <p className="mt-1.5 text-sm leading-6 font-medium text-slate-500">
+            <p className="mt-1.5 text-sm font-medium leading-6 text-slate-500">
               {normalized.description}
             </p>
           )}
@@ -495,7 +539,7 @@ function EmptyState({
 }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-9 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 ring-1 ring-slate-200">
         <BriefcaseBusiness
           size={20}
           strokeWidth={1.8}
@@ -507,7 +551,7 @@ function EmptyState({
         {title}
       </p>
 
-      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-6 font-medium text-slate-500">
+      <p className="mx-auto mt-1.5 max-w-sm text-sm font-medium leading-6 text-slate-500">
         {description}
       </p>
 
@@ -515,7 +559,7 @@ function EmptyState({
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className="mt-5 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-5 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Plus
           size={14}

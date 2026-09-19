@@ -1,6 +1,12 @@
 "use client";
 
-import { CheckCircle2, LogOut, Mail, ShieldAlert, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  LogOut,
+  Mail,
+  ShieldAlert,
+  Trash2,
+} from "lucide-react";
 
 export default function AccountSection({
   profile,
@@ -9,7 +15,9 @@ export default function AccountSection({
   deletingProfile = false,
   loggingOut = false,
 }) {
-  const emailVerified = Boolean(profile?.emailVerified ?? profile?.verified);
+  const emailVerified = Boolean(
+    profile?.emailVerified ?? profile?.verified,
+  );
 
   return (
     <div className="space-y-6">
@@ -25,11 +33,11 @@ export default function AccountSection({
             <SectionIcon icon={UserAccountIcon} />
 
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                 Account
               </p>
 
-              <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">
+              <h2 className="mt-1 text-lg font-black tracking-[-0.025em] text-slate-950">
                 Account details
               </h2>
 
@@ -69,16 +77,17 @@ export default function AccountSection({
 
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-              <ShieldAlert size={18} strokeWidth={2} aria-hidden="true" />
-            </div>
+            <SectionIcon
+              icon={ShieldAlert}
+              muted
+            />
 
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                 Security
               </p>
 
-              <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">
+              <h2 className="mt-1 text-lg font-black tracking-[-0.025em] text-slate-950">
                 Danger zone
               </h2>
 
@@ -92,15 +101,16 @@ export default function AccountSection({
         {/* Delete account */}
 
         <div className="p-5 sm:p-6">
-          <div className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <Trash2
-                  size={18}
-                  strokeWidth={2}
-                  className="shrink-0 text-slate-500"
-                  aria-hidden="true"
-                />
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-200">
+                  <Trash2
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+                </div>
 
                 <h3 className="text-sm font-black text-slate-950">
                   Delete account
@@ -108,8 +118,8 @@ export default function AccountSection({
               </div>
 
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-                Permanently delete your Youth Space profile and associated
-                account data. This action cannot be undone.
+                Permanently delete your Youth Space profile and
+                associated account data. This action cannot be undone.
               </p>
             </div>
 
@@ -117,7 +127,7 @@ export default function AccountSection({
               type="button"
               disabled={deletingProfile}
               onClick={onDeleteAccount}
-              className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-950 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             >
               {deletingProfile ? (
                 <>
@@ -126,7 +136,11 @@ export default function AccountSection({
                 </>
               ) : (
                 <>
-                  <Trash2 size={17} strokeWidth={2.2} aria-hidden="true" />
+                  <Trash2
+                    size={17}
+                    strokeWidth={2.2}
+                    aria-hidden="true"
+                  />
                   Delete account
                 </>
               )}
@@ -142,15 +156,26 @@ export default function AccountSection({
 /* Account Row                                                                */
 /* ========================================================================== */
 
-function AccountRow({ icon: Icon, title, description, trailing }) {
+function AccountRow({
+  icon: Icon,
+  title,
+  description,
+  trailing,
+}) {
   return (
     <div className="flex items-center gap-4 px-5 py-5 sm:px-6 sm:py-6">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-        <Icon size={18} strokeWidth={2} aria-hidden="true" />
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+        <Icon
+          size={18}
+          strokeWidth={2}
+          aria-hidden="true"
+        />
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-slate-950">{title}</p>
+        <p className="text-sm font-bold text-slate-950">
+          {title}
+        </p>
 
         <p className="mt-1 truncate text-sm font-medium text-slate-500">
           {description}
@@ -176,14 +201,20 @@ function AccountAction({
   return (
     <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:px-6 sm:py-6">
       <div className="flex min-w-0 flex-1 items-center gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-          <Icon size={18} strokeWidth={2} aria-hidden="true" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
+          <Icon
+            size={18}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
         </div>
 
         <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-950">{title}</p>
+          <p className="text-sm font-bold text-slate-950">
+            {title}
+          </p>
 
-          <p className="mt-1 text-sm leading-6 font-medium text-slate-500">
+          <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
             {description}
           </p>
         </div>
@@ -202,7 +233,11 @@ function AccountAction({
           </>
         ) : (
           <>
-            <LogOut size={17} strokeWidth={2.2} aria-hidden="true" />
+            <LogOut
+              size={17}
+              strokeWidth={2.2}
+              aria-hidden="true"
+            />
             Log out
           </>
         )}
@@ -216,18 +251,23 @@ function AccountAction({
 /* ========================================================================== */
 
 function VerificationBadge({ verified }) {
-  return verified ? (
-    <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-3 text-xs font-bold text-slate-700">
-      <CheckCircle2
-        size={15}
-        strokeWidth={2.2}
-        className="text-slate-600"
-        aria-hidden="true"
-      />
-      Verified
-    </div>
-  ) : (
-    <div className="inline-flex h-9 shrink-0 items-center rounded-xl bg-slate-50 px-3 text-xs font-bold text-slate-400">
+  if (verified) {
+    return (
+      <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-slate-50 px-3 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+        <CheckCircle2
+          size={15}
+          strokeWidth={2.2}
+          className="text-slate-600"
+          aria-hidden="true"
+        />
+
+        Verified
+      </div>
+    );
+  }
+
+  return (
+    <div className="inline-flex h-9 shrink-0 items-center rounded-xl bg-slate-50 px-3 text-xs font-bold text-slate-400 ring-1 ring-slate-200">
       Not verified
     </div>
   );
@@ -237,10 +277,21 @@ function VerificationBadge({ verified }) {
 /* Section Icon                                                               */
 /* ========================================================================== */
 
-function SectionIcon({ icon: Icon }) {
+function SectionIcon({ icon: Icon, muted = false }) {
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
-      <Icon size={18} strokeWidth={2} aria-hidden="true" />
+    <div
+      className={[
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+        muted
+          ? "bg-slate-100 text-slate-600"
+          : "bg-slate-950 text-white shadow-lg shadow-slate-950/10",
+      ].join(" ")}
+    >
+      <Icon
+        size={18}
+        strokeWidth={2}
+        aria-hidden="true"
+      />
     </div>
   );
 }
@@ -249,7 +300,11 @@ function SectionIcon({ icon: Icon }) {
 /* Account Icon                                                               */
 /* ========================================================================== */
 
-function UserAccountIcon({ size = 18, strokeWidth = 2, ...props }) {
+function UserAccountIcon({
+  size = 18,
+  strokeWidth = 2,
+  ...props
+}) {
   return (
     <svg
       width={size}

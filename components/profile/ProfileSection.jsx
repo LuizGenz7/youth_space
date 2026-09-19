@@ -3,15 +3,17 @@
 import Image from "next/image";
 import {
   BriefcaseBusiness,
-  Check,
-  ChevronDown,
   Heart,
   ImagePlus,
+  Mail,
   MapPin,
   Pencil,
+  Phone,
   User,
+  UserRound,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+
+import FilterButton from "../talents/FilterButton";
 
 import {
   ZAMBIA_PROVINCES,
@@ -34,7 +36,9 @@ export default function ProfileSection({
     ? getDistrictsByProvince(profileForm.province) || []
     : [];
 
-  const likeCount = Number.isFinite(Number(profile?.likeCount))
+  const likeCount = Number.isFinite(
+    Number(profile?.likeCount),
+  )
     ? Math.max(0, Number(profile.likeCount))
     : 0;
 
@@ -45,16 +49,12 @@ export default function ProfileSection({
       {/* ================================================================== */}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        {/* Header */}
-
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
-          <SectionHeading
-            icon={User}
-            eyebrow="Profile"
-            title="Personal information"
-            description="Manage the information people see on your profile."
-          />
-        </div>
+        <SectionHeader
+          icon={User}
+          eyebrow="Profile"
+          title="Personal information"
+          description="Manage the information people see on your profile."
+        />
 
         <div className="space-y-7 px-5 py-6 sm:px-6">
           {/* Profile Photo */}
@@ -70,12 +70,12 @@ export default function ProfileSection({
                 name={profile?.displayName}
               />
 
-              <div>
+              <div className="min-w-0">
                 <button
                   type="button"
                   onClick={onAvatarClick}
                   disabled={saving}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <ImagePlus
                     size={17}
@@ -100,10 +100,14 @@ export default function ProfileSection({
               label="Display name"
               value={profileForm?.displayName}
               placeholder="Your name"
+              icon={UserRound}
               autoComplete="name"
               disabled={saving}
               onChange={(value) =>
-                onUpdateForm("displayName", value)
+                onUpdateForm(
+                  "displayName",
+                  value,
+                )
               }
             />
 
@@ -111,16 +115,21 @@ export default function ProfileSection({
               label="Username"
               value={profileForm?.username}
               placeholder="yourusername"
+              icon={User}
               autoComplete="username"
               disabled={saving}
               onChange={(value) =>
-                onUpdateForm("username", value)
+                onUpdateForm(
+                  "username",
+                  value,
+                )
               }
             />
 
             <Field
               label="Email address"
               value={profile?.email || ""}
+              icon={Mail}
               disabled
             />
 
@@ -128,12 +137,16 @@ export default function ProfileSection({
               label="Phone"
               value={profileForm?.phone}
               placeholder="097..."
+              icon={Phone}
               type="tel"
               inputMode="tel"
               autoComplete="tel"
               disabled={saving}
               onChange={(value) =>
-                onUpdateForm("phone", value)
+                onUpdateForm(
+                  "phone",
+                  value,
+                )
               }
             />
 
@@ -141,12 +154,16 @@ export default function ProfileSection({
               label="WhatsApp"
               value={profileForm?.whatsapp}
               placeholder="097..."
+              icon={Phone}
               type="tel"
               inputMode="tel"
               autoComplete="tel"
               disabled={saving}
               onChange={(value) =>
-                onUpdateForm("whatsapp", value)
+                onUpdateForm(
+                  "whatsapp",
+                  value,
+                )
               }
             />
           </div>
@@ -161,25 +178,37 @@ export default function ProfileSection({
               Bio
             </label>
 
-            <textarea
-              id="profile-bio"
-              value={profileForm?.bio || ""}
-              onChange={(event) =>
-                onUpdateForm("bio", event.target.value)
-              }
-              rows={4}
-              maxLength={500}
-              placeholder="Tell people a little about yourself..."
-              disabled={saving}
-              className="block w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-medium leading-6 text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
-            />
+            <div className="relative">
+              <UserRound
+                size={18}
+                strokeWidth={1.8}
+                aria-hidden="true"
+                className="pointer-events-none absolute left-4 top-4 text-slate-400"
+              />
 
-            <div className="mt-2 flex items-center justify-between">
+              <textarea
+                id="profile-bio"
+                value={profileForm?.bio || ""}
+                onChange={(event) =>
+                  onUpdateForm(
+                    "bio",
+                    event.target.value,
+                  )
+                }
+                rows={4}
+                maxLength={500}
+                placeholder="Tell people a little about yourself..."
+                disabled={saving}
+                className="block w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3.5 pl-11 text-sm font-medium leading-6 text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
+              />
+            </div>
+
+            <div className="mt-2 flex items-center justify-between gap-3">
               <p className="text-[11px] font-medium text-slate-400">
                 Keep your bio clear and useful.
               </p>
 
-              <span className="text-[10px] font-bold text-slate-400">
+              <span className="shrink-0 text-[10px] font-bold text-slate-400">
                 {(profileForm?.bio || "").length}/500
               </span>
             </div>
@@ -200,22 +229,21 @@ export default function ProfileSection({
       {/* Location                                                            */}
       {/* ================================================================== */}
 
-      <section className="relative z-20 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
-          <SectionHeading
-            icon={MapPin}
-            eyebrow="Discovery"
-            title="Location"
-            description="Help people discover talents in your area."
-          />
-        </div>
+      <section className="relative z-20 overflow-visible rounded-2xl border border-slate-200 bg-white">
+        <SectionHeader
+          icon={MapPin}
+          eyebrow="Discovery"
+          title="Location"
+          description="Help people discover talents in your area."
+        />
 
         <div className="grid gap-5 px-5 py-6 sm:grid-cols-2 sm:px-6">
-          <CustomSelect
+          <LocationFilter
             label="Province"
             value={profileForm?.province || ""}
             options={ZAMBIA_PROVINCES}
             placeholder="Select province"
+            icon={MapPin}
             disabled={saving}
             onChange={(value) => {
               onUpdateForm("province", value);
@@ -223,7 +251,7 @@ export default function ProfileSection({
             }}
           />
 
-          <CustomSelect
+          <LocationFilter
             label="District"
             value={profileForm?.district || ""}
             options={availableDistricts}
@@ -232,14 +260,10 @@ export default function ProfileSection({
                 ? "Select district"
                 : "Select province first"
             }
-            disabled={saving || !profileForm?.province}
-            emptyMessage={
-              profileForm?.province
-                ? "No districts available."
-                : "Select a province first."
-            }
-            onChange={(value) =>
-              onUpdateForm("district", value)
+            icon={MapPin}
+            disabled={
+              saving ||
+              !profileForm?.province
             }
           />
         </div>
@@ -255,11 +279,11 @@ export default function ProfileSection({
             Overview
           </p>
 
-          <h2 className="mt-1 text-base font-black tracking-tight text-slate-950">
+          <h2 className="mt-1 text-lg font-black tracking-[-0.025em] text-slate-950">
             Profile overview
           </h2>
 
-          <p className="mt-1 text-sm leading-6 font-medium text-slate-500">
+          <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
             A quick look at your professional profile.
           </p>
         </div>
@@ -269,20 +293,27 @@ export default function ProfileSection({
             icon={Heart}
             label="Profile likes"
             value={`${likeCount} ${
-              likeCount === 1 ? "like" : "likes"
+              likeCount === 1
+                ? "like"
+                : "likes"
             }`}
           />
 
           <SummaryRow
             icon={BriefcaseBusiness}
             label="Role"
-            value={profile?.role || "Not set"}
+            value={
+              profile?.role || "Not set"
+            }
           />
 
           <SummaryRow
             icon={BriefcaseBusiness}
             label="Category"
-            value={profile?.category || "Not set"}
+            value={
+              profile?.category ||
+              "Not set"
+            }
           />
 
           <SummaryRow
@@ -290,11 +321,20 @@ export default function ProfileSection({
             label="Skills"
             value={
               skills.length > 0
-                ? skills.join(", ")
+                ? skills
+                    .map((skill) =>
+                      typeof skill === "string"
+                        ? skill
+                        : skill?.name || "",
+                    )
+                    .filter(Boolean)
+                    .join(", ")
                 : "No skills added"
             }
             action={
-              <EditButton onClick={onOpenSkills} />
+              <EditButton
+                onClick={onOpenSkills}
+              />
             }
           />
 
@@ -314,7 +354,9 @@ export default function ProfileSection({
                 : "No services added"
             }
             action={
-              <EditButton onClick={onOpenServices} />
+              <EditButton
+                onClick={onOpenServices}
+              />
             }
           />
         </div>
@@ -324,17 +366,17 @@ export default function ProfileSection({
 }
 
 /* ========================================================================== */
-/* Section Heading                                                            */
+/* Section Header                                                             */
 /* ========================================================================== */
 
-function SectionHeading({
+function SectionHeader({
   icon: Icon,
   eyebrow,
   title,
   description,
 }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-3 border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
         <Icon
           size={18}
@@ -350,11 +392,11 @@ function SectionHeading({
           </p>
         )}
 
-        <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">
+        <h2 className="mt-1 text-lg font-black tracking-[-0.025em] text-slate-950">
           {title}
         </h2>
 
-        <p className="mt-1 max-w-xl text-sm leading-6 font-medium text-slate-500">
+        <p className="mt-1 max-w-xl text-sm font-medium leading-6 text-slate-500">
           {description}
         </p>
       </div>
@@ -366,21 +408,28 @@ function SectionHeading({
 /* Avatar                                                                     */
 /* ========================================================================== */
 
-function Avatar({ src, name = "" }) {
-  const [imageError, setImageError] = useState(false);
+function Avatar({
+  src,
+  name = "",
+}) {
+  const [imageError, setImageError] =
+    useState(false);
 
   const initials =
     name
       .trim()
       .split(/\s+/)
       .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
+      .map((part) =>
+        part.charAt(0).toUpperCase(),
+      )
       .join("") || "U";
 
-  const hasImage = Boolean(src) && !imageError;
+  const hasImage =
+    Boolean(src) && !imageError;
 
   return (
-    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 text-base font-black text-slate-500">
+    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 text-base font-black text-slate-500 ring-1 ring-slate-200">
       {hasImage ? (
         <Image
           src={src}
@@ -392,10 +441,14 @@ function Avatar({ src, name = "" }) {
           fill
           sizes="64px"
           className="object-cover"
-          onError={() => setImageError(true)}
+          onError={() =>
+            setImageError(true)
+          }
         />
       ) : (
-        <span aria-hidden="true">{initials}</span>
+        <span aria-hidden="true">
+          {initials}
+        </span>
       )}
     </div>
   );
@@ -409,6 +462,7 @@ function Field({
   label,
   value,
   placeholder = "",
+  icon: Icon = UserRound,
   onChange,
   disabled = false,
   type = "text",
@@ -428,215 +482,77 @@ function Field({
         {label}
       </label>
 
-      <input
-        id={id}
-        type={type}
-        value={value || ""}
-        disabled={disabled}
-        placeholder={placeholder}
-        inputMode={inputMode}
-        autoComplete={autoComplete}
-        onChange={(event) =>
-          onChange?.(event.target.value)
-        }
-        className={`h-12 w-full rounded-xl border px-4 text-sm font-medium outline-none transition ${
-          disabled
-            ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
-            : "border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04]"
-        }`}
-      />
+      <div className="relative">
+        <Icon
+          size={18}
+          strokeWidth={1.8}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+
+        <input
+          id={id}
+          type={type}
+          value={value || ""}
+          disabled={disabled}
+          placeholder={placeholder}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
+          onChange={(event) =>
+            onChange?.(
+              event.target.value,
+            )
+          }
+          className={`h-12 w-full rounded-xl border pl-11 pr-4 text-sm font-medium outline-none transition ${
+            disabled
+              ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
+              : "border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04]"
+          }`}
+        />
+      </div>
     </div>
   );
 }
 
 /* ========================================================================== */
-/* Custom Select                                                              */
+/* Location Filter                                                            */
 /* ========================================================================== */
 
-function CustomSelect({
+function LocationFilter({
   label,
+  value,
   options = [],
-  value = "",
-  placeholder = "Select option",
+  placeholder,
+  icon: Icon = MapPin,
   disabled = false,
-  emptyMessage = "No options available.",
   onChange,
 }) {
-  const [open, setOpen] = useState(false);
-
-  const containerRef = useRef(null);
-
   const normalizedOptions = options
-    .map((option) => {
-      if (typeof option === "string") {
-        return {
-          value: option,
-          label: option,
-        };
-      }
-
-      return {
-        value:
-          option?.value ??
-          option?.name ??
-          option?.label ??
+    .map((option) =>
+      typeof option === "string"
+        ? option
+        : option?.name ||
+          option?.label ||
+          option?.value ||
           "",
-        label:
-          option?.label ??
-          option?.name ??
-          option?.value ??
-          "",
-      };
-    })
-    .filter(
-      (option) => option.value && option.label,
-    );
-
-  const selectedOption = normalizedOptions.find(
-    (option) => option.value === value,
-  );
-
-  useEffect(() => {
-    function handlePointerDown(event) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target)
-      ) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener(
-      "pointerdown",
-      handlePointerDown,
-    );
-
-    return () => {
-      document.removeEventListener(
-        "pointerdown",
-        handlePointerDown,
-      );
-    };
-  }, []);
-
-  function handleToggle() {
-    if (disabled) return;
-
-    setOpen((current) => !current);
-  }
-
-  function handleSelect(option) {
-    if (disabled) return;
-
-    onChange?.(option.value);
-    setOpen(false);
-  }
+    )
+    .filter(Boolean);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative min-w-0"
-    >
+    <div className="min-w-0">
       <label className="mb-2 block text-sm font-bold text-slate-800">
         {label}
       </label>
 
-      <button
-        type="button"
+      <FilterButton
+        options={normalizedOptions}
+        value={value}
+        full
+        placeholder={placeholder}
+        icon={Icon}
+        onChange={onChange}
         disabled={disabled}
-        onClick={handleToggle}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className={`flex h-12 w-full items-center justify-between gap-2 rounded-xl border px-4 text-left text-sm font-medium outline-none transition ${
-          disabled
-            ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
-            : open
-              ? "border-slate-950 bg-white text-slate-950 ring-4 ring-slate-950/[0.04]"
-              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04]"
-        }`}
-      >
-        <span
-          className={`min-w-0 flex-1 truncate ${
-            selectedOption
-              ? "text-slate-700"
-              : "text-slate-400"
-          }`}
-        >
-          {selectedOption?.label || placeholder}
-        </span>
-
-        <ChevronDown
-          size={17}
-          strokeWidth={2}
-          className={`shrink-0 text-slate-400 transition-transform duration-200 ${
-            open ? "rotate-180" : ""
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-[100] w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-300/30">
-          <div
-            className="max-h-72 overflow-y-auto"
-            role="listbox"
-            aria-label={label}
-          >
-            {normalizedOptions.length > 0 ? (
-              normalizedOptions.map((option) => {
-                const selected =
-                  option.value === value;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() =>
-                      handleSelect(option)
-                    }
-                    className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition ${
-                      selected
-                        ? "bg-slate-100"
-                        : "hover:bg-slate-50"
-                    }`}
-                  >
-                    <span
-                      className={`min-w-0 truncate text-sm font-bold ${
-                        selected
-                          ? "text-slate-950"
-                          : "text-slate-700"
-                      }`}
-                    >
-                      {option.label}
-                    </span>
-
-                    {selected && (
-                      <Check
-                        size={15}
-                        strokeWidth={2.5}
-                        className="ml-3 shrink-0 text-slate-950"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </button>
-                );
-              })
-            ) : (
-              <div className="px-4 py-7 text-center">
-                <p className="text-xs font-bold text-slate-700">
-                  No options available
-                </p>
-
-                <p className="mt-1 text-[11px] leading-5 text-slate-400">
-                  {emptyMessage}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      />
     </div>
   );
 }
@@ -681,12 +597,14 @@ function SummaryRow({
 /* Edit Button                                                                */
 /* ========================================================================== */
 
-function EditButton({ onClick }) {
+function EditButton({
+  onClick,
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98]"
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none transition duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98]"
     >
       <Pencil
         size={13}
@@ -703,13 +621,16 @@ function EditButton({ onClick }) {
 /* Save Button                                                                */
 /* ========================================================================== */
 
-function SaveButton({ saving, onClick }) {
+function SaveButton({
+  saving,
+  onClick,
+}) {
   return (
     <button
       type="button"
       disabled={saving}
       onClick={onClick}
-      className="inline-flex h-12 w-full min-w-[140px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+      className="inline-flex h-12 w-full min-w-[140px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {saving ? (
         <>

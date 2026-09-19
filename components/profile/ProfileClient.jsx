@@ -485,9 +485,7 @@ export default function ProfileClient({
 
     if (exists) {
       setSkillInput("");
-
       showInfo("That skill is already in your profile.");
-
       return;
     }
 
@@ -500,7 +498,9 @@ export default function ProfileClient({
       return;
     }
 
-    setSkills((current) => current.filter((skill) => skill !== skillToRemove));
+    setSkills((current) =>
+      current.filter((skill) => skill !== skillToRemove),
+    );
   }
 
   /* ====================================================================== */
@@ -730,7 +730,9 @@ export default function ProfileClient({
       );
 
       if (!result?.success) {
-        throw new Error(result?.error || "Failed to update your availability.");
+        throw new Error(
+          result?.error || "Failed to update your availability.",
+        );
       }
 
       setCurrentProfile((current) => ({
@@ -749,7 +751,9 @@ export default function ProfileClient({
     } catch (error) {
       console.error("Failed to update availability:", error);
 
-      showError(error?.message || "Failed to update your availability.");
+      showError(
+        error?.message || "Failed to update your availability.",
+      );
     } finally {
       setSavingAvailability(false);
     }
@@ -803,7 +807,9 @@ export default function ProfileClient({
     };
 
     reader.onerror = () => {
-      showError("We could not preview that image. Please try another one.");
+      showError(
+        "We could not preview that image. Please try another one.",
+      );
     };
 
     reader.readAsDataURL(file);
@@ -897,7 +903,8 @@ export default function ProfileClient({
       console.error("Failed to delete work:", error);
 
       showError(
-        error?.message || "We could not delete that work. Please try again.",
+        error?.message ||
+          "We could not delete that work. Please try again.",
       );
     } finally {
       setDeletingWorkId(null);
@@ -1028,7 +1035,8 @@ export default function ProfileClient({
 
       if (!result?.success) {
         throw new Error(
-          result?.error || "Failed to delete your Youth Space account data.",
+          result?.error ||
+            "Failed to delete your Youth Space account data.",
         );
       }
 
@@ -1041,12 +1049,17 @@ export default function ProfileClient({
       setDeletePasswordError("");
       setConfirmAction(null);
 
-      showSuccess("Your Youth Space account has been permanently deleted.");
+      showSuccess(
+        "Your Youth Space account has been permanently deleted.",
+      );
 
       router.replace("/");
       router.refresh();
     } catch (error) {
-      console.error("Failed to permanently delete account:", error);
+      console.error(
+        "Failed to permanently delete account:",
+        error,
+      );
 
       const code = error?.code;
 
@@ -1058,7 +1071,9 @@ export default function ProfileClient({
           "The password is incorrect. Please try again.",
         );
 
-        showError("The password is incorrect. Please try again.");
+        showError(
+          "The password is incorrect. Please try again.",
+        );
 
         return;
       }
@@ -1080,7 +1095,9 @@ export default function ProfileClient({
           "Too many attempts. Please wait a moment and try again.",
         );
 
-        showError("Too many attempts. Please wait a moment and try again.");
+        showError(
+          "Too many attempts. Please wait a moment and try again.",
+        );
 
         return;
       }
@@ -1096,7 +1113,8 @@ export default function ProfileClient({
       }
 
       const message =
-        error?.message || "We could not delete your account. Please try again.";
+        error?.message ||
+        "We could not delete your account. Please try again.";
 
       setDeletePasswordError(message);
       showError(message);
@@ -1136,7 +1154,9 @@ export default function ProfileClient({
 
       setConfirmAction(null);
 
-      showError("We could not complete the logout clean-up. Please try again.");
+      showError(
+        "We could not complete the logout clean-up. Please try again.",
+      );
 
       router.replace("/");
       router.refresh();
@@ -1167,6 +1187,7 @@ export default function ProfileClient({
       setConfirmAction(null);
       setDeletePasswordError("");
       setDeletePasswordOpen(true);
+
       return;
     }
 
@@ -1217,10 +1238,9 @@ export default function ProfileClient({
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
           <Link
             href="/"
-            aria-label="Youth Space home"
-            className="group shrink-0 outline-none"
+            className="group shrink-0 rounded-lg outline-none focus:ring-4 focus:ring-slate-950/[0.04]"
           >
-            <div className="transition-transform duration-300 group-hover:scale-[1.02]">
+            <div className="transition-transform duration-200 group-hover:scale-[1.01]">
               <YouthSpaceBrand
                 size={38}
                 priority
@@ -1233,30 +1253,34 @@ export default function ProfileClient({
           <Link
             href="/profile"
             aria-label="Open profile"
-            className="group flex items-center gap-2 rounded-2xl p-1.5 outline-none transition hover:bg-slate-50 focus:ring-4 focus:ring-slate-100"
+            className="group flex items-center gap-2 rounded-xl p-1.5 outline-none transition hover:bg-slate-50 focus:ring-4 focus:ring-slate-950/[0.04]"
           >
             <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-xs font-black text-white">
               {currentProfile?.avatar ? (
                 <Image
                   src={currentProfile.avatar}
-                  alt={currentProfile.displayName || "Profile"}
+                  alt={
+                    currentProfile.displayName || "Profile"
+                  }
                   fill
                   sizes="40px"
                   className="object-cover"
                 />
               ) : (
-                currentProfile?.displayName?.trim()?.charAt(0)?.toUpperCase() ||
-                "U"
+                currentProfile?.displayName
+                  ?.trim()
+                  ?.charAt(0)
+                  ?.toUpperCase() || "U"
               )}
             </div>
 
             <div className="hidden min-w-0 text-left md:block">
-              <p className="max-w-[150px] truncate text-xs font-black tracking-tight text-slate-950">
+              <p className="max-w-[140px] truncate text-xs font-black text-slate-950">
                 {currentProfile?.displayName || "User"}
               </p>
 
               {currentProfile?.email && (
-                <p className="mt-0.5 max-w-[150px] truncate text-[10px] font-medium text-slate-400">
+                <p className="mt-0.5 max-w-[140px] truncate text-[10px] font-medium text-slate-400">
                   {currentProfile.email}
                 </p>
               )}
@@ -1269,99 +1293,95 @@ export default function ProfileClient({
       {/* Main                                                               */}
       {/* ================================================================== */}
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
-        {/* Page heading */}
-
-        <div className="mb-7 sm:mb-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div className="mb-8">
           <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-            Account settings
+            Settings
           </p>
 
-          <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">
-            Manage your profile
+          <h1 className="text-2xl font-black tracking-[-0.035em] text-slate-950 sm:text-3xl">
+            Account
           </h1>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Keep your Youth Space profile, professional information,
-            portfolio and account settings up to date.
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+            Manage your Youth Space profile, professional information,
+            portfolio and account settings.
           </p>
         </div>
 
-        {/* ================================================================= */}
-        {/* Mobile section selector                                           */}
-        {/* ================================================================= */}
-
-        <div className="mb-5 lg:hidden">
-          <FilterButton
-            icon={getSectionIcon(activeSection)}
-            options={["Profile", "Professional", "Portfolio", "Account"]}
-            value={capitalize(activeSection)}
-            full
-            placeholder="Select section"
-            onChange={(value) => {
-              if (destructiveActionRunning || saving) {
-                return;
-              }
-
-              setActiveSection(value.toLowerCase());
-            }}
-          />
-        </div>
-
-        {/* ================================================================= */}
-        {/* Content layout                                                    */}
-        {/* ================================================================= */}
-
-        <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-          {/* =============================================================== */}
-          {/* Desktop navigation                                               */}
-          {/* =============================================================== */}
+        <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+          {/* ============================================================== */}
+          {/* Desktop navigation                                             */}
+          {/* ============================================================== */}
 
           <aside className="hidden lg:block">
-            <nav className="sticky top-24 rounded-2xl border border-slate-200 bg-white p-2">
-              <p className="px-3 pb-2 pt-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                Settings
-              </p>
+            <nav
+              aria-label="Profile settings"
+              className="sticky top-24 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm shadow-slate-950/[0.02]"
+            >
+              <SectionButton
+                icon={UserRound}
+                label="Profile"
+                active={activeSection === "profile"}
+                disabled={destructiveActionRunning || saving}
+                onClick={() => selectSection("profile")}
+              />
 
-              <div className="space-y-1">
-                <SectionButton
-                  icon={UserRound}
-                  label="Profile"
-                  active={activeSection === "profile"}
-                  disabled={destructiveActionRunning || saving}
-                  onClick={() => selectSection("profile")}
-                />
+              <SectionButton
+                icon={BriefcaseBusiness}
+                label="Professional"
+                active={activeSection === "professional"}
+                disabled={destructiveActionRunning || saving}
+                onClick={() => selectSection("professional")}
+              />
 
-                <SectionButton
-                  icon={BriefcaseBusiness}
-                  label="Professional"
-                  active={activeSection === "professional"}
-                  disabled={destructiveActionRunning || saving}
-                  onClick={() => selectSection("professional")}
-                />
+              <SectionButton
+                icon={ImageIcon}
+                label="Portfolio"
+                active={activeSection === "portfolio"}
+                disabled={destructiveActionRunning || saving}
+                onClick={() => selectSection("portfolio")}
+              />
 
-                <SectionButton
-                  icon={ImageIcon}
-                  label="Portfolio"
-                  active={activeSection === "portfolio"}
-                  disabled={destructiveActionRunning || saving}
-                  onClick={() => selectSection("portfolio")}
-                />
-
-                <SectionButton
-                  icon={Settings}
-                  label="Account"
-                  active={activeSection === "account"}
-                  disabled={destructiveActionRunning || saving}
-                  onClick={() => selectSection("account")}
-                />
-              </div>
+              <SectionButton
+                icon={Settings}
+                label="Account"
+                active={activeSection === "account"}
+                disabled={destructiveActionRunning || saving}
+                onClick={() => selectSection("account")}
+              />
             </nav>
           </aside>
 
-          {/* =============================================================== */}
-          {/* Sections                                                         */}
-          {/* =============================================================== */}
+          {/* ============================================================== */}
+          {/* Mobile navigation                                               */}
+          {/* ============================================================== */}
+
+          <div className="lg:hidden">
+            <FilterButton
+              icon={getSectionIcon(activeSection)}
+              options={[
+                "Profile",
+                "Professional",
+                "Portfolio",
+                "Account",
+              ]}
+              value={capitalize(activeSection)}
+              full
+              placeholder="Select section"
+              onChange={(value) => {
+                if (destructiveActionRunning || saving) {
+                  return;
+                }
+
+                setActiveSection(value.toLowerCase());
+              }}
+            />
+          </div>
+
+          {/* ============================================================== */}
+          {/* Sections                                                        */}
+          {/* ============================================================== */}
 
           <div className="min-w-0">
             {activeSection === "profile" && (
@@ -1479,7 +1499,9 @@ export default function ProfileClient({
             if (work) {
               setCurrentWorks((current) => [work, ...current]);
 
-              showSuccess("Your work has been added to your portfolio.");
+              showSuccess(
+                "Your work has been added to your portfolio.",
+              );
             }
 
             setActiveModal(null);
@@ -1534,19 +1556,20 @@ function SectionButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`group flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-bold outline-none transition ${
+      className={[
+        "flex h-11 w-full items-center gap-3 rounded-xl px-3",
+        "text-left text-sm font-bold outline-none transition",
+        "focus:ring-4 focus:ring-slate-950/[0.04]",
         active
-          ? "bg-slate-950 text-white shadow-lg shadow-slate-950/10"
-          : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-      } disabled:cursor-not-allowed disabled:opacity-50 focus:ring-4 ${
-        active ? "focus:ring-slate-950/[0.06]" : "focus:ring-slate-100"
-      }`}
+          ? "bg-slate-950 text-white shadow-sm"
+          : "text-slate-600 hover:bg-slate-50 hover:text-slate-950",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+      ].join(" ")}
     >
       <Icon
-        size={18}
+        size={17}
         strokeWidth={2}
         aria-hidden="true"
-        className={active ? "text-white" : "text-slate-400"}
       />
 
       <span>{label}</span>

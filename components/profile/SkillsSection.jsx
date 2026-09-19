@@ -1,9 +1,4 @@
-import {
-  Check,
-  Pencil,
-  Plus,
-  Sparkles,
-} from "lucide-react";
+import { Check, Pencil, Plus, Sparkles } from "lucide-react";
 
 export default function SkillsSection({
   skills = [],
@@ -16,18 +11,14 @@ export default function SkillsSection({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      {/* ================================================================== */}
-      {/* Header                                                             */}
-      {/* ================================================================== */}
+      {/* ================================================================== /}
+{/ Header                                                             /}
+{/ ================================================================== */}
 
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:items-center sm:px-6 sm:py-6">
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
-            <Sparkles
-              size={18}
-              strokeWidth={2}
-              aria-hidden="true"
-            />
+            <Sparkles size={18} strokeWidth={2} aria-hidden="true" />
           </div>
 
           <div className="min-w-0">
@@ -35,7 +26,7 @@ export default function SkillsSection({
               What you can do
             </p>
 
-            <h2 className="mt-1 text-base font-black tracking-tight text-slate-950">
+            <h2 className="mt-1 text-lg font-black tracking-[-0.025em] text-slate-950">
               Skills
             </h2>
 
@@ -53,31 +44,17 @@ export default function SkillsSection({
           >
             {hasSkills ? (
               <>
-                <Pencil
-                  size={14}
-                  strokeWidth={2.5}
-                  aria-hidden="true"
-                />
+                <Pencil size={14} strokeWidth={2.5} aria-hidden="true" />
 
-                <span className="hidden sm:inline">
-                  Edit
-                </span>
+                <span className="hidden sm:inline">Edit</span>
               </>
             ) : (
               <>
-                <Plus
-                  size={15}
-                  strokeWidth={2.5}
-                  aria-hidden="true"
-                />
+                <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
 
-                <span className="hidden sm:inline">
-                  Add skill
-                </span>
+                <span className="hidden sm:inline">Add skill</span>
 
-                <span className="sm:hidden">
-                  Add
-                </span>
+                <span className="sm:hidden">Add</span>
               </>
             )}
           </button>
@@ -85,7 +62,7 @@ export default function SkillsSection({
       </div>
 
       {/* ================================================================== */}
-      {/* Skills                                                             */}
+      {/* Content                                                            */}
       {/* ================================================================== */}
 
       <div className="px-5 py-6 sm:px-6">
@@ -93,68 +70,50 @@ export default function SkillsSection({
           <div className="flex flex-wrap gap-2">
             {skills.map((skill, index) => {
               const value =
-                typeof skill === "string"
-                  ? skill
-                  : skill?.name || "";
+                typeof skill === "string" ? skill : skill?.name || "";
 
               if (!value.trim()) {
                 return null;
               }
 
-              return (
-                <Skill
-                  key={`${value}-${index}`}
-                  value={value.trim()}
-                />
-              );
+              return <Skill key={`${value}-${index}`} value={value.trim()} />;
             })}
           </div>
         ) : (
-          <EmptySkills
-            editable={editable}
-            onAdd={onAdd}
-          />
+          <EmptySkills editable={editable} onAdd={onAdd} />
         )}
       </div>
     </section>
   );
 }
 
-/* ========================================================================== */
-/* Skill                                                                      */
-/* ========================================================================== */
+/* ========================================================================== /
+/ Skill                                                                      /
+/ ========================================================================== */
 
 function Skill({ value }) {
   return (
-    <div className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2">
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 shadow-sm">
-        <Check
-          size={11}
-          strokeWidth={3}
-          aria-hidden="true"
-        />
+    <div className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 transition hover:border-slate-300 hover:bg-slate-100/70">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 ring-1 ring-slate-200">
+        <Check size={11} strokeWidth={3} aria-hidden="true" />
       </span>
 
-      <span className="truncate text-xs font-bold text-slate-700">
+      <span className="max-w-[240px] truncate text-xs font-bold text-slate-700">
         {value}
       </span>
     </div>
   );
 }
 
-/* ========================================================================== */
-/* Empty State                                                                */
-/* ========================================================================== */
+/* ========================================================================== /
+/ Empty State                                                                /
+/ ========================================================================== */
 
 function EmptySkills({ editable, onAdd }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-9 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
-        <Sparkles
-          size={21}
-          strokeWidth={1.8}
-          aria-hidden="true"
-        />
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 ring-1 ring-slate-200">
+        <Sparkles size={21} strokeWidth={1.8} aria-hidden="true" />
       </div>
 
       <p className="mt-4 text-sm font-black tracking-tight text-slate-950">
@@ -172,12 +131,7 @@ function EmptySkills({ editable, onAdd }) {
           onClick={onAdd}
           className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0"
         >
-          <Plus
-            size={16}
-            strokeWidth={2.5}
-            aria-hidden="true"
-          />
-
+          <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
           Add skill
         </button>
       )}
