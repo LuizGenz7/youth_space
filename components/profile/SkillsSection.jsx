@@ -120,7 +120,7 @@ function EmptySkills({ editable, onAdd }) {
         No skills added yet
       </p>
 
-      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-6 font-medium text-slate-500">
+      <p className="mx-auto mt-1.5 max-w-sm  text-sm leading-6 font-medium text-slate-500">
         Add the skills you have so people can quickly understand what you can
         do.
       </p>
