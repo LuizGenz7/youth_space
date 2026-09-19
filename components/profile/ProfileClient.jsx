@@ -44,6 +44,8 @@ import {
 
 import YouthSpaceBrand from "../brand/YouthSpaceBrand";
 
+import { useSnackbarStore } from "@/stores/useSnackbarStore";
+
 /* ========================================================================== */
 /* Constants                                                                  */
 /* ========================================================================== */
@@ -64,6 +66,8 @@ export default function ProfileClient({
   categories = [],
 }) {
   const router = useRouter();
+
+  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
 
   /* ====================================================================== */
   /* Refs                                                                   */
@@ -93,8 +97,6 @@ export default function ProfileClient({
 
   const [saving, setSaving] = useState(false);
   const [savingAvailability, setSavingAvailability] = useState(false);
-
-  const [formError, setFormError] = useState("");
 
   /* ====================================================================== */
   /* Destructive actions                                                    */
@@ -173,6 +175,31 @@ export default function ProfileClient({
     Boolean(deletingWorkId);
 
   /* ====================================================================== */
+  /* Snackbar helpers                                                       */
+  /* ====================================================================== */
+
+  function showError(message) {
+    showSnackbar({
+      type: "error",
+      message,
+    });
+  }
+
+  function showSuccess(message) {
+    showSnackbar({
+      type: "success",
+      message,
+    });
+  }
+
+  function showInfo(message) {
+    showSnackbar({
+      type: "info",
+      message,
+    });
+  }
+
+  /* ====================================================================== */
   /* Navigation                                                             */
   /* ====================================================================== */
 
@@ -182,7 +209,6 @@ export default function ProfileClient({
     }
 
     setActiveSection(section);
-    setFormError("");
   }
 
   /* ====================================================================== */
@@ -190,8 +216,6 @@ export default function ProfileClient({
   /* ====================================================================== */
 
   function updateForm(field, value) {
-    setFormError("");
-
     setProfileForm((current) => ({
       ...current,
       [field]: value,
@@ -222,7 +246,10 @@ export default function ProfileClient({
     }
 
     if (!USERNAME_REGEX.test(username)) {
-      return "Username must be 3–30 characters and use only lowercase letters, numbers and underscores.";
+      return (
+        "Username must be 3–30 characters and use only lowercase " +
+        "letters, numbers and underscores."
+      );
     }
 
     if (role.length < 2) {
@@ -301,12 +328,10 @@ export default function ProfileClient({
       return;
     }
 
-    setFormError("");
-
     const validationError = validateProfileForm();
 
     if (validationError) {
-      setFormError(validationError);
+      showError(validationError);
       return;
     }
 
@@ -354,13 +379,13 @@ export default function ProfileClient({
         whatsapp: updatedProfile?.whatsapp ?? current.whatsapp,
       }));
 
-      setFormError("");
+      showSuccess("Your profile has been updated.");
 
       router.refresh();
     } catch (error) {
       console.error("Failed to save profile:", error);
 
-      setFormError(
+      showError(
         error?.message ||
           "Your profile could not be updated. Please try again.",
       );
@@ -378,22 +403,20 @@ export default function ProfileClient({
       return;
     }
 
-    setFormError("");
-
     const validationError = validateProfileForm();
 
     if (validationError) {
-      setFormError(validationError);
+      showError(validationError);
       return;
     }
 
     if (skills.length > MAX_SKILLS) {
-      setFormError("You can have up to 20 skills.");
+      showError("You can have up to 20 skills.");
       return;
     }
 
     if (services.length > MAX_SERVICES) {
-      setFormError("You can have up to 20 services.");
+      showError("You can have up to 20 services.");
       return;
     }
 
@@ -425,11 +448,13 @@ export default function ProfileClient({
         services: cleanServices,
       }));
 
+      showSuccess("Professional information has been updated.");
+
       router.refresh();
     } catch (error) {
       console.error("Failed to save professional information:", error);
 
-      setFormError(
+      showError(
         error?.message || "Professional information could not be updated.",
       );
     } finally {
@@ -453,12 +478,12 @@ export default function ProfileClient({
     }
 
     if (value.length > 60) {
-      setFormError("Skill is too long.");
+      showError("Skill is too long.");
       return;
     }
 
     if (skills.length >= MAX_SKILLS) {
-      setFormError("You can have up to 20 skills.");
+      showError("You can have up to 20 skills.");
       return;
     }
 
@@ -470,12 +495,14 @@ export default function ProfileClient({
 
     if (exists) {
       setSkillInput("");
+
+      showInfo("That skill is already in your profile.");
+
       return;
     }
 
     setSkills((current) => [...current, value]);
     setSkillInput("");
-    setFormError("");
   }
 
   function removeSkill(skillToRemove) {
@@ -495,16 +522,21 @@ export default function ProfileClient({
       return;
     }
 
-    setFormError("");
+    if (skills.length > MAX_SKILLS) {
+      showError("You can have up to 20 skills.");
+      return;
+    }
 
     try {
       setSaving(true);
+
+      const cleanServices = normalizeServices(services);
 
       const result = await updateProfileAction(
         getProfilePayload({
           avatar: currentProfile?.avatar || null,
           skills,
-          services: normalizeServices(services),
+          services: cleanServices,
         }),
       );
 
@@ -520,11 +552,13 @@ export default function ProfileClient({
 
       setActiveModal(null);
 
+      showSuccess("Your skills have been saved.");
+
       router.refresh();
     } catch (error) {
       console.error("Failed to save skills:", error);
 
-      setFormError(error?.message || "Failed to save skills.");
+      showError(error?.message || "Failed to save your skills.");
     } finally {
       setSaving(false);
     }
@@ -576,7 +610,7 @@ export default function ProfileClient({
     }
 
     if (services.length >= MAX_SERVICES) {
-      setFormError("You can have up to 20 services.");
+      showError("You can have up to 20 services.");
       return;
     }
 
@@ -589,7 +623,7 @@ export default function ProfileClient({
     }
 
     if (name.length > 100) {
-      setFormError("Service name is too long.");
+      showError("Service name is too long.");
       return;
     }
 
@@ -600,6 +634,7 @@ export default function ProfileClient({
     });
 
     if (exists) {
+      showInfo("That service is already in your profile.");
       return;
     }
 
@@ -610,8 +645,6 @@ export default function ProfileClient({
         name,
       },
     ]);
-
-    setFormError("");
   }
 
   function removeService(serviceToRemove) {
@@ -633,12 +666,10 @@ export default function ProfileClient({
       return;
     }
 
-    setFormError("");
-
     const cleanServices = normalizeServices(services);
 
     if (cleanServices.length > MAX_SERVICES) {
-      setFormError("You can have up to 20 services.");
+      showError("You can have up to 20 services.");
       return;
     }
 
@@ -667,11 +698,13 @@ export default function ProfileClient({
 
       setActiveModal(null);
 
+      showSuccess("Your services have been saved.");
+
       router.refresh();
     } catch (error) {
       console.error("Failed to save services:", error);
 
-      setFormError(error?.message || "Failed to save services.");
+      showError(error?.message || "Failed to save your services.");
     } finally {
       setSaving(false);
     }
@@ -686,42 +719,48 @@ export default function ProfileClient({
       return;
     }
 
-    setFormError("");
-
     const validationError = validateProfileForm();
 
     if (validationError) {
-      setFormError(validationError);
+      showError(validationError);
       return;
     }
 
     try {
       setSavingAvailability(true);
 
+      const available = Boolean(value);
+
       const result = await updateProfileAction(
         getProfilePayload({
           avatar: currentProfile?.avatar || null,
-          available: Boolean(value),
+          available,
           skills,
           services: normalizeServices(services),
         }),
       );
 
       if (!result?.success) {
-        throw new Error(result?.error || "Failed to update availability.");
+        throw new Error(result?.error || "Failed to update your availability.");
       }
 
       setCurrentProfile((current) => ({
         ...current,
         ...result.profile,
-        available: Boolean(value),
+        available,
       }));
+
+      showSuccess(
+        available
+          ? "Your profile is now marked as available."
+          : "Your profile is now marked as unavailable.",
+      );
 
       router.refresh();
     } catch (error) {
       console.error("Failed to update availability:", error);
 
-      setFormError(error?.message || "Failed to update availability.");
+      showError(error?.message || "Failed to update your availability.");
     } finally {
       setSavingAvailability(false);
     }
@@ -751,14 +790,16 @@ export default function ProfileClient({
     }
 
     if (!file.type.startsWith("image/")) {
-      setFormError("Please select an image file.");
+      showError("Please select an image file.");
+      event.target.value = "";
       return;
     }
 
     const maxSize = 5 * 1024 * 1024;
 
     if (file.size > maxSize) {
-      setFormError("Profile images must be smaller than 5MB.");
+      showError("Profile images must be smaller than 5MB.");
+      event.target.value = "";
       return;
     }
 
@@ -766,9 +807,12 @@ export default function ProfileClient({
 
     reader.onload = () => {
       setAvatarPreview(reader.result);
-      setFormError(
-        "Photo preview updated. Upload handling must save the image before it becomes permanent.",
-      );
+
+      showInfo("Photo preview updated. Save/upload it to make it permanent.");
+    };
+
+    reader.onerror = () => {
+      showError("We could not preview that image. Please try another one.");
     };
 
     reader.readAsDataURL(file);
@@ -784,7 +828,6 @@ export default function ProfileClient({
     }
 
     setActiveModal("skills");
-    setFormError("");
   }
 
   function openServices() {
@@ -793,7 +836,6 @@ export default function ProfileClient({
     }
 
     setActiveModal("services");
-    setFormError("");
   }
 
   function openAddWork() {
@@ -857,9 +899,15 @@ export default function ProfileClient({
 
       setConfirmAction(null);
 
+      showSuccess("Your work has been deleted.");
+
       router.refresh();
     } catch (error) {
       console.error("Failed to delete work:", error);
+
+      showError(
+        error?.message || "We could not delete that work. Please try again.",
+      );
     } finally {
       setDeletingWorkId(null);
     }
@@ -973,6 +1021,8 @@ export default function ProfileClient({
     if (!trimmedPassword) {
       setDeletePasswordError("Please enter your current password.");
 
+      showError("Please enter your current password.");
+
       return;
     }
 
@@ -1004,6 +1054,8 @@ export default function ProfileClient({
       setDeletePasswordError("");
       setConfirmAction(null);
 
+      showSuccess("Your Youth Space account has been permanently deleted.");
+
       router.replace("/");
       router.refresh();
     } catch (error) {
@@ -1017,11 +1069,17 @@ export default function ProfileClient({
       ) {
         setDeletePasswordError("The password is incorrect. Please try again.");
 
+        showError("The password is incorrect. Please try again.");
+
         return;
       }
 
       if (code === "auth/requires-recent-login") {
         setDeletePasswordError(
+          "For security, please sign in again before deleting your account.",
+        );
+
+        showError(
           "For security, please sign in again before deleting your account.",
         );
 
@@ -1033,20 +1091,26 @@ export default function ProfileClient({
           "Too many attempts. Please wait a moment and try again.",
         );
 
+        showError("Too many attempts. Please wait a moment and try again.");
+
         return;
       }
 
       if (firestoreDeleted) {
-        setDeletePasswordError(
-          "Your Youth Space account data was deleted, but we could not finish deleting your sign-in account. Please contact support.",
-        );
+        const message =
+          "Your Youth Space account data was deleted, but we could not finish deleting your sign-in account. Please contact support.";
+
+        setDeletePasswordError(message);
+        showError(message);
 
         return;
       }
 
-      setDeletePasswordError(
-        error?.message || "We could not delete your account. Please try again.",
-      );
+      const message =
+        error?.message || "We could not delete your account. Please try again.";
+
+      setDeletePasswordError(message);
+      showError(message);
     } finally {
       setDeletePasswordLoading(false);
       setDeletingProfile(false);
@@ -1074,12 +1138,16 @@ export default function ProfileClient({
 
       setConfirmAction(null);
 
+      showSuccess("You have been signed out.");
+
       router.replace("/");
       router.refresh();
     } catch (error) {
       console.error("Failed to log out:", error);
 
       setConfirmAction(null);
+
+      showError("We could not complete the logout clean-up. Please try again.");
 
       router.replace("/");
       router.refresh();
@@ -1103,7 +1171,6 @@ export default function ProfileClient({
 
     if (confirmAction.type === "work") {
       handleDeleteWork(confirmAction.workId);
-
       return;
     }
 
@@ -1155,6 +1222,7 @@ export default function ProfileClient({
   return (
     <main className="min-h-screen bg-slate-50">
       {/* Header */}
+
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
           <Link href="/" className="group shrink-0">
@@ -1204,6 +1272,7 @@ export default function ProfileClient({
       </header>
 
       {/* Main */}
+
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-2xl font-black tracking-tight text-slate-950">
@@ -1217,6 +1286,7 @@ export default function ProfileClient({
 
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
           {/* Desktop navigation */}
+
           <aside className="hidden lg:block">
             <nav className="sticky top-24 space-y-1 rounded-2xl border border-slate-200 bg-white p-2">
               <SectionButton
@@ -1254,6 +1324,7 @@ export default function ProfileClient({
           </aside>
 
           {/* Mobile navigation */}
+
           <div className="lg:hidden">
             <FilterButton
               icon={getSectionIcon(activeSection)}
@@ -1272,6 +1343,7 @@ export default function ProfileClient({
           </div>
 
           {/* Sections */}
+
           <div className="min-w-0">
             {activeSection === "profile" && (
               <ProfileSection
@@ -1288,7 +1360,7 @@ export default function ProfileClient({
                 onOpenServices={openServices}
                 onSave={handleSaveProfile}
                 saving={saving}
-                error={formError}
+                error=""
               />
             )}
 
@@ -1306,7 +1378,7 @@ export default function ProfileClient({
                 onSave={handleSaveProfessional}
                 saving={saving}
                 savingAvailability={savingAvailability}
-                error={formError}
+                error=""
               />
             )}
 
@@ -1333,6 +1405,7 @@ export default function ProfileClient({
       </div>
 
       {/* Avatar input */}
+
       <input
         ref={avatarInputRef}
         type="file"
@@ -1342,6 +1415,7 @@ export default function ProfileClient({
       />
 
       {/* Skills modal */}
+
       {activeModal === "skills" && (
         <SkillsModal
           skills={skills}
@@ -1356,6 +1430,7 @@ export default function ProfileClient({
       )}
 
       {/* Services modal */}
+
       {activeModal === "services" && (
         <ServicesModal
           services={services}
@@ -1368,6 +1443,7 @@ export default function ProfileClient({
       )}
 
       {/* Work modal */}
+
       {activeModal === "work" && (
         <WorkModal
           categories={categoryOptions}
@@ -1375,6 +1451,8 @@ export default function ProfileClient({
           onCreated={(work) => {
             if (work) {
               setCurrentWorks((current) => [work, ...current]);
+
+              showSuccess("Your work has been added to your portfolio.");
             }
 
             setActiveModal(null);
@@ -1385,6 +1463,7 @@ export default function ProfileClient({
       )}
 
       {/* Confirmation */}
+
       {confirmAction && (
         <ConfirmModal
           type={confirmAction.type}
@@ -1395,6 +1474,7 @@ export default function ProfileClient({
       )}
 
       {/* Account deletion */}
+
       {deletePasswordOpen && (
         <DeleteAccountPasswordModal
           email={currentProfile?.email}
