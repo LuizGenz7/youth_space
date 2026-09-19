@@ -20,46 +20,29 @@ export default function ProfileHero({
   onToggleAvailability,
   saving = false,
 }) {
-  const displayName =
-    profile?.displayName || "Your Name";
+  const displayName = profile?.displayName || "Your Name";
 
-  const role =
-    profile?.role || "Talent";
+  const role = profile?.role || "Talent";
 
-  const categoryName =
-    category?.name ||
-    profile?.category ||
-    "Talent";
+  const categoryName = category?.name || profile?.category || "Talent";
 
-  const location = [
-    profile?.district,
-    profile?.province,
-  ]
+  const location = [profile?.district, profile?.province]
     .filter(Boolean)
     .join(", ");
 
-  const likes = Number(
-    profile?.likes || 0,
-  );
+  const likes = Number(profile?.likes || 0);
 
-  const workCount = Number(
-    profile?.workCount || 0,
-  );
+  const workCount = Number(profile?.workCount || 0);
 
-  const verified =
-    profile?.verified === true;
+  const verified = profile?.verified === true;
 
-  const available =
-    profile?.available === true;
+  const available = profile?.available === true;
 
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       {/* COVER */}
       <div className="relative h-32 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 sm:h-40">
-        <div
-          className="absolute inset-0 opacity-30"
-          aria-hidden="true"
-        >
+        <div className="absolute inset-0 opacity-30" aria-hidden="true">
           <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-white/10" />
           <div className="absolute -right-5 -top-9 h-36 w-36 rounded-full border border-white/10" />
         </div>
@@ -74,25 +57,16 @@ export default function ProfileHero({
       {/* PROFILE BODY */}
       <div className="px-5 pb-5 sm:px-7 sm:pb-7">
         <div className="-mt-12 flex flex-col gap-5 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
-          
           {/* AVATAR */}
           <div className="relative w-fit">
-            <ProfileAvatar
-              src={profile?.avatar}
-              name={displayName}
-              size="xl"
-            />
+            <ProfileAvatar src={profile?.avatar} name={displayName} size="xl" />
 
             {available && (
               <span
                 className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border-[3px] border-white bg-emerald-500"
                 title="Available"
               >
-                <Check
-                  size={10}
-                  strokeWidth={3}
-                  className="text-white"
-                />
+                <Check size={10} strokeWidth={3} className="text-white" />
               </span>
             )}
           </div>
@@ -128,25 +102,17 @@ export default function ProfileHero({
             )}
           </div>
 
-          <p className="mt-1 text-sm font-bold text-slate-500">
-            {role}
-          </p>
+          <p className="mt-1 text-sm font-bold text-slate-500">{role}</p>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-500">
             <span className="inline-flex items-center gap-1.5">
-              <Sparkles
-                size={14}
-                className="text-slate-400"
-              />
+              <Sparkles size={14} className="text-slate-400" />
               {categoryName}
             </span>
 
             {location && (
               <span className="inline-flex items-center gap-1.5">
-                <MapPin
-                  size={14}
-                  className="text-slate-400"
-                />
+                <MapPin size={14} className="text-slate-400" />
                 {location}
               </span>
             )}
@@ -162,22 +128,11 @@ export default function ProfileHero({
 
         {/* STATS */}
         <div className="mt-6 grid grid-cols-3 divide-x divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-          <Stat
-            value={workCount}
-            label="Works"
-          />
+          <Stat value={workCount} label="Works" />
 
-          <Stat
-            value={likes}
-            label="Likes"
-          />
+          <Stat value={likes} label="Likes" />
 
-          <Stat
-            value={
-              profile?.services?.length || 0
-            }
-            label="Services"
-          />
+          <Stat value={profile?.services?.length || 0} label="Services" />
         </div>
 
         {/* AVAILABILITY */}
@@ -190,11 +145,7 @@ export default function ProfileHero({
                   : "bg-slate-100 text-slate-400"
               }`}
             >
-              {available ? (
-                <Check size={16} />
-              ) : (
-                <X size={16} />
-              )}
+              {available ? <Check size={16} /> : <X size={16} />}
             </div>
 
             <div>
@@ -205,8 +156,7 @@ export default function ProfileHero({
               </p>
 
               <p className="mt-0.5 text-[11px] text-slate-400">
-                Let people know whether you're
-                currently available.
+                Let people know whether you&apos;re currently available.
               </p>
             </div>
           </div>
@@ -233,10 +183,7 @@ export default function ProfileHero({
   );
 }
 
-function Stat({
-  value,
-  label,
-}) {
+function Stat({ value, label }) {
   return (
     <div className="px-3 py-3.5 text-center">
       <p className="text-lg font-black tracking-tight text-slate-950">

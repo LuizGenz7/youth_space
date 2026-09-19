@@ -663,7 +663,7 @@ export default function LoginPage() {
               {/* Register */}
 
               <p className="mt-8 text-center text-sm text-slate-500">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href="/register"
                   className="font-black text-slate-950 hover:underline"
@@ -675,7 +675,7 @@ export default function LoginPage() {
               {/* Legal */}
 
               <p className="mx-auto mt-7 max-w-sm text-center text-[10px] leading-5 text-slate-400">
-                By continuing, you agree to Youth Space's{" "}
+                By continuing, you agree to Youth Space&apos;s{" "}
                 <Link
                   href="/terms"
                   className="font-bold text-slate-600 hover:text-slate-950"
@@ -772,7 +772,7 @@ export default function LoginPage() {
                 </span>
 
                 <span className="text-[10px] font-bold text-white/80">
-                  Zambia's youth talent platform
+                  Zambia&apos;s youth talent platform
                 </span>
               </div>
 
@@ -815,8 +815,8 @@ export default function LoginPage() {
             <div className="mt-auto pt-16">
               <div className="max-w-xl border-l border-white/20 pl-5">
                 <p className="text-sm font-medium leading-6 text-white/55">
-                  "Your skills can open doors. Youth Space helps people find
-                  them."
+                  &quot;Your skills can open doors. Youth Space helps people find
+                  them.&quot;
                 </p>
 
                 <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">

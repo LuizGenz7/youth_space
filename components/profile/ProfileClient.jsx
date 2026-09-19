@@ -33,7 +33,6 @@ import {
   WorkModal,
 } from "./ProfileModals";
 
-import FilterButton from "../talents/FilterButton";
 
 import {
   deleteCurrentAuthUser,
@@ -43,6 +42,7 @@ import {
 
 import YouthSpaceBrand from "../brand/YouthSpaceBrand";
 import { useSnackbarStore } from "@/stores/useSnackbarStore";
+import FilterButton from "../talents/FilterButton";
 
 /* ========================================================================== */
 /* Constants                                                                  */
