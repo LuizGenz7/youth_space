@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   ZAMBIA_PROVINCES,
-  getDistrictsByProvince
+  getDistrictsByProvince,
 } from "@/data/zambia-locations";
 
 export default function ProfileSection({
@@ -41,46 +41,59 @@ export default function ProfileSection({
   return (
     <div className="space-y-6">
       {/* ================================================================== */}
-      {/* Personal information                                               */}
+      {/* Personal Information                                               */}
       {/* ================================================================== */}
 
-      <section className="rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        {/* Header */}
+
+        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
           <SectionHeading
             icon={User}
+            eyebrow="Profile"
             title="Personal information"
             description="Manage the information people see on your profile."
           />
         </div>
 
         <div className="space-y-7 px-5 py-6 sm:px-6">
-          {/* ============================================================ */}
-          {/* Profile photo                                                 */}
-          {/* ============================================================ */}
+          {/* Profile Photo */}
 
           <div>
             <label className="mb-3 block text-sm font-bold text-slate-800">
               Profile photo
             </label>
 
-            <div className="flex items-center gap-4">
-              <Avatar src={profile?.avatar} name={profile?.displayName} />
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <Avatar
+                src={profile?.avatar}
+                name={profile?.displayName}
+              />
 
-              <button
-                type="button"
-                onClick={onAvatarClick}
-                disabled={saving}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <ImagePlus size={17} strokeWidth={2} aria-hidden="true" />
-                Change photo
-              </button>
+              <div>
+                <button
+                  type="button"
+                  onClick={onAvatarClick}
+                  disabled={saving}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <ImagePlus
+                    size={17}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+
+                  Change photo
+                </button>
+
+                <p className="mt-2 text-[11px] font-medium text-slate-400">
+                  Use a clear photo that represents you.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* ============================================================ */}
-          {/* Basic information                                             */}
-          {/* ============================================================ */}
+          {/* Basic Information */}
 
           <div className="grid gap-5 md:grid-cols-2">
             <Field
@@ -89,7 +102,9 @@ export default function ProfileSection({
               placeholder="Your name"
               autoComplete="name"
               disabled={saving}
-              onChange={(value) => onUpdateForm("displayName", value)}
+              onChange={(value) =>
+                onUpdateForm("displayName", value)
+              }
             />
 
             <Field
@@ -98,7 +113,9 @@ export default function ProfileSection({
               placeholder="yourusername"
               autoComplete="username"
               disabled={saving}
-              onChange={(value) => onUpdateForm("username", value)}
+              onChange={(value) =>
+                onUpdateForm("username", value)
+              }
             />
 
             <Field
@@ -115,7 +132,9 @@ export default function ProfileSection({
               inputMode="tel"
               autoComplete="tel"
               disabled={saving}
-              onChange={(value) => onUpdateForm("phone", value)}
+              onChange={(value) =>
+                onUpdateForm("phone", value)
+              }
             />
 
             <Field
@@ -126,13 +145,13 @@ export default function ProfileSection({
               inputMode="tel"
               autoComplete="tel"
               disabled={saving}
-              onChange={(value) => onUpdateForm("whatsapp", value)}
+              onChange={(value) =>
+                onUpdateForm("whatsapp", value)
+              }
             />
           </div>
 
-          {/* ============================================================ */}
-          {/* Bio                                                            */}
-          {/* ============================================================ */}
+          {/* Bio */}
 
           <div>
             <label
@@ -145,27 +164,34 @@ export default function ProfileSection({
             <textarea
               id="profile-bio"
               value={profileForm?.bio || ""}
-              onChange={(event) => onUpdateForm("bio", event.target.value)}
+              onChange={(event) =>
+                onUpdateForm("bio", event.target.value)
+              }
               rows={4}
               maxLength={500}
               placeholder="Tell people a little about yourself..."
               disabled={saving}
-              className="block w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-6 text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
+              className="block w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-medium leading-6 text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
             />
 
-            <div className="mt-2 flex justify-end">
-              <span className="text-[10px] font-medium text-slate-400">
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-[11px] font-medium text-slate-400">
+                Keep your bio clear and useful.
+              </p>
+
+              <span className="text-[10px] font-bold text-slate-400">
                 {(profileForm?.bio || "").length}/500
               </span>
             </div>
           </div>
 
-          {/* ============================================================ */}
-          {/* Save                                                           */}
-          {/* ============================================================ */}
+          {/* Save */}
 
-          <div className="flex justify-end border-t border-slate-100 pt-5">
-            <SaveButton saving={saving} onClick={onSave} />
+          <div className="flex justify-stretch border-t border-slate-100 pt-5 sm:justify-end">
+            <SaveButton
+              saving={saving}
+              onClick={onSave}
+            />
           </div>
         </div>
       </section>
@@ -174,10 +200,11 @@ export default function ProfileSection({
       {/* Location                                                            */}
       {/* ================================================================== */}
 
-      <section className="relative z-20 rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+      <section className="relative z-20 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
           <SectionHeading
             icon={MapPin}
+            eyebrow="Discovery"
             title="Location"
             description="Help people discover talents in your area."
           />
@@ -211,20 +238,28 @@ export default function ProfileSection({
                 ? "No districts available."
                 : "Select a province first."
             }
-            onChange={(value) => onUpdateForm("district", value)}
+            onChange={(value) =>
+              onUpdateForm("district", value)
+            }
           />
         </div>
       </section>
 
       {/* ================================================================== */}
-      {/* Profile overview                                                    */}
+      {/* Profile Overview                                                    */}
       {/* ================================================================== */}
 
-      <section className="rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-          <h2 className="text-sm font-bold text-slate-950">Profile overview</h2>
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+            Overview
+          </p>
 
-          <p className="mt-1 text-xs leading-5 text-slate-500">
+          <h2 className="mt-1 text-base font-black tracking-tight text-slate-950">
+            Profile overview
+          </h2>
+
+          <p className="mt-1 text-sm leading-6 font-medium text-slate-500">
             A quick look at your professional profile.
           </p>
         </div>
@@ -233,7 +268,9 @@ export default function ProfileSection({
           <SummaryRow
             icon={Heart}
             label="Profile likes"
-            value={`${likeCount} ${likeCount === 1 ? "like" : "likes"}`}
+            value={`${likeCount} ${
+              likeCount === 1 ? "like" : "likes"
+            }`}
           />
 
           <SummaryRow
@@ -251,8 +288,14 @@ export default function ProfileSection({
           <SummaryRow
             icon={BriefcaseBusiness}
             label="Skills"
-            value={skills.length > 0 ? skills.join(", ") : "No skills added"}
-            action={<EditButton onClick={onOpenSkills} />}
+            value={
+              skills.length > 0
+                ? skills.join(", ")
+                : "No skills added"
+            }
+            action={
+              <EditButton onClick={onOpenSkills} />
+            }
           />
 
           <SummaryRow
@@ -270,7 +313,9 @@ export default function ProfileSection({
                     .join(", ")
                 : "No services added"
             }
-            action={<EditButton onClick={onOpenServices} />}
+            action={
+              <EditButton onClick={onOpenServices} />
+            }
           />
         </div>
       </section>
@@ -282,22 +327,36 @@ export default function ProfileSection({
 /* Section Heading                                                            */
 /* ========================================================================== */
 
-function SectionHeading({ icon: Icon, title, description }) {
+function SectionHeading({
+  icon: Icon,
+  eyebrow,
+  title,
+  description,
+}) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
         <Icon
           size={18}
           strokeWidth={2}
-          className="text-slate-600"
           aria-hidden="true"
         />
       </div>
 
       <div className="min-w-0">
-        <h2 className="text-sm font-bold text-slate-950">{title}</h2>
+        {eyebrow && (
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+            {eyebrow}
+          </p>
+        )}
 
-        <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+        <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">
+          {title}
+        </h2>
+
+        <p className="mt-1 max-w-xl text-sm leading-6 font-medium text-slate-500">
+          {description}
+        </p>
       </div>
     </div>
   );
@@ -321,11 +380,15 @@ function Avatar({ src, name = "" }) {
   const hasImage = Boolean(src) && !imageError;
 
   return (
-    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 text-base font-bold text-slate-500">
+    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 text-base font-black text-slate-500">
       {hasImage ? (
         <Image
           src={src}
-          alt={name ? `${name} profile photo` : "Profile photo"}
+          alt={
+            name
+              ? `${name} profile photo`
+              : "Profile photo"
+          }
           fill
           sizes="64px"
           className="object-cover"
@@ -352,7 +415,9 @@ function Field({
   inputMode,
   autoComplete,
 }) {
-  const id = `profile-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const id = `profile-${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")}`;
 
   return (
     <div className="min-w-0">
@@ -371,7 +436,9 @@ function Field({
         placeholder={placeholder}
         inputMode={inputMode}
         autoComplete={autoComplete}
-        onChange={(event) => onChange?.(event.target.value)}
+        onChange={(event) =>
+          onChange?.(event.target.value)
+        }
         className={`h-12 w-full rounded-xl border px-4 text-sm font-medium outline-none transition ${
           disabled
             ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
@@ -409,11 +476,21 @@ function CustomSelect({
       }
 
       return {
-        value: option?.value ?? option?.name ?? option?.label ?? "",
-        label: option?.label ?? option?.name ?? option?.value ?? "",
+        value:
+          option?.value ??
+          option?.name ??
+          option?.label ??
+          "",
+        label:
+          option?.label ??
+          option?.name ??
+          option?.value ??
+          "",
       };
     })
-    .filter((option) => option.value && option.label);
+    .filter(
+      (option) => option.value && option.label,
+    );
 
   const selectedOption = normalizedOptions.find(
     (option) => option.value === value,
@@ -429,10 +506,16 @@ function CustomSelect({
       }
     }
 
-    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener(
+      "pointerdown",
+      handlePointerDown,
+    );
 
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener(
+        "pointerdown",
+        handlePointerDown,
+      );
     };
   }, []);
 
@@ -450,7 +533,10 @@ function CustomSelect({
   }
 
   return (
-    <div ref={containerRef} className="relative min-w-0">
+    <div
+      ref={containerRef}
+      className="relative min-w-0"
+    >
       <label className="mb-2 block text-sm font-bold text-slate-800">
         {label}
       </label>
@@ -471,7 +557,9 @@ function CustomSelect({
       >
         <span
           className={`min-w-0 flex-1 truncate ${
-            selectedOption ? "text-slate-700" : "text-slate-400"
+            selectedOption
+              ? "text-slate-700"
+              : "text-slate-400"
           }`}
         >
           {selectedOption?.label || placeholder}
@@ -496,7 +584,8 @@ function CustomSelect({
           >
             {normalizedOptions.length > 0 ? (
               normalizedOptions.map((option) => {
-                const selected = option.value === value;
+                const selected =
+                  option.value === value;
 
                 return (
                   <button
@@ -504,14 +593,20 @@ function CustomSelect({
                     type="button"
                     role="option"
                     aria-selected={selected}
-                    onClick={() => handleSelect(option)}
+                    onClick={() =>
+                      handleSelect(option)
+                    }
                     className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition ${
-                      selected ? "bg-slate-100" : "hover:bg-slate-50"
+                      selected
+                        ? "bg-slate-100"
+                        : "hover:bg-slate-50"
                     }`}
                   >
                     <span
                       className={`min-w-0 truncate text-sm font-bold ${
-                        selected ? "text-slate-950" : "text-slate-700"
+                        selected
+                          ? "text-slate-950"
+                          : "text-slate-700"
                       }`}
                     >
                       {option.label}
@@ -550,7 +645,12 @@ function CustomSelect({
 /* Summary Row                                                                */
 /* ========================================================================== */
 
-function SummaryRow({ icon: Icon, label, value, action }) {
+function SummaryRow({
+  icon: Icon,
+  label,
+  value,
+  action,
+}) {
   return (
     <div className="flex items-start gap-4 px-5 py-5 sm:px-6">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
@@ -563,11 +663,11 @@ function SummaryRow({ icon: Icon, label, value, action }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
           {label}
         </p>
 
-        <p className="mt-1 break-words text-xs font-bold leading-5 text-slate-950">
+        <p className="mt-1 break-words text-sm font-bold leading-6 text-slate-950">
           {value}
         </p>
       </div>
@@ -586,9 +686,14 @@ function EditButton({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04]"
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98]"
     >
-      <Pencil size={13} strokeWidth={2} aria-hidden="true" />
+      <Pencil
+        size={13}
+        strokeWidth={2}
+        aria-hidden="true"
+      />
+
       Edit
     </button>
   );
@@ -604,7 +709,7 @@ function SaveButton({ saving, onClick }) {
       type="button"
       disabled={saving}
       onClick={onClick}
-      className="inline-flex h-12 min-w-[130px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex h-12 w-full min-w-[140px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {saving ? (
         <>

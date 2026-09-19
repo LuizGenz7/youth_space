@@ -18,16 +18,31 @@ export default function AccountSection({
       {/* ================================================================== */}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-          <h2 className="text-sm font-black text-slate-950">Account</h2>
+        {/* Header */}
 
-          <p className="mt-1 text-xs leading-5 font-medium text-slate-400">
-            Manage your account details and access.
-          </p>
+        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
+          <div className="flex items-start gap-3">
+            <SectionIcon icon={UserAccountIcon} />
+
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                Account
+              </p>
+
+              <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">
+                Account details
+              </h2>
+
+              <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
+                Manage your account details and access to Youth Space.
+              </p>
+            </div>
+          </div>
         </div>
 
+        {/* Account rows */}
+
         <div className="divide-y divide-slate-100">
-          {/* Email */}
           <AccountRow
             icon={Mail}
             title="Email address"
@@ -35,7 +50,6 @@ export default function AccountSection({
             trailing={<VerificationBadge verified={emailVerified} />}
           />
 
-          {/* Logout */}
           <AccountAction
             icon={LogOut}
             title="Log out"
@@ -51,30 +65,49 @@ export default function AccountSection({
       {/* ================================================================== */}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+        {/* Header */}
+
+        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
               <ShieldAlert size={18} strokeWidth={2} aria-hidden="true" />
             </div>
 
             <div className="min-w-0">
-              <h2 className="text-sm font-black text-slate-950">Danger zone</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                Security
+              </p>
 
-              <p className="mt-1 text-xs leading-5 font-medium text-slate-400">
+              <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">
+                Danger zone
+              </h2>
+
+              <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
                 These actions can affect your account permanently.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="p-5 sm:p-6">
-          <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold text-slate-950">
-                Delete account
-              </h3>
+        {/* Delete account */}
 
-              <p className="mt-1 max-w-xl text-xs leading-5 font-medium text-slate-500">
+        <div className="p-5 sm:p-6">
+          <div className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Trash2
+                  size={18}
+                  strokeWidth={2}
+                  className="shrink-0 text-slate-500"
+                  aria-hidden="true"
+                />
+
+                <h3 className="text-sm font-black text-slate-950">
+                  Delete account
+                </h3>
+              </div>
+
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
                 Permanently delete your Youth Space profile and associated
                 account data. This action cannot be undone.
               </p>
@@ -84,7 +117,7 @@ export default function AccountSection({
               type="button"
               disabled={deletingProfile}
               onClick={onDeleteAccount}
-              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-950 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-950 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             >
               {deletingProfile ? (
                 <>
@@ -93,7 +126,7 @@ export default function AccountSection({
                 </>
               ) : (
                 <>
-                  <Trash2 size={15} strokeWidth={2.2} aria-hidden="true" />
+                  <Trash2 size={17} strokeWidth={2.2} aria-hidden="true" />
                   Delete account
                 </>
               )}
@@ -111,46 +144,20 @@ export default function AccountSection({
 
 function AccountRow({ icon: Icon, title, description, trailing }) {
   return (
-    <div className="flex items-center gap-4 px-5 py-5 sm:px-6">
+    <div className="flex items-center gap-4 px-5 py-5 sm:px-6 sm:py-6">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-        <Icon size={16} strokeWidth={2} aria-hidden="true" />
+        <Icon size={18} strokeWidth={2} aria-hidden="true" />
       </div>
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-slate-950">{title}</p>
 
-        <p className="mt-1 truncate text-xs font-medium text-slate-500">
+        <p className="mt-1 truncate text-sm font-medium text-slate-500">
           {description}
         </p>
       </div>
 
       {trailing}
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/* Verification Badge                                                         */
-/* ========================================================================== */
-
-function VerificationBadge({ verified }) {
-  if (verified) {
-    return (
-      <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-3 text-xs font-bold text-slate-700">
-        <CheckCircle2
-          size={14}
-          strokeWidth={2.2}
-          className="text-slate-600"
-          aria-hidden="true"
-        />
-        Verified
-      </div>
-    );
-  }
-
-  return (
-    <div className="inline-flex h-9 shrink-0 items-center rounded-xl bg-slate-100 px-3 text-xs font-bold text-slate-500">
-      Not verified
     </div>
   );
 }
@@ -167,24 +174,26 @@ function AccountAction({
   loading = false,
 }) {
   return (
-    <div className="flex items-center gap-4 px-5 py-5 sm:px-6">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-        <Icon size={16} strokeWidth={2} aria-hidden="true" />
-      </div>
+    <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:px-6 sm:py-6">
+      <div className="flex min-w-0 flex-1 items-center gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+          <Icon size={18} strokeWidth={2} aria-hidden="true" />
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-slate-950">{title}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-950">{title}</p>
 
-        <p className="mt-1 text-xs leading-5 font-medium text-slate-500">
-          {description}
-        </p>
+          <p className="mt-1 text-sm leading-6 font-medium text-slate-500">
+            {description}
+          </p>
+        </div>
       </div>
 
       <button
         type="button"
         disabled={loading}
         onClick={onClick}
-        className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
       >
         {loading ? (
           <>
@@ -193,12 +202,70 @@ function AccountAction({
           </>
         ) : (
           <>
-            <LogOut size={15} strokeWidth={2.2} aria-hidden="true" />
+            <LogOut size={17} strokeWidth={2.2} aria-hidden="true" />
             Log out
           </>
         )}
       </button>
     </div>
+  );
+}
+
+/* ========================================================================== */
+/* Verification Badge                                                         */
+/* ========================================================================== */
+
+function VerificationBadge({ verified }) {
+  return verified ? (
+    <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-3 text-xs font-bold text-slate-700">
+      <CheckCircle2
+        size={15}
+        strokeWidth={2.2}
+        className="text-slate-600"
+        aria-hidden="true"
+      />
+      Verified
+    </div>
+  ) : (
+    <div className="inline-flex h-9 shrink-0 items-center rounded-xl bg-slate-50 px-3 text-xs font-bold text-slate-400">
+      Not verified
+    </div>
+  );
+}
+
+/* ========================================================================== */
+/* Section Icon                                                               */
+/* ========================================================================== */
+
+function SectionIcon({ icon: Icon }) {
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
+      <Icon size={18} strokeWidth={2} aria-hidden="true" />
+    </div>
+  );
+}
+
+/* ========================================================================== */
+/* Account Icon                                                               */
+/* ========================================================================== */
+
+function UserAccountIcon({ size = 18, strokeWidth = 2, ...props }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   );
 }
 

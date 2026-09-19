@@ -1,6 +1,10 @@
 "use client";
 
-import { BriefcaseBusiness, Check, Plus } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  Check,
+  Plus,
+} from "lucide-react";
 
 import FilterButton from "../talents/FilterButton";
 
@@ -64,27 +68,41 @@ export default function ProfessionalSection({
       {/* Professional Information                                          */}
       {/* ================================================================== */}
 
-      <section className="relative rounded-2xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        {/* Header */}
+
+        <div className="border-b border-slate-200 px-5 py-5 sm:px-6 sm:py-6">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-              <BriefcaseBusiness size={18} strokeWidth={2} aria-hidden="true" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
+              <BriefcaseBusiness
+                size={18}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
             </div>
 
             <div className="min-w-0">
-              <h2 className="text-sm font-black text-slate-950">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                Professional
+              </p>
+
+              <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950">
                 Professional information
               </h2>
 
-              <p className="mt-1 text-xs leading-5 font-medium text-slate-400">
-                Tell people what you do and what you offer.
+              <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
+                Tell people what you do, what you offer, and whether you are
+                available.
               </p>
             </div>
           </div>
         </div>
 
+        {/* Form */}
+
         <div className="space-y-5 px-5 py-6 sm:px-6">
           {/* Role */}
+
           <div>
             <label
               htmlFor="professional-role"
@@ -100,12 +118,15 @@ export default function ProfessionalSection({
               placeholder="e.g. Graphic Designer"
               disabled={saving}
               autoComplete="organization-title"
-              onChange={(event) => onUpdateForm("role", event.target.value)}
+              onChange={(event) =>
+                onUpdateForm("role", event.target.value)
+              }
               className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-950 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70"
             />
           </div>
 
           {/* Category */}
+
           <div className="relative z-30">
             <label className="mb-2 block text-sm font-bold text-slate-800">
               Category
@@ -127,9 +148,10 @@ export default function ProfessionalSection({
           </div>
 
           {/* Availability */}
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+
+          <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-900">
+              <p className="text-sm font-bold text-slate-950">
                 Available for work
               </p>
 
@@ -151,8 +173,9 @@ export default function ProfessionalSection({
       {/* Skills                                                             */}
       {/* ================================================================== */}
 
-      <section className="relative rounded-2xl border border-slate-200 bg-white">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <SectionHeader
+          eyebrow="What you can do"
           title="Skills"
           description="Add the skills that best describe what you can do."
           action={
@@ -160,10 +183,21 @@ export default function ProfessionalSection({
               type="button"
               disabled={saving}
               onClick={onOpenSkills}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-950 px-3.5 text-xs font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-950/[0.06] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
-              Add skill
+              <Plus
+                size={15}
+                strokeWidth={2.5}
+                aria-hidden="true"
+              />
+
+              <span className="hidden sm:inline">
+                Add skill
+              </span>
+
+              <span className="sm:hidden">
+                Add
+              </span>
             </button>
           }
         />
@@ -173,12 +207,17 @@ export default function ProfessionalSection({
             <div className="flex flex-wrap gap-2">
               {skills.map((skill, index) => {
                 const value =
-                  typeof skill === "string" ? skill : skill?.name || "";
+                  typeof skill === "string"
+                    ? skill
+                    : skill?.name || "";
 
                 if (!value.trim()) return null;
 
                 return (
-                  <SkillChip key={`${value}-${index}`} skill={value.trim()} />
+                  <SkillChip
+                    key={`${value}-${index}`}
+                    skill={value.trim()}
+                  />
                 );
               })}
             </div>
@@ -198,8 +237,9 @@ export default function ProfessionalSection({
       {/* Services                                                           */}
       {/* ================================================================== */}
 
-      <section className="relative rounded-2xl border border-slate-200 bg-white">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <SectionHeader
+          eyebrow="What you offer"
           title="Services"
           description="List the services people can contact you for."
           action={
@@ -207,10 +247,21 @@ export default function ProfessionalSection({
               type="button"
               disabled={saving}
               onClick={onOpenServices}
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-950 px-3.5 text-xs font-bold text-white outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-950/[0.06] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:bg-slate-800 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
-              Add service
+              <Plus
+                size={15}
+                strokeWidth={2.5}
+                aria-hidden="true"
+              />
+
+              <span className="hidden sm:inline">
+                Add service
+              </span>
+
+              <span className="sm:hidden">
+                Add
+              </span>
             </button>
           }
         />
@@ -245,12 +296,12 @@ export default function ProfessionalSection({
       {/* Save                                                               */}
       {/* ================================================================== */}
 
-      <div className="flex justify-end">
+      <div className="flex justify-stretch sm:justify-end">
         <button
           type="button"
           disabled={saving}
           onClick={onSave}
-          className="inline-flex h-12 min-w-[125px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white outline-none transition hover:bg-slate-800 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex h-12 w-full min-w-[140px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
         >
           {saving ? (
             <>
@@ -283,7 +334,11 @@ function LoadingSpinner() {
 /* Availability Switch                                                        */
 /* ========================================================================== */
 
-function AvailabilitySwitch({ checked, loading, onChange }) {
+function AvailabilitySwitch({
+  checked,
+  loading,
+  onChange,
+}) {
   return (
     <button
       type="button"
@@ -296,7 +351,11 @@ function AvailabilitySwitch({ checked, loading, onChange }) {
         checked
           ? "border-slate-950 bg-slate-950"
           : "border-slate-300 bg-slate-200"
-      } ${loading ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+      } ${
+        loading
+          ? "cursor-not-allowed opacity-60"
+          : "cursor-pointer"
+      }`}
     >
       {loading ? (
         <span className="absolute inset-0 flex items-center justify-center">
@@ -305,7 +364,9 @@ function AvailabilitySwitch({ checked, loading, onChange }) {
       ) : (
         <span
           className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-transform duration-200 ease-out ${
-            checked ? "translate-x-5" : "translate-x-0"
+            checked
+              ? "translate-x-5"
+              : "translate-x-0"
           }`}
         />
       )}
@@ -317,13 +378,26 @@ function AvailabilitySwitch({ checked, loading, onChange }) {
 /* Section Header                                                             */
 /* ========================================================================== */
 
-function SectionHeader({ title, description, action }) {
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+  action,
+}) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-6">
+    <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:items-center sm:px-6 sm:py-6">
       <div className="min-w-0">
-        <h2 className="text-sm font-black text-slate-950">{title}</h2>
+        {eyebrow && (
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+            {eyebrow}
+          </p>
+        )}
 
-        <p className="mt-1 text-xs leading-5 font-medium text-slate-400">
+        <h2 className="mt-1 text-base font-black tracking-tight text-slate-950">
+          {title}
+        </h2>
+
+        <p className="mt-1 max-w-xl text-sm leading-6 font-medium text-slate-500">
           {description}
         </p>
       </div>
@@ -341,10 +415,16 @@ function SkillChip({ skill }) {
   return (
     <div className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-slate-500 shadow-sm">
-        <Check size={11} strokeWidth={3} aria-hidden="true" />
+        <Check
+          size={11}
+          strokeWidth={3}
+          aria-hidden="true"
+        />
       </span>
 
-      <span className="truncate text-xs font-bold text-slate-700">{skill}</span>
+      <span className="truncate text-xs font-bold text-slate-700">
+        {skill}
+      </span>
     </div>
   );
 }
@@ -368,15 +448,19 @@ function ServiceRow({ service }) {
         };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition hover:border-slate-300">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:bg-slate-50/30">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-          <BriefcaseBusiness size={16} strokeWidth={2} aria-hidden="true" />
+          <BriefcaseBusiness
+            size={16}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="truncate text-sm font-bold text-slate-900">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <p className="min-w-0 text-sm font-bold text-slate-950">
               {normalized.name}
             </p>
 
@@ -388,7 +472,7 @@ function ServiceRow({ service }) {
           </div>
 
           {normalized.description && (
-            <p className="mt-1.5 text-xs leading-5 font-medium text-slate-500">
+            <p className="mt-1.5 text-sm leading-6 font-medium text-slate-500">
               {normalized.description}
             </p>
           )}
@@ -402,16 +486,28 @@ function ServiceRow({ service }) {
 /* Empty State                                                                */
 /* ========================================================================== */
 
-function EmptyState({ title, description, action, onClick, disabled = false }) {
+function EmptyState({
+  title,
+  description,
+  action,
+  onClick,
+  disabled = false,
+}) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
-      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
-        <BriefcaseBusiness size={20} strokeWidth={2} aria-hidden="true" />
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-9 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+        <BriefcaseBusiness
+          size={20}
+          strokeWidth={1.8}
+          aria-hidden="true"
+        />
       </div>
 
-      <p className="mt-3 text-sm font-black text-slate-700">{title}</p>
+      <p className="mt-4 text-sm font-black tracking-tight text-slate-950">
+        {title}
+      </p>
 
-      <p className="mx-auto mt-1 max-w-sm text-xs leading-5 font-medium text-slate-400">
+      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-6 font-medium text-slate-500">
         {description}
       </p>
 
@@ -419,9 +515,13 @@ function EmptyState({ title, description, action, onClick, disabled = false }) {
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className="mt-5 inline-flex h-11 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-5 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 outline-none transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <Plus size={14} strokeWidth={2.5} aria-hidden="true" />
+        <Plus
+          size={14}
+          strokeWidth={2.5}
+          aria-hidden="true"
+        />
 
         {action}
       </button>

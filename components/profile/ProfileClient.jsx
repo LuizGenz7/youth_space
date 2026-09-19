@@ -18,7 +18,6 @@ import PortfolioSection from "./PortfolioSection";
 import AccountSection from "./AccountSection";
 
 import { updateProfileAction, deleteProfileAction } from "@/actions/profile";
-
 import { deleteWorkAction } from "@/actions/works";
 
 import {
@@ -44,8 +43,6 @@ import {
 
 import YouthSpaceBrand from "../brand/YouthSpaceBrand";
 import { useSnackbarStore } from "@/stores/useSnackbarStore";
-
-
 
 /* ========================================================================== */
 /* Constants                                                                  */
@@ -339,14 +336,6 @@ export default function ProfileClient({
     try {
       setSaving(true);
 
-      /*
-       * Do NOT send avatarPreview here.
-       *
-       * avatarPreview can be a local FileReader data URL.
-       * The server expects a real URL.
-       *
-       * Avatar upload should have its own upload flow.
-       */
       const result = await updateProfileAction(
         getProfilePayload({
           avatar: currentProfile?.avatar || null,
@@ -616,7 +605,6 @@ export default function ProfileClient({
     }
 
     const normalized = normalizeService(service);
-
     const name = normalized.name.trim();
 
     if (!name) {
@@ -809,7 +797,9 @@ export default function ProfileClient({
     reader.onload = () => {
       setAvatarPreview(reader.result);
 
-      showInfo("Photo preview updated. Save/upload it to make it permanent.");
+      showInfo(
+        "Photo preview updated. Save/upload it to make it permanent.",
+      );
     };
 
     reader.onerror = () => {
@@ -943,7 +933,6 @@ export default function ProfileClient({
           resolved = true;
 
           clearTimeout(timeout);
-
           channel.port1.close();
 
           resolve();
@@ -1021,9 +1010,7 @@ export default function ProfileClient({
 
     if (!trimmedPassword) {
       setDeletePasswordError("Please enter your current password.");
-
       showError("Please enter your current password.");
-
       return;
     }
 
@@ -1048,7 +1035,6 @@ export default function ProfileClient({
       firestoreDeleted = true;
 
       await deleteCurrentAuthUser();
-
       await clearServiceWorkerAuth();
 
       setDeletePasswordOpen(false);
@@ -1068,7 +1054,9 @@ export default function ProfileClient({
         code === "auth/wrong-password" ||
         code === "auth/invalid-credential"
       ) {
-        setDeletePasswordError("The password is incorrect. Please try again.");
+        setDeletePasswordError(
+          "The password is incorrect. Please try again.",
+        );
 
         showError("The password is incorrect. Please try again.");
 
@@ -1179,7 +1167,6 @@ export default function ProfileClient({
       setConfirmAction(null);
       setDeletePasswordError("");
       setDeletePasswordOpen(true);
-
       return;
     }
 
@@ -1222,11 +1209,17 @@ export default function ProfileClient({
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Header */}
+      {/* ================================================================== */}
+      {/* Header                                                             */}
+      {/* ================================================================== */}
 
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
-          <Link href="/" className="group shrink-0">
+          <Link
+            href="/"
+            aria-label="Youth Space home"
+            className="group shrink-0 outline-none"
+          >
             <div className="transition-transform duration-300 group-hover:scale-[1.02]">
               <YouthSpaceBrand
                 size={38}
@@ -1240,7 +1233,7 @@ export default function ProfileClient({
           <Link
             href="/profile"
             aria-label="Open profile"
-            className="group flex items-center gap-2 rounded-2xl p-1.5 outline-none transition hover:bg-slate-100 focus:ring-4 focus:ring-slate-100"
+            className="group flex items-center gap-2 rounded-2xl p-1.5 outline-none transition hover:bg-slate-50 focus:ring-4 focus:ring-slate-100"
           >
             <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-xs font-black text-white">
               {currentProfile?.avatar ? (
@@ -1258,12 +1251,12 @@ export default function ProfileClient({
             </div>
 
             <div className="hidden min-w-0 text-left md:block">
-              <p className="max-w-[140px] truncate text-xs font-black text-slate-950">
+              <p className="max-w-[150px] truncate text-xs font-black tracking-tight text-slate-950">
                 {currentProfile?.displayName || "User"}
               </p>
 
               {currentProfile?.email && (
-                <p className="mt-0.5 max-w-[140px] truncate text-[10px] font-medium text-slate-400">
+                <p className="mt-0.5 max-w-[150px] truncate text-[10px] font-medium text-slate-400">
                   {currentProfile.email}
                 </p>
               )}
@@ -1272,78 +1265,103 @@ export default function ProfileClient({
         </div>
       </header>
 
-      {/* Main */}
+      {/* ================================================================== */}
+      {/* Main                                                               */}
+      {/* ================================================================== */}
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-black tracking-tight text-slate-950">
-            Account
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+        {/* Page heading */}
+
+        <div className="mb-7 sm:mb-8">
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+            Account settings
+          </p>
+
+          <h1 className="text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">
+            Manage your profile
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Manage your Youth Space profile and account.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Keep your Youth Space profile, professional information,
+            portfolio and account settings up to date.
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-          {/* Desktop navigation */}
+        {/* ================================================================= */}
+        {/* Mobile section selector                                           */}
+        {/* ================================================================= */}
+
+        <div className="mb-5 lg:hidden">
+          <FilterButton
+            icon={getSectionIcon(activeSection)}
+            options={["Profile", "Professional", "Portfolio", "Account"]}
+            value={capitalize(activeSection)}
+            full
+            placeholder="Select section"
+            onChange={(value) => {
+              if (destructiveActionRunning || saving) {
+                return;
+              }
+
+              setActiveSection(value.toLowerCase());
+            }}
+          />
+        </div>
+
+        {/* ================================================================= */}
+        {/* Content layout                                                    */}
+        {/* ================================================================= */}
+
+        <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+          {/* =============================================================== */}
+          {/* Desktop navigation                                               */}
+          {/* =============================================================== */}
 
           <aside className="hidden lg:block">
-            <nav className="sticky top-24 space-y-1 rounded-2xl border border-slate-200 bg-white p-2">
-              <SectionButton
-                icon={UserRound}
-                label="Profile"
-                active={activeSection === "profile"}
-                disabled={destructiveActionRunning || saving}
-                onClick={() => selectSection("profile")}
-              />
+            <nav className="sticky top-24 rounded-2xl border border-slate-200 bg-white p-2">
+              <p className="px-3 pb-2 pt-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                Settings
+              </p>
 
-              <SectionButton
-                icon={BriefcaseBusiness}
-                label="Professional"
-                active={activeSection === "professional"}
-                disabled={destructiveActionRunning || saving}
-                onClick={() => selectSection("professional")}
-              />
+              <div className="space-y-1">
+                <SectionButton
+                  icon={UserRound}
+                  label="Profile"
+                  active={activeSection === "profile"}
+                  disabled={destructiveActionRunning || saving}
+                  onClick={() => selectSection("profile")}
+                />
 
-              <SectionButton
-                icon={ImageIcon}
-                label="Portfolio"
-                active={activeSection === "portfolio"}
-                disabled={destructiveActionRunning || saving}
-                onClick={() => selectSection("portfolio")}
-              />
+                <SectionButton
+                  icon={BriefcaseBusiness}
+                  label="Professional"
+                  active={activeSection === "professional"}
+                  disabled={destructiveActionRunning || saving}
+                  onClick={() => selectSection("professional")}
+                />
 
-              <SectionButton
-                icon={Settings}
-                label="Account"
-                active={activeSection === "account"}
-                disabled={destructiveActionRunning || saving}
-                onClick={() => selectSection("account")}
-              />
+                <SectionButton
+                  icon={ImageIcon}
+                  label="Portfolio"
+                  active={activeSection === "portfolio"}
+                  disabled={destructiveActionRunning || saving}
+                  onClick={() => selectSection("portfolio")}
+                />
+
+                <SectionButton
+                  icon={Settings}
+                  label="Account"
+                  active={activeSection === "account"}
+                  disabled={destructiveActionRunning || saving}
+                  onClick={() => selectSection("account")}
+                />
+              </div>
             </nav>
           </aside>
 
-          {/* Mobile navigation */}
-
-          <div className="lg:hidden">
-            <FilterButton
-              icon={getSectionIcon(activeSection)}
-              options={["Profile", "Professional", "Portfolio", "Account"]}
-              value={capitalize(activeSection)}
-              full
-              placeholder="Select section"
-              onChange={(value) => {
-                if (destructiveActionRunning || saving) {
-                  return;
-                }
-
-                setActiveSection(value.toLowerCase());
-              }}
-            />
-          </div>
-
-          {/* Sections */}
+          {/* =============================================================== */}
+          {/* Sections                                                         */}
+          {/* =============================================================== */}
 
           <div className="min-w-0">
             {activeSection === "profile" && (
@@ -1405,7 +1423,9 @@ export default function ProfileClient({
         </div>
       </div>
 
-      {/* Avatar input */}
+      {/* ================================================================== */}
+      {/* Avatar input                                                       */}
+      {/* ================================================================== */}
 
       <input
         ref={avatarInputRef}
@@ -1415,7 +1435,9 @@ export default function ProfileClient({
         className="hidden"
       />
 
-      {/* Skills modal */}
+      {/* ================================================================== */}
+      {/* Skills modal                                                       */}
+      {/* ================================================================== */}
 
       {activeModal === "skills" && (
         <SkillsModal
@@ -1430,7 +1452,9 @@ export default function ProfileClient({
         />
       )}
 
-      {/* Services modal */}
+      {/* ================================================================== */}
+      {/* Services modal                                                     */}
+      {/* ================================================================== */}
 
       {activeModal === "services" && (
         <ServicesModal
@@ -1443,7 +1467,9 @@ export default function ProfileClient({
         />
       )}
 
-      {/* Work modal */}
+      {/* ================================================================== */}
+      {/* Work modal                                                         */}
+      {/* ================================================================== */}
 
       {activeModal === "work" && (
         <WorkModal
@@ -1457,13 +1483,14 @@ export default function ProfileClient({
             }
 
             setActiveModal(null);
-
             router.refresh();
           }}
         />
       )}
 
-      {/* Confirmation */}
+      {/* ================================================================== */}
+      {/* Confirmation                                                       */}
+      {/* ================================================================== */}
 
       {confirmAction && (
         <ConfirmModal
@@ -1474,7 +1501,9 @@ export default function ProfileClient({
         />
       )}
 
-      {/* Account deletion */}
+      {/* ================================================================== */}
+      {/* Account deletion                                                   */}
+      {/* ================================================================== */}
 
       {deletePasswordOpen && (
         <DeleteAccountPasswordModal
@@ -1505,13 +1534,20 @@ function SectionButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`flex h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-xs font-bold outline-none transition ${
+      className={`group flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-bold outline-none transition ${
         active
-          ? "bg-slate-950 text-white"
+          ? "bg-slate-950 text-white shadow-lg shadow-slate-950/10"
           : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-      } disabled:cursor-not-allowed disabled:opacity-50`}
+      } disabled:cursor-not-allowed disabled:opacity-50 focus:ring-4 ${
+        active ? "focus:ring-slate-950/[0.06]" : "focus:ring-slate-100"
+      }`}
     >
-      <Icon size={15} strokeWidth={2} aria-hidden="true" />
+      <Icon
+        size={18}
+        strokeWidth={2}
+        aria-hidden="true"
+        className={active ? "text-white" : "text-slate-400"}
+      />
 
       <span>{label}</span>
     </button>
