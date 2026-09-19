@@ -44,26 +44,33 @@ const CATEGORIES_CACHE_TAG = "categories";
 
 function profileCacheTag(uid) {
     const value = normalizeString(uid);
+
     return value ? `profile:${value}` : "";
 }
 
 function talentCacheTag(uid) {
     const value = normalizeString(uid);
+
     return value ? `talent:${value}` : "";
 }
 
 function usernameCacheTag(username) {
     const value = normalizeUsername(username);
+
     return value ? `username:${value}` : "";
 }
 
 function profileUsernameCacheTag(username) {
     const value = normalizeUsername(username);
-    return value ? `profile-username:${value}` : "";
+
+    return value
+        ? `profile-username:${value}`
+        : "";
 }
 
 function usernameAvailabilityCacheTag(username) {
     const value = normalizeUsername(username);
+
     return value
         ? `username-availability:${value}`
         : "";
@@ -71,12 +78,16 @@ function usernameAvailabilityCacheTag(username) {
 
 function categoryCacheTag(categoryId) {
     const value = normalizeString(categoryId);
+
     return value ? `category:${value}` : "";
 }
 
 function categoryTalentsCacheTag(categoryId) {
     const value = normalizeString(categoryId);
-    return value ? `category-talents:${value}` : "";
+
+    return value
+        ? `category-talents:${value}`
+        : "";
 }
 
 /* ========================================================================== */
@@ -90,66 +101,108 @@ function invalidateProfileCache(uid) {
         return;
     }
 
-    revalidateTag(PROFILES_CACHE_TAG, "max");
-    revalidateTag(TALENTS_CACHE_TAG, "max");
+    revalidateTag(
+        PROFILES_CACHE_TAG,
+        "max",
+    );
 
-    const profileTag = profileCacheTag(value);
-    const talentTag = talentCacheTag(value);
+    revalidateTag(
+        TALENTS_CACHE_TAG,
+        "max",
+    );
+
+    const profileTag =
+        profileCacheTag(value);
+
+    const talentTag =
+        talentCacheTag(value);
 
     if (profileTag) {
-        revalidateTag(profileTag, "max");
+        revalidateTag(
+            profileTag,
+            "max",
+        );
     }
 
     if (talentTag) {
-        revalidateTag(talentTag, "max");
+        revalidateTag(
+            talentTag,
+            "max",
+        );
     }
 }
 
 function invalidateUsernameCache(username) {
-    const value = normalizeUsername(username);
+    const value =
+        normalizeUsername(username);
 
     if (!value) {
         return;
     }
 
-    const usernameTag = usernameCacheTag(value);
+    const usernameTag =
+        usernameCacheTag(value);
+
     const profileUsernameTag =
         profileUsernameCacheTag(value);
+
     const availabilityTag =
         usernameAvailabilityCacheTag(value);
 
     if (usernameTag) {
-        revalidateTag(usernameTag, "max");
+        revalidateTag(
+            usernameTag,
+            "max",
+        );
     }
 
     if (profileUsernameTag) {
-        revalidateTag(profileUsernameTag, "max");
+        revalidateTag(
+            profileUsernameTag,
+            "max",
+        );
     }
 
     if (availabilityTag) {
-        revalidateTag(availabilityTag, "max");
+        revalidateTag(
+            availabilityTag,
+            "max",
+        );
     }
 }
 
 function invalidateCategoryCache(categoryId) {
-    const value = normalizeString(categoryId);
+    const value =
+        normalizeString(categoryId);
 
     if (!value) {
         return;
     }
 
-    const categoryTag = categoryCacheTag(value);
-    const talentsTag = categoryTalentsCacheTag(value);
+    const categoryTag =
+        categoryCacheTag(value);
+
+    const talentsTag =
+        categoryTalentsCacheTag(value);
 
     if (categoryTag) {
-        revalidateTag(categoryTag, "max");
+        revalidateTag(
+            categoryTag,
+            "max",
+        );
     }
 
     if (talentsTag) {
-        revalidateTag(talentsTag, "max");
+        revalidateTag(
+            talentsTag,
+            "max",
+        );
     }
 
-    revalidateTag(CATEGORIES_CACHE_TAG, "max");
+    revalidateTag(
+        CATEGORIES_CACHE_TAG,
+        "max",
+    );
 }
 
 /* ========================================================================== */
@@ -173,12 +226,20 @@ const displayNameSchema = z
 
 const profileUpdateSchema = z
     .object({
-        /* Identity */
-        displayName: displayNameSchema.optional(),
+        /* ------------------------------------------------------------------ */
+        /* Identity                                                           */
+        /* ------------------------------------------------------------------ */
 
-        username: usernameSchema.optional(),
+        displayName:
+            displayNameSchema.optional(),
 
-        /* Professional */
+        username:
+            usernameSchema.optional(),
+
+        /* ------------------------------------------------------------------ */
+        /* Professional                                                       */
+        /* ------------------------------------------------------------------ */
+
         role: z
             .string()
             .trim()
@@ -221,11 +282,16 @@ const profileUpdateSchema = z
             .max(30)
             .optional(),
 
-        available: z
-            .boolean()
-            .optional(),
+        available:
+            z.boolean().optional(),
 
-        /* Avatar */
+        /* ------------------------------------------------------------------ */
+        /* Avatar                                                             */
+        /* ------------------------------------------------------------------ */
+
+        /*
+         * Cloudinary secure URL.
+         */
         avatar: z
             .string()
             .trim()
@@ -233,7 +299,25 @@ const profileUpdateSchema = z
             .nullable()
             .optional(),
 
-        /* Skills */
+        /*
+         * Cloudinary public_id.
+         *
+         * Example:
+         *
+         * youth-space/avatars/abc123xyz
+         */
+        avatarPublicId: z
+            .string()
+            .trim()
+            .min(1)
+            .max(500)
+            .nullable()
+            .optional(),
+
+        /* ------------------------------------------------------------------ */
+        /* Skills                                                             */
+        /* ------------------------------------------------------------------ */
+
         skills: z
             .array(
                 z
@@ -245,7 +329,10 @@ const profileUpdateSchema = z
             .max(20)
             .optional(),
 
-        /* Services */
+        /* ------------------------------------------------------------------ */
+        /* Services                                                           */
+        /* ------------------------------------------------------------------ */
+
         services: z
             .array(
                 z
@@ -349,31 +436,34 @@ function normalizeServices(value) {
 
             return {
                 id:
-                    typeof service.id === "string"
+                    typeof service.id ===
+                        "string"
                         ? service.id.trim()
                         : "",
 
                 name:
-                    typeof service.name === "string"
+                    typeof service.name ===
+                        "string"
                         ? service.name.trim()
                         : "",
 
                 description:
                     typeof service.description ===
-                    "string"
+                        "string"
                         ? service.description.trim()
                         : "",
 
                 price:
                     service.price !== undefined &&
-                    service.price !== null
+                        service.price !== null
                         ? String(
-                              service.price,
-                          ).trim()
+                            service.price,
+                        ).trim()
                         : "",
 
                 image:
-                    typeof service.image === "string"
+                    typeof service.image ===
+                        "string"
                         ? service.image.trim()
                         : "",
             };
@@ -390,7 +480,8 @@ function normalizeServices(value) {
 /* ========================================================================== */
 
 async function getCategory(categoryId) {
-    const id = normalizeString(categoryId);
+    const id =
+        normalizeString(categoryId);
 
     if (!id) {
         return null;
@@ -404,8 +495,13 @@ async function getCategory(categoryId) {
     }
 
     return {
-        id: normalizeString(category.id),
-        name: normalizeString(category.name),
+        id: normalizeString(
+            category.id,
+        ),
+
+        name: normalizeString(
+            category.name,
+        ),
     };
 }
 
@@ -419,10 +515,13 @@ async function getCurrentUser() {
 
     await auth.authStateReady();
 
-    const user = auth.currentUser;
+    const user =
+        auth.currentUser;
 
     if (!user) {
-        throw new Error("AUTH_REQUIRED");
+        throw new Error(
+            "AUTH_REQUIRED",
+        );
     }
 
     return {
@@ -434,10 +533,13 @@ async function getCurrentUser() {
             ),
 
         email:
-            normalizeString(user.email),
+            normalizeString(
+                user.email,
+            ),
 
         photoURL:
-            typeof user.photoURL === "string"
+            typeof user.photoURL ===
+                "string"
                 ? user.photoURL
                 : null,
 
@@ -457,10 +559,13 @@ function serializeProfile(profile) {
 
     return {
         id: normalizeString(
-            profile.id || profile.uid,
+            profile.id ||
+            profile.uid,
         ),
 
-        uid: normalizeString(profile.uid),
+        uid: normalizeString(
+            profile.uid,
+        ),
 
         username:
             normalizeUsername(
@@ -473,10 +578,14 @@ function serializeProfile(profile) {
             ),
 
         email:
-            normalizeString(profile.email),
+            normalizeString(
+                profile.email,
+            ),
 
         role:
-            normalizeString(profile.role),
+            normalizeString(
+                profile.role,
+            ),
 
         categoryId:
             normalizeString(
@@ -489,29 +598,54 @@ function serializeProfile(profile) {
             ),
 
         province:
-            normalizeString(profile.province),
+            normalizeString(
+                profile.province,
+            ),
 
         district:
-            normalizeString(profile.district),
+            normalizeString(
+                profile.district,
+            ),
 
         bio:
-            normalizeString(profile.bio),
+            normalizeString(
+                profile.bio,
+            ),
 
         phone:
-            normalizeString(profile.phone),
+            normalizeString(
+                profile.phone,
+            ),
 
         whatsapp:
-            normalizeString(profile.whatsapp),
+            normalizeString(
+                profile.whatsapp,
+            ),
 
         available:
             normalizeBoolean(
                 profile.available,
             ),
 
+        /* ------------------------------------------------------------------ */
+        /* Cloudinary Avatar                                                  */
+        /* ------------------------------------------------------------------ */
+
         avatar:
-            typeof profile.avatar === "string"
+            typeof profile.avatar ===
+                "string"
                 ? profile.avatar
                 : null,
+
+        avatarPublicId:
+            typeof profile.avatarPublicId ===
+                "string"
+                ? profile.avatarPublicId
+                : null,
+
+        /* ------------------------------------------------------------------ */
+        /* Other Profile Data                                                 */
+        /* ------------------------------------------------------------------ */
 
         skills:
             normalizeStringArray(
@@ -529,7 +663,9 @@ function serializeProfile(profile) {
             ),
 
         likes:
-            normalizeNumber(profile.likes),
+            normalizeNumber(
+                profile.likes,
+            ),
 
         workCount:
             normalizeNumber(
@@ -565,7 +701,8 @@ function serializeUsernameRecord(record) {
 
     return {
         id: normalizeString(
-            record.id || record.username,
+            record.id ||
+            record.username,
         ),
 
         uid: normalizeString(
@@ -611,7 +748,9 @@ export async function createProfile(
     }
 
     const category =
-        await getCategory(categoryId);
+        await getCategory(
+            categoryId,
+        );
 
     if (!category) {
         throw new Error(
@@ -649,7 +788,9 @@ export async function createProfile(
                         profileRef,
                     );
 
-                if (profileSnapshot.exists()) {
+                if (
+                    profileSnapshot.exists()
+                ) {
                     throw new Error(
                         "PROFILE_EXISTS",
                     );
@@ -660,7 +801,9 @@ export async function createProfile(
                         usernameRef,
                     );
 
-                if (usernameSnapshot.exists()) {
+                if (
+                    usernameSnapshot.exists()
+                ) {
                     throw new Error(
                         "USERNAME_TAKEN",
                     );
@@ -671,7 +814,9 @@ export async function createProfile(
                         categoryRef,
                     );
 
-                if (!categorySnapshot.exists()) {
+                if (
+                    !categorySnapshot.exists()
+                ) {
                     throw new Error(
                         "CATEGORY_NOT_FOUND",
                     );
@@ -679,8 +824,11 @@ export async function createProfile(
 
                 const newProfile = {
                     id: user.uid,
+
                     uid: user.uid,
+
                     username,
+
                     displayName,
 
                     email: user.email,
@@ -726,11 +874,25 @@ export async function createProfile(
                             profileData.available,
                         ),
 
+                    /* ------------------------------------------------------ */
+                    /* Cloudinary Avatar                                      */
+                    /* ------------------------------------------------------ */
+
                     avatar:
                         typeof profileData.avatar ===
-                        "string"
+                            "string"
                             ? profileData.avatar.trim()
                             : null,
+
+                    avatarPublicId:
+                        typeof profileData.avatarPublicId ===
+                            "string"
+                            ? profileData.avatarPublicId.trim()
+                            : null,
+
+                    /* ------------------------------------------------------ */
+                    /* Other Data                                             */
+                    /* ------------------------------------------------------ */
 
                     skills:
                         normalizeStringArray(
@@ -743,7 +905,9 @@ export async function createProfile(
                         ),
 
                     verified: false,
+
                     likes: 0,
+
                     workCount: 0,
 
                     createdAt:
@@ -755,7 +919,9 @@ export async function createProfile(
 
                 const usernameRecord = {
                     id: username,
+
                     uid: user.uid,
+
                     username,
 
                     createdAt:
@@ -790,13 +956,21 @@ export async function createProfile(
             },
         );
 
-    invalidateProfileCache(user.uid);
-    invalidateUsernameCache(username);
+    invalidateProfileCache(
+        user.uid,
+    );
+
+    invalidateUsernameCache(
+        username,
+    );
+
     invalidateCategoryCache(
         category.id,
     );
 
-    return serializeProfile(profile);
+    return serializeProfile(
+        profile,
+    );
 }
 
 /* ========================================================================== */
@@ -871,7 +1045,9 @@ export async function getProfileByUsername(
     username,
 ) {
     const normalizedUsername =
-        usernameSchema.parse(username);
+        usernameSchema.parse(
+            username,
+        );
 
     return getCachedProfileByUsername(
         normalizedUsername,
@@ -885,12 +1061,20 @@ async function getCachedProfileByUsername(
 
     cacheLife("hours");
 
-    cacheTag(PROFILES_CACHE_TAG);
     cacheTag(
-        profileUsernameCacheTag(username),
+        PROFILES_CACHE_TAG,
     );
+
     cacheTag(
-        usernameCacheTag(username),
+        profileUsernameCacheTag(
+            username,
+        ),
+    );
+
+    cacheTag(
+        usernameCacheTag(
+            username,
+        ),
     );
 
     const { db } =
@@ -956,7 +1140,9 @@ export async function getUsernameRecord(
     username,
 ) {
     const normalizedUsername =
-        usernameSchema.parse(username);
+        usernameSchema.parse(
+            username,
+        );
 
     return getCachedUsernameRecord(
         normalizedUsername,
@@ -970,9 +1156,14 @@ async function getCachedUsernameRecord(
 
     cacheLife("minutes");
 
-    cacheTag(PROFILES_CACHE_TAG);
     cacheTag(
-        usernameCacheTag(username),
+        PROFILES_CACHE_TAG,
+    );
+
+    cacheTag(
+        usernameCacheTag(
+            username,
+        ),
     );
 
     const { db } =
@@ -1005,7 +1196,9 @@ export async function isUsernameAvailable(
     username,
 ) {
     const normalizedUsername =
-        usernameSchema.parse(username);
+        usernameSchema.parse(
+            username,
+        );
 
     return checkCachedUsernameAvailability(
         normalizedUsername,
@@ -1019,10 +1212,16 @@ async function checkCachedUsernameAvailability(
 
     cacheLife("seconds");
 
-    cacheTag(PROFILES_CACHE_TAG);
     cacheTag(
-        usernameCacheTag(username),
+        PROFILES_CACHE_TAG,
     );
+
+    cacheTag(
+        usernameCacheTag(
+            username,
+        ),
+    );
+
     cacheTag(
         usernameAvailabilityCacheTag(
             username,
@@ -1054,14 +1253,9 @@ function buildProfileUpdates(
 ) {
     const clean = {};
 
-    /*
-     * IMPORTANT:
-     *
-     * Only fields that were actually supplied are
-     * written to Firestore.
-     *
-     * displayName is explicitly persisted here.
-     */
+    /* ---------------------------------------------------------------------- */
+    /* Identity                                                               */
+    /* ---------------------------------------------------------------------- */
 
     if (
         updates.displayName !==
@@ -1072,6 +1266,10 @@ function buildProfileUpdates(
                 updates.displayName,
             );
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* Professional                                                           */
+    /* ---------------------------------------------------------------------- */
 
     if (
         updates.role !==
@@ -1141,16 +1339,35 @@ function buildProfileUpdates(
             updates.available === true;
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* Avatar                                                                 */
+    /* ---------------------------------------------------------------------- */
+
     if (
         updates.avatar !==
         undefined
     ) {
         clean.avatar =
             typeof updates.avatar ===
-            "string"
+                "string"
                 ? updates.avatar.trim()
                 : null;
     }
+
+    if (
+        updates.avatarPublicId !==
+        undefined
+    ) {
+        clean.avatarPublicId =
+            typeof updates.avatarPublicId ===
+                "string"
+                ? updates.avatarPublicId.trim()
+                : null;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* Skills                                                                 */
+    /* ---------------------------------------------------------------------- */
 
     if (
         updates.skills !==
@@ -1162,6 +1379,10 @@ function buildProfileUpdates(
             );
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* Services                                                               */
+    /* ---------------------------------------------------------------------- */
+
     if (
         updates.services !==
         undefined
@@ -1172,6 +1393,10 @@ function buildProfileUpdates(
             );
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* Category                                                               */
+    /* ---------------------------------------------------------------------- */
+
     if (category) {
         clean.categoryId =
             category.id;
@@ -1179,6 +1404,10 @@ function buildProfileUpdates(
         clean.category =
             category.name;
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* Timestamp                                                              */
+    /* ---------------------------------------------------------------------- */
 
     clean.updatedAt =
         serverTimestamp();
@@ -1193,11 +1422,11 @@ function buildProfileUpdates(
 export async function updateProfile(
     updates = {},
 ) {
-
     console.log(
         "updateProfile called with updates:",
         updates,
     );
+
     const user =
         await getCurrentUser();
 
@@ -1231,6 +1460,7 @@ export async function updateProfile(
 
     let oldUsername = "";
     let newUsername = "";
+
     let affectedCategories = [];
 
     await runTransaction(
@@ -1245,7 +1475,9 @@ export async function updateProfile(
                     profileRef,
                 );
 
-            if (!profileSnapshot.exists()) {
+            if (
+                !profileSnapshot.exists()
+            ) {
                 throw new Error(
                     "PROFILE_NOT_FOUND",
                 );
@@ -1263,15 +1495,15 @@ export async function updateProfile(
                     profile?.username,
                 ).success
                     ? normalizeUsername(
-                          profile.username,
-                      )
+                        profile.username,
+                    )
                     : "";
 
             const requestedUsername =
                 data.username !== undefined
                     ? normalizeUsername(
-                          data.username,
-                      )
+                        data.username,
+                    )
                     : currentUsername;
 
             const usernameChanged =
@@ -1296,8 +1528,8 @@ export async function updateProfile(
             const requestedCategoryId =
                 data.categoryId !== undefined
                     ? normalizeString(
-                          data.categoryId,
-                      )
+                        data.categoryId,
+                    )
                     : currentCategoryId;
 
             const categoryChanged =
@@ -1459,20 +1691,23 @@ export async function updateProfile(
                     requestedUsername;
             }
 
-            /*
-             * Debug-safe server log.
-             *
-             * This lets you verify that displayName is
-             * actually reaching the Firestore write.
-             */
             console.log(
                 "Youth Space profile update:",
                 {
                     uid: user.uid,
+
                     displayName:
                         cleanUpdates.displayName,
+
                     username:
                         cleanUpdates.username,
+
+                    avatar:
+                        cleanUpdates.avatar,
+
+                    avatarPublicId:
+                        cleanUpdates.avatarPublicId,
+
                     fields:
                         Object.keys(
                             cleanUpdates,
@@ -1481,7 +1716,7 @@ export async function updateProfile(
             );
 
             /* -------------------------------------------------------------- */
-            /* Write profile                                                   */
+            /* Write profile                                                  */
             /* -------------------------------------------------------------- */
 
             transaction.update(
@@ -1499,7 +1734,9 @@ export async function updateProfile(
             ) {
                 const usernameRecord = {
                     id: requestedUsername,
+
                     uid: user.uid,
+
                     username:
                         requestedUsername,
 
@@ -1626,7 +1863,9 @@ export async function updateProfile(
     const updatedSnapshot =
         await getDoc(profileRef);
 
-    if (!updatedSnapshot.exists()) {
+    if (
+        !updatedSnapshot.exists()
+    ) {
         throw new Error(
             "PROFILE_UPDATE_FAILED",
         );
@@ -1642,8 +1881,15 @@ export async function updateProfile(
         "Youth Space profile updated:",
         {
             uid: user.uid,
+
             displayName:
                 updatedProfile.displayName,
+
+            avatar:
+                updatedProfile.avatar,
+
+            avatarPublicId:
+                updatedProfile.avatarPublicId,
         },
     );
 
@@ -1702,7 +1948,9 @@ export async function deleteProfile() {
                     profileRef,
                 );
 
-            if (!profileSnapshot.exists()) {
+            if (
+                !profileSnapshot.exists()
+            ) {
                 throw new Error(
                     "PROFILE_NOT_FOUND",
                 );
@@ -1716,8 +1964,8 @@ export async function deleteProfile() {
                     profile?.username,
                 ).success
                     ? normalizeUsername(
-                          profile.username,
-                      )
+                        profile.username,
+                    )
                     : "";
 
             const categoryId =

@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CldUploadWidget } from "next-cloudinary";
 
 import {
   BriefcaseBusiness,
@@ -18,6 +19,7 @@ import PortfolioSection from "./PortfolioSection";
 import AccountSection from "./AccountSection";
 
 import { updateProfileAction, deleteProfileAction } from "@/actions/profile";
+
 import { deleteWorkAction } from "@/actions/works";
 
 import {
@@ -42,6 +44,7 @@ import {
 import YouthSpaceBrand from "../brand/YouthSpaceBrand";
 import { useSnackbarStore } from "@/stores/useSnackbarStore";
 import FilterButton from "../talents/FilterButton";
+import { updateProfile } from "firebase/auth";
 
 /* ========================================================================== */
 /* Constants                                                                  */
@@ -49,9 +52,14 @@ import FilterButton from "../talents/FilterButton";
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,30}$/;
 
-const MAX_BIO_LENGTH = 500;
 const MAX_SKILLS = 20;
 const MAX_SERVICES = 20;
+
+/*
+ * This must match the unsigned upload preset created
+ * in your Cloudinary dashboard.
+ */
+const CLOUDINARY_AVATAR_UPLOAD_PRESET = "youth_space_avatar";
 
 /* ========================================================================== */
 /* Component                                                                  */
@@ -65,12 +73,6 @@ export default function ProfileClient({
   const router = useRouter();
 
   const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
-
-  /* ====================================================================== */
-  /* Refs                                                                   */
-  /* ====================================================================== */
-
-  const avatarInputRef = useRef(null);
 
   /* ====================================================================== */
   /* Current data                                                           */
@@ -217,11 +219,6 @@ export default function ProfileClient({
       ...current,
       [field]: value,
 
-      /*
-       * A district belongs to a province.
-       * Clear the previous district whenever
-       * the province changes.
-       */
       ...(field === "province"
         ? {
             district: "",
@@ -410,33 +407,37 @@ export default function ProfileClient({
   }
 
   /* ====================================================================== */
-  /* Common update payload                                                  */
+  /* Common profile payload                                                 */
   /* ====================================================================== */
+
   function getProfilePayload(overrides = {}) {
     return {
       displayName: profileForm.displayName.trim(),
+
       username: profileForm.username.trim().toLowerCase(),
+
       role: profileForm.role.trim(),
+
       categoryId: profileForm.categoryId.trim(),
+
       province: profileForm.province.trim(),
+
       district: profileForm.district.trim(),
+
       bio: profileForm.bio.trim(),
+
       phone: profileForm.phone.trim(),
+
       whatsapp: profileForm.whatsapp.trim(),
-      available: Boolean(profileForm.available),
+
+      available:
+        overrides.available !== undefined
+          ? Boolean(overrides.available)
+          : Boolean(currentProfile?.available),
+
       ...overrides,
     };
   }
-
-  /*
-   * IMPORTANT:
-   *
-   * displayName is intentionally NOT sent here because your current
-   * data/profile.js profileUpdateSchema does not accept displayName.
-   *
-   * Avatar is also intentionally NOT sent because the selected image
-   * is currently only a local preview and has not been uploaded.
-   */
 
   /* ====================================================================== */
   /* Save profile                                                           */
@@ -475,6 +476,9 @@ export default function ProfileClient({
 
       setProfileForm((current) => ({
         ...current,
+
+        displayName: updatedProfile?.displayName ?? current.displayName,
+
         username: updatedProfile?.username ?? current.username,
 
         role: updatedProfile?.role ?? current.role,
@@ -609,7 +613,9 @@ export default function ProfileClient({
 
     if (exists) {
       setSkillInput("");
+
       showInfo("That skill is already in your profile.");
+
       return;
     }
 
@@ -724,6 +730,7 @@ export default function ProfileClient({
 
     if (exists) {
       showInfo("That service is already in your profile.");
+
       return;
     }
 
@@ -860,56 +867,99 @@ export default function ProfileClient({
   /* Avatar                                                                 */
   /* ====================================================================== */
 
-  function handleAvatarClick() {
+  async function handleAvatarUpload(result) {
     if (destructiveActionRunning || saving) {
       return;
     }
 
-    avatarInputRef.current?.click();
+    const info = result?.info;
+
+    if (!info?.secure_url || !info?.public_id) {
+      showError(
+        "The image was uploaded, but Cloudinary did not return the required information.",
+      );
+
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const avatar = info.secure_url;
+      const avatarPublicId = info.public_id;
+
+      /*
+       * =========================================================
+       * SAVE AVATAR TO YOUTH SPACE
+       * =========================================================
+       */
+
+      const response = await updateProfileAction(
+        getProfilePayload({
+          avatar,
+          avatarPublicId,
+        }),
+      );
+
+      if (!response?.success) {
+        throw new Error(
+          response?.error ||
+            "Your profile photo could not be saved. Please try again.",
+        );
+      }
+
+      /*
+       * =========================================================
+       * UPDATE FIREBASE AUTH PHOTO URL
+       * =========================================================
+       */
+
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, {
+          photoURL: avatar,
+        });
+
+        /*
+         * Force Firebase Auth to refresh
+         * the local user object.
+         */
+        await auth.currentUser.reload();
+      }
+
+      /*
+       * =========================================================
+       * UPDATE LOCAL PROFILE STATE
+       * =========================================================
+       */
+
+      setCurrentProfile((current) => ({
+        ...current,
+        ...response.profile,
+        avatar,
+        avatarPublicId,
+      }));
+
+      setAvatarPreview(avatar);
+
+      showSuccess("Your profile photo has been updated.");
+
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to save profile photo:", error);
+
+      showError(
+        error?.message ||
+          "Your profile photo could not be saved. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function handleAvatarSelect(event) {
-    if (destructiveActionRunning || saving) {
-      return;
-    }
+  function handleAvatarUploadError(error) {
+    console.error("Cloudinary avatar upload failed:", error);
 
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      showError("Please select an image file.");
-
-      event.target.value = "";
-
-      return;
-    }
-
-    const maxSize = 5 * 1024 * 1024;
-
-    if (file.size > maxSize) {
-      showError("Profile images must be smaller than 5MB.");
-
-      event.target.value = "";
-
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setAvatarPreview(reader.result);
-
-      showInfo("Photo preview updated. Upload it to make it permanent.");
-    };
-
-    reader.onerror = () => {
-      showError("We could not preview that image. Please try another one.");
-    };
-
-    reader.readAsDataURL(file);
+    showError("We could not upload your profile photo. Please try again.");
   }
 
   /* ====================================================================== */
@@ -1140,6 +1190,7 @@ export default function ProfileClient({
       firestoreDeleted = true;
 
       await deleteCurrentAuthUser();
+
       await clearServiceWorkerAuth();
 
       setDeletePasswordOpen(false);
@@ -1265,6 +1316,7 @@ export default function ProfileClient({
 
     if (confirmAction.type === "work") {
       handleDeleteWork(confirmAction.workId);
+
       return;
     }
 
@@ -1460,24 +1512,55 @@ export default function ProfileClient({
           {/* ============================================================== */}
 
           <div className="min-w-0">
+            {/* ============================================================ */}
+            {/* Profile                                                       */}
+            {/* ============================================================ */}
+
             {activeSection === "profile" && (
-              <ProfileSection
-                profile={currentProfile}
-                profileForm={profileForm}
-                avatarPreview={avatarPreview}
-                availableDistricts={availableDistricts}
-                provinces={ZAMBIA_PROVINCES}
-                skills={skills}
-                services={services}
-                onUpdateForm={updateForm}
-                onAvatarClick={handleAvatarClick}
-                onOpenSkills={openSkills}
-                onOpenServices={openServices}
-                onSave={handleSaveProfile}
-                saving={saving}
-                error=""
-              />
+              <CldUploadWidget
+                uploadPreset={CLOUDINARY_AVATAR_UPLOAD_PRESET}
+                options={{
+                  sources: ["local"],
+                  multiple: false,
+                  resourceType: "image",
+                  cropping: true,
+                  croppingAspectRatio: 1,
+                  showAdvancedOptions: false,
+                  singleUploadAutoClose: true,
+                }}
+                onSuccess={handleAvatarUpload}
+                onError={handleAvatarUploadError}
+              >
+                {({ open, isLoading }) => (
+                  <ProfileSection
+                    profile={currentProfile}
+                    profileForm={profileForm}
+                    avatarPreview={avatarPreview}
+                    availableDistricts={availableDistricts}
+                    provinces={ZAMBIA_PROVINCES}
+                    skills={skills}
+                    services={services}
+                    onUpdateForm={updateForm}
+                    onAvatarClick={() => {
+                      if (destructiveActionRunning || saving || isLoading) {
+                        return;
+                      }
+
+                      open();
+                    }}
+                    onOpenSkills={openSkills}
+                    onOpenServices={openServices}
+                    onSave={handleSaveProfile}
+                    saving={saving || isLoading}
+                    error=""
+                  />
+                )}
+              </CldUploadWidget>
             )}
+
+            {/* ============================================================ */}
+            {/* Professional                                                  */}
+            {/* ============================================================ */}
 
             {activeSection === "professional" && (
               <ProfessionalSection
@@ -1497,6 +1580,10 @@ export default function ProfileClient({
               />
             )}
 
+            {/* ============================================================ */}
+            {/* Portfolio                                                     */}
+            {/* ============================================================ */}
+
             {activeSection === "portfolio" && (
               <PortfolioSection
                 works={currentWorks}
@@ -1505,6 +1592,10 @@ export default function ProfileClient({
                 deletingWorkId={deletingWorkId}
               />
             )}
+
+            {/* ============================================================ */}
+            {/* Account                                                       */}
+            {/* ============================================================ */}
 
             {activeSection === "account" && (
               <AccountSection
@@ -1518,18 +1609,6 @@ export default function ProfileClient({
           </div>
         </div>
       </div>
-
-      {/* ================================================================== */}
-      {/* Avatar input                                                       */}
-      {/* ================================================================== */}
-
-      <input
-        ref={avatarInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleAvatarSelect}
-        className="hidden"
-      />
 
       {/* ================================================================== */}
       {/* Skills modal                                                       */}

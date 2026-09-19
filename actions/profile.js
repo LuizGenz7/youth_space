@@ -83,10 +83,37 @@ const whatsappSchema = z
     .min(7, "Please enter a valid WhatsApp number.")
     .max(20, "WhatsApp number is too long.");
 
+/* ========================================================================== */
+/* Avatar Schemas                                                             */
+/* ========================================================================== */
+
+/*
+ * Cloudinary secure URL.
+ *
+ * Nullable because an existing profile may intentionally
+ * have no avatar.
+ */
 const avatarSchema = z
     .string()
     .trim()
     .url("Please provide a valid avatar URL.")
+    .nullable()
+    .optional();
+
+/*
+ * Cloudinary public_id.
+ *
+ * Example:
+ * youth-space/avatars/abc123xyz
+ *
+ * This is intentionally optional because existing profiles
+ * may not have an avatarPublicId yet.
+ */
+const avatarPublicIdSchema = z
+    .string()
+    .trim()
+    .min(1, "Avatar public ID cannot be empty.")
+    .max(500, "Avatar public ID is too long.")
     .nullable()
     .optional();
 
@@ -173,6 +200,13 @@ const completeProfileSchema = z
         whatsapp: whatsappSchema,
 
         available: z.boolean(),
+
+        /*
+         * Avatar is optional during profile completion.
+         */
+        avatar: avatarSchema,
+
+        avatarPublicId: avatarPublicIdSchema,
     })
     .strict();
 
@@ -183,15 +217,21 @@ const completeProfileSchema = z
 const updateProfileSchema = z
     .object({
         /*
+         * ----------------------------------------------------------------------
          * Profile
+         * ----------------------------------------------------------------------
          */
+
         displayName: displayNameSchema.optional(),
 
         username: usernameSchema.optional(),
 
         /*
+         * ----------------------------------------------------------------------
          * Professional
+         * ----------------------------------------------------------------------
          */
+
         role: roleSchema.optional(),
 
         categoryId: categoryIdSchema.optional(),
@@ -209,18 +249,36 @@ const updateProfileSchema = z
         available: z.boolean().optional(),
 
         /*
+         * ----------------------------------------------------------------------
          * Avatar
+         * ----------------------------------------------------------------------
+         *
+         * avatar:
+         * Cloudinary secure URL.
+         *
+         * avatarPublicId:
+         * Cloudinary public_id used later if we need to replace/delete
+         * the image through Cloudinary's server-side API.
          */
+
         avatar: avatarSchema,
 
+        avatarPublicId: avatarPublicIdSchema,
+
         /*
+         * ----------------------------------------------------------------------
          * Skills
+         * ----------------------------------------------------------------------
          */
+
         skills: skillsSchema.optional(),
 
         /*
+         * ----------------------------------------------------------------------
          * Services
+         * ----------------------------------------------------------------------
          */
+
         services: servicesSchema.optional(),
     })
     .strict();
@@ -267,7 +325,7 @@ export async function completeProfileAction(input = {}) {
          * UX check only.
          *
          * createProfile() remains the authoritative
-         * atomic profile creation operation.
+         * profile creation operation.
          */
         const existingProfile = await getProfileByUid(user.uid);
 
@@ -362,7 +420,9 @@ export async function getProfileAction(username) {
     }
 
     try {
-        const profile = await getProfileByUsername(validation.data);
+        const profile = await getProfileByUsername(
+            validation.data,
+        );
 
         if (!profile) {
             return {
@@ -467,6 +527,11 @@ export async function updateProfileAction(input = {}) {
         /*
          * Keep the update scoped to fields that were
          * actually supplied by the client.
+         *
+         * This now includes:
+         *
+         * avatar
+         * avatarPublicId
          */
         const updateData = {
             ...validation.data,
@@ -482,7 +547,10 @@ export async function updateProfileAction(input = {}) {
             error: null,
         };
     } catch (error) {
-        console.error("updateProfileAction failed:", error);
+        console.error(
+            "updateProfileAction failed:",
+            error,
+        );
 
         return {
             success: false,
@@ -536,7 +604,10 @@ export async function updateUsernameAction(username) {
             error: null,
         };
     } catch (error) {
-        console.error("updateUsernameAction failed:", error);
+        console.error(
+            "updateUsernameAction failed:",
+            error,
+        );
 
         return {
             success: false,
@@ -561,7 +632,10 @@ export async function deleteProfileAction() {
             error: null,
         };
     } catch (error) {
-        console.error("deleteProfileAction failed:", error);
+        console.error(
+            "deleteProfileAction failed:",
+            error,
+        );
 
         return {
             success: false,
@@ -643,7 +717,7 @@ function getDeleteProfileError(error) {
 
         case "PERMISSION_DENIED":
         case "PERMISSION_DENIED: Missing or insufficient permissions.":
-            return "You do not have permission to delete this profile.";
+            return "You do not have permission to delete your profile.";
 
         default:
             return "Unable to delete your profile.";
