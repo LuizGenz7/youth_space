@@ -364,7 +364,6 @@ id: crypto.randomUUID(),
 name: service.trim(),
 description: "",
 price: "",
-image: "",
 };
 }
 
@@ -391,8 +390,6 @@ return {
       : service.minPrice !== undefined && service.minPrice !== null
         ? String(service.minPrice).trim()
         : "",
-
-  image: typeof service.image === "string" ? service.image.trim() : "",
 };
 
 }
@@ -414,7 +411,6 @@ return list
       typeof service.price === "number"
         ? String(service.price)
         : String(service.price || "").trim(),
-    image: service.image || "",
   }))
   .slice(0, MAX_SERVICES);
 
