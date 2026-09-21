@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Heart,
   LoaderCircle,
@@ -29,6 +29,41 @@ export default function TalentLikeButton({
     normalizeLikes(initialLikes),
   );
 
+  /*
+   * ========================================================================
+   * Sync with server-rendered props
+   * ========================================================================
+   *
+   * This is important when:
+   *
+   * - router.refresh() runs
+   * - the talent is loaded again
+   * - navigating back to the profile
+   * - another component causes the server data to refresh
+   *
+   * We do not overwrite the optimistic state while a like request
+   * is currently being processed.
+   */
+
+  useEffect(() => {
+    if (isPending) {
+      return;
+    }
+
+    setLiked(Boolean(initialLiked));
+    setLikes(normalizeLikes(initialLikes));
+  }, [
+    initialLiked,
+    initialLikes,
+    isPending,
+  ]);
+
+  /*
+   * ========================================================================
+   * Apply state
+   * ========================================================================
+   */
+
   function applyLikeState(
     nextLiked,
     nextLikes,
@@ -48,6 +83,12 @@ export default function TalentLikeButton({
     });
   }
 
+  /*
+   * ========================================================================
+   * Like
+   * ========================================================================
+   */
+
   function handleLike(event) {
     event?.preventDefault();
     event?.stopPropagation();
@@ -62,14 +103,12 @@ export default function TalentLikeButton({
     const nextLiked = !liked;
 
     /*
-     * Optimistic state.
+     * Optimistic update.
      */
-    const optimisticLikes =
-      Math.max(
-        0,
-        likes +
-          (nextLiked ? 1 : -1),
-      );
+    const optimisticLikes = Math.max(
+      0,
+      likes + (nextLiked ? 1 : -1),
+    );
 
     applyLikeState(
       nextLiked,
@@ -93,12 +132,6 @@ export default function TalentLikeButton({
 
         /*
          * Server is authoritative.
-         *
-         * This protects us from:
-         * - race conditions
-         * - stale counts
-         * - duplicate likes
-         * - invalid client state
          */
         applyLikeState(
           result.liked,
@@ -121,8 +154,7 @@ export default function TalentLikeButton({
     });
   }
 
-  const isLiked =
-    Boolean(liked);
+  const isLiked = Boolean(liked);
 
   const ariaLabel = isLiked
     ? "Unlike talent"
@@ -132,9 +164,9 @@ export default function TalentLikeButton({
     isPending || !talentId;
 
   /*
-   * =========================================================
+   * ========================================================================
    * HERO
-   * =========================================================
+   * ========================================================================
    */
 
   if (variant === "hero") {
@@ -148,8 +180,8 @@ export default function TalentLikeButton({
         aria-busy={isPending}
         className={`
           absolute
-          bottom-5
-          right-5
+          bottom-4
+          right-4
           z-20
           inline-flex
           h-10
@@ -158,37 +190,47 @@ export default function TalentLikeButton({
           rounded-full
           border
           border-white/15
-          bg-slate-950/50
-          px-3.5
+          bg-slate-950/60
+          px-3
           text-xs
           font-bold
           text-white
-          shadow-xl
-          backdrop-blur-xl
+          shadow-lg
+          backdrop-blur-md
+          outline-none
           transition-all
           duration-200
           hover:border-white/25
-          hover:bg-slate-950/70
+          hover:bg-slate-950/75
+          hover:shadow-xl
+          focus:ring-2
+          focus:ring-white/40
           active:scale-95
           disabled:cursor-not-allowed
           disabled:opacity-60
+          sm:bottom-5
+          sm:right-5
           sm:h-11
+          sm:gap-2.5
           sm:px-4
           lg:bottom-6
           lg:right-8
           ${className}
         `}
       >
+        {/* Heart */}
+
         {isPending ? (
           <LoaderCircle
             size={17}
+            strokeWidth={2}
             className="animate-spin"
             aria-hidden="true"
           />
         ) : (
           <Heart
             size={17}
-            strokeWidth={1.9}
+            strokeWidth={2}
             className={
               isLiked
                 ? "fill-orange-500 text-orange-500"
@@ -198,13 +240,27 @@ export default function TalentLikeButton({
           />
         )}
 
-        <span>
-          {isLiked
-            ? "Liked"
-            : "Like"}
+        {/* Desktop / tablet text */}
+
+        <span className="hidden sm:inline">
+          {isLiked ? "Liked" : "Like"}
         </span>
 
-        <span className="border-l border-white/15 pl-2 text-white/60">
+        {/* Count */}
+
+        <span
+          className={`
+            ${
+              isLiked
+                ? "text-white"
+                : "text-white/70"
+            }
+            ${
+              "border-l border-white/15 pl-2"
+            }
+            sm:pl-2.5
+          `}
+        >
           {likes}
         </span>
       </button>
@@ -212,9 +268,9 @@ export default function TalentLikeButton({
   }
 
   /*
-   * =========================================================
+   * ========================================================================
    * CARD
-   * =========================================================
+   * ========================================================================
    */
 
   if (variant === "card") {
@@ -228,35 +284,40 @@ export default function TalentLikeButton({
         aria-busy={isPending}
         className={`
           inline-flex
-          h-8
-          w-8
+          h-9
+          w-9
           shrink-0
           items-center
           justify-center
-          rounded-lg
+          rounded-xl
+          border
+          outline-none
           transition-all
           duration-200
           active:scale-90
+          focus:ring-4
+          focus:ring-slate-950/[0.06]
           disabled:cursor-not-allowed
           disabled:opacity-60
           ${
             isLiked
-              ? "bg-slate-950 text-white shadow-sm"
-              : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              ? "border-slate-950 bg-slate-950 text-white shadow-sm"
+              : "border-slate-200 bg-slate-50 text-slate-400 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
           }
           ${className}
         `}
       >
         {isPending ? (
           <LoaderCircle
-            size={14}
+            size={15}
+            strokeWidth={2}
             className="animate-spin"
             aria-hidden="true"
           />
         ) : (
           <Heart
-            size={14}
-            strokeWidth={1.9}
+            size={15}
+            strokeWidth={2}
             className={
               isLiked
                 ? "fill-white"
@@ -270,9 +331,9 @@ export default function TalentLikeButton({
   }
 
   /*
-   * =========================================================
+   * ========================================================================
    * COMPACT
-   * =========================================================
+   * ========================================================================
    */
 
   return (
@@ -292,9 +353,12 @@ export default function TalentLikeButton({
         px-3
         text-xs
         font-bold
+        outline-none
         transition-all
         duration-200
         active:scale-95
+        focus:ring-4
+        focus:ring-white/20
         disabled:cursor-not-allowed
         disabled:opacity-60
         ${
@@ -308,13 +372,14 @@ export default function TalentLikeButton({
       {isPending ? (
         <LoaderCircle
           size={15}
+          strokeWidth={2}
           className="animate-spin"
           aria-hidden="true"
         />
       ) : (
         <Heart
           size={15}
-          strokeWidth={1.9}
+          strokeWidth={2}
           className={
             isLiked
               ? "fill-white"
@@ -330,9 +395,9 @@ export default function TalentLikeButton({
 }
 
 /*
- * =========================================================
- * HELPERS
- * =========================================================
+ * ==========================================================================
+ * Helpers
+ * ==========================================================================
  */
 
 function normalizeLikes(value) {

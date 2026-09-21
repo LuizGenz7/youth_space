@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  BriefcaseBusiness,
-  Check,
-  Plus,
-} from "lucide-react";
+import { BriefcaseBusiness, Check, Plus } from "lucide-react";
 
 import FilterButton from "../talents/FilterButton";
 
@@ -22,11 +18,32 @@ export default function ProfessionalSection({
   saving = false,
   savingAvailability = false,
 }) {
+  /*
+   * ========================================================================
+   * Categories
+   * ========================================================================
+   *
+   * Category:
+   *
+   * {
+   *   id: string,
+   *   name: string,
+   *   icon: string,
+   *   totalTalents: number,
+   *   createdAt: timestamp,
+   *   updatedAt: timestamp
+   * }
+   *
+   * We use:
+   * - id   -> stored in profileForm.categoryId
+   * - name -> displayed in the dropdown
+   */
+
   const categoryLabels = categoryOptions
     .map((category) =>
       typeof category === "string"
         ? category
-        : category?.name || category?.label || "",
+        : category?.name || "",
     )
     .filter(Boolean);
 
@@ -41,7 +58,7 @@ export default function ProfessionalSection({
   const categoryLabel =
     typeof selectedCategory === "string"
       ? selectedCategory
-      : selectedCategory?.name || selectedCategory?.label || "";
+      : selectedCategory?.name || "";
 
   function handleCategoryChange(label) {
     if (saving) return;
@@ -51,10 +68,7 @@ export default function ProfessionalSection({
         return category === label;
       }
 
-      return (
-        category?.name === label ||
-        category?.label === label
-      );
+      return category?.name === label;
     });
 
     if (!selected) return;
@@ -73,7 +87,7 @@ export default function ProfessionalSection({
       {/* Professional Information                                          */}
       {/* ================================================================== */}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <section className="relative rounded-2xl border border-slate-200 bg-white">
         <SectionHeader
           eyebrow="Professional"
           title="Professional information"
@@ -82,9 +96,14 @@ export default function ProfessionalSection({
         />
 
         <div className="space-y-5 px-5 py-6 sm:px-6">
-          {/* Role */}
+          {/* ================================================================ */}
+          {/* Role                                                             */}
+          {/* ================================================================ */}
 
-          <Field label="Role" htmlFor="professional-role">
+          <Field
+            label="Role"
+            htmlFor="professional-role"
+          >
             <div className="relative">
               <BriefcaseBusiness
                 size={18}
@@ -111,9 +130,11 @@ export default function ProfessionalSection({
             </div>
           </Field>
 
-          {/* Category */}
+          {/* ================================================================ */}
+          {/* Category                                                         */}
+          {/* ================================================================ */}
 
-          <div className="relative z-30">
+          <div className="relative z-[100]">
             <label className="mb-2 block text-sm font-bold text-slate-800">
               Category
             </label>
@@ -133,7 +154,9 @@ export default function ProfessionalSection({
             />
           </div>
 
-          {/* Availability */}
+          {/* ================================================================ */}
+          {/* Availability                                                     */}
+          {/* ================================================================ */}
 
           <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
@@ -171,7 +194,7 @@ export default function ProfessionalSection({
       {/* Skills                                                             */}
       {/* ================================================================== */}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <section className="rounded-2xl border border-slate-200 bg-white">
         <SectionHeader
           eyebrow="What you can do"
           title="Skills"
@@ -221,7 +244,7 @@ export default function ProfessionalSection({
       {/* Services                                                           */}
       {/* ================================================================== */}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <section className="rounded-2xl border border-slate-200 bg-white">
         <SectionHeader
           eyebrow="What you offer"
           title="Services"
@@ -244,7 +267,7 @@ export default function ProfessionalSection({
                   key={
                     typeof service === "string"
                       ? `${service}-${index}`
-                      : `${service?.name || "service"}-${index}`
+                      : `${service?.id || service?.name || "service"}-${index}`
                   }
                   service={service}
                 />
@@ -291,11 +314,7 @@ export default function ProfessionalSection({
 /* Field                                                                      */
 /* ========================================================================== */
 
-function Field({
-  label,
-  htmlFor,
-  children,
-}) {
+function Field({ label, htmlFor, children }) {
   return (
     <div>
       <label
@@ -478,22 +497,40 @@ function SkillChip({ skill }) {
 /* ========================================================================== */
 
 function ServiceRow({ service }) {
+  /*
+   * Services can contain:
+   *
+   * {
+   *   id: string,
+   *   name: string,
+   *   description: string,
+   *   price: string
+   * }
+   *
+   * The description is intentionally kept here.
+   */
+
   const normalized =
     typeof service === "string"
       ? {
+          id: "",
           name: service,
           description: "",
-          minPrice: "",
+          price: "",
         }
       : {
+          id: service?.id || "",
           name: service?.name || "",
-          description: service?.description || "",
-          minPrice: service?.minPrice || "",
+          description:
+            service?.description || "",
+          price: service?.price || "",
         };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 transition duration-200 hover:border-slate-300 hover:bg-slate-50/30">
       <div className="flex items-start gap-3">
+        {/* Service icon */}
+
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">
           <BriefcaseBusiness
             size={16}
@@ -504,16 +541,22 @@ function ServiceRow({ service }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
+            {/* Service name */}
+
             <p className="min-w-0 text-sm font-bold text-slate-950">
               {normalized.name}
             </p>
 
-            {normalized.minPrice && (
+            {/* Price */}
+
+            {normalized.price && (
               <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-700">
-                From {normalized.minPrice}
+                From K{normalized.price}
               </span>
             )}
           </div>
+
+          {/* Description */}
 
           {normalized.description && (
             <p className="mt-1.5 text-sm font-medium leading-6 text-slate-500">
