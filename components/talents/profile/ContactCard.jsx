@@ -83,7 +83,7 @@ export default function ContactCard({ talent }) {
   }
 
   return (
-    <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <aside className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6">
       {/* ================================================================ */}
       {/* Header                                                           */}
       {/* ================================================================ */}
