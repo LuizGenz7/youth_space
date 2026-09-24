@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   ArrowRight,
@@ -13,7 +13,11 @@ import {
   UserRound,
 } from "lucide-react";
 
+import { onAuthStateChanged } from "firebase/auth";
+
+
 import TalentLikeButton from "./profile/TalentLikeButton";
+import { auth } from "@/lib/client";
 
 export default function TalentCard({
   talentId,
@@ -35,18 +39,37 @@ export default function TalentCard({
 
   /*
    * =========================================================
+   * CURRENT AUTH USER
+   * =========================================================
+   */
+
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUserId(user.uid);
+
+        console.log(
+          "[TalentCard] Current authenticated user ID:",
+          user.uid,
+        );
+      } else {
+        setCurrentUserId(null);
+
+        console.log(
+          "[TalentCard] No authenticated user.",
+        );
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  /*
+   * =========================================================
    * LIKE STATE
    * =========================================================
-   *
-   * likedByMe:
-   * Whether the currently authenticated user has liked
-   * this talent.
-   *
-   * likes:
-   * Public total number of likes.
-   *
-   * The state is initialized from server data and then
-   * updated optimistically by TalentLikeButton.
    */
 
   const [likeState, setLikeState] = useState(() => ({
@@ -285,10 +308,7 @@ export default function TalentCard({
             >
               <CheckCircle2
                 size={12}
-                className="
-                  fill-slate-950
-                  text-white
-                "
+                className="fill-slate-950 text-white"
                 aria-hidden="true"
               />
 
@@ -322,11 +342,7 @@ export default function TalentCard({
                 alt=""
                 width={32}
                 height={32}
-                className="
-                  h-full
-                  w-full
-                  object-cover
-                "
+                className="h-full w-full object-cover"
                 onError={() => setImageError(true)}
               />
             ) : (
@@ -609,8 +625,6 @@ function TalentImageFallback({
         to-white
       "
     >
-      {/* DECORATIONS */}
-
       <div
         className="
           absolute
@@ -636,8 +650,6 @@ function TalentImageFallback({
           blur-2xl
         "
       />
-
-      {/* FALLBACK */}
 
       <div className="relative flex flex-col items-center">
         <div

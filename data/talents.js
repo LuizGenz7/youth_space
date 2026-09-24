@@ -197,7 +197,7 @@ function decodeCursor(
       payload?.version !== 1 ||
       typeof payload?.categoryId !== "string" ||
       payload.categoryId !==
-        expectedCategoryId ||
+      expectedCategoryId ||
       !Number.isFinite(payload?.likes) ||
       !Number.isFinite(payload?.createdAt) ||
       typeof payload?.id !== "string" ||
@@ -279,11 +279,12 @@ function hasUserLiked(
  *
  * IMPORTANT:
  *
- * This function is completely public-safe.
+ * This function is public/cache-safe.
  *
- * It does NOT access the current user.
- * It does NOT call headers().
- * It can safely run inside "use cache".
+ * It does NOT access the current authenticated user.
+ *
+ * likedByMe starts as false and is populated later by
+ * addCurrentUserLikeState().
  * =========================================================
  */
 
@@ -393,10 +394,7 @@ function serializeTalent(snapshot) {
       likeCount,
 
     /*
-     * Always false in public cached data.
-     *
-     * The authenticated UI can determine the
-     * real value separately.
+     * This is replaced by the authenticated overlay.
      */
     likedByMe:
       false,
@@ -415,16 +413,196 @@ function serializeTalent(snapshot) {
 
     createdAt:
       data.createdAt instanceof
-      Timestamp
+        Timestamp
         ? data.createdAt.toMillis()
         : null,
 
     updatedAt:
       data.updatedAt instanceof
-      Timestamp
+        Timestamp
         ? data.updatedAt.toMillis()
         : null,
   };
+}
+
+/*
+ * =========================================================
+ * ADD CURRENT USER LIKE STATE
+ * =========================================================
+ *
+ * This is the important part.
+ *
+ * Public talent data can be cached.
+ *
+ * User-specific like state CANNOT be cached globally.
+ *
+ * We therefore:
+ *
+ * 1. Get the current authenticated user.
+ * 2. Get the talent documents.
+ * 3. Check:
+ *
+ *    likes.some(
+ *      like => like.userId === currentUser.uid
+ *    )
+ *
+ * 4. Return the talent with likedByMe.
+ *
+ * The full likes array is NEVER returned to the client.
+ * =========================================================
+ */
+
+async function addCurrentUserLikeState(
+  talents,
+) {
+  if (
+    !Array.isArray(talents) ||
+    !talents.length
+  ) {
+    return talents ?? [];
+  }
+
+  const { auth, db } =
+    await getServerFirebase();
+
+  await auth.authStateReady();
+
+  const user =
+    auth.currentUser;
+
+  /*
+   * No authenticated user.
+   *
+   * Public talent data remains available.
+   */
+
+  if (!user) {
+    return talents.map(
+      (talent) => ({
+        ...talent,
+        likedByMe: false,
+      }),
+    );
+  }
+
+  const talentIds = [
+    ...new Set(
+      talents
+        .map(
+          (talent) =>
+            talent?.id,
+        )
+        .filter(
+          (id) =>
+            typeof id ===
+            "string" &&
+            id.trim(),
+        ),
+    ),
+  ];
+
+  if (!talentIds.length) {
+    return talents;
+  }
+
+  /*
+   * Read the actual Firestore documents.
+   *
+   * We need the likes array because the public cached
+   * serializer intentionally does not expose it.
+   */
+
+  const snapshots =
+    await Promise.all(
+      talentIds.map(
+        (talentId) =>
+          getDoc(
+            doc(
+              db,
+              TALENTS_COLLECTION,
+              talentId,
+            ),
+          ),
+      ),
+    );
+
+  const likedIds =
+    new Set();
+
+  snapshots.forEach(
+    (
+      snapshot,
+      index,
+    ) => {
+      if (
+        !snapshot.exists()
+      ) {
+        return;
+      }
+
+      const data =
+        snapshot.data();
+
+      const likes =
+        normalizeLikesArray(
+          data.likes,
+        );
+
+      /*
+       * THIS IS THE ACTUAL CHECK:
+       *
+       * Does the likes array contain the
+       * current authenticated user's UID?
+       */
+
+      if (
+        hasUserLiked(
+          likes,
+          user.uid,
+        )
+      ) {
+        likedIds.add(
+          talentIds[index],
+        );
+      }
+    },
+  );
+
+  /*
+   * Add the user-specific state.
+   */
+
+  return talents.map(
+    (talent) => ({
+      ...talent,
+
+      likedByMe:
+        likedIds.has(
+          talent.id,
+        ),
+    }),
+  );
+}
+
+/*
+ * =========================================================
+ * SINGLE TALENT LIKE STATE
+ * =========================================================
+ */
+
+async function addCurrentUserLikeStateToTalent(
+  talent,
+) {
+  if (!talent) {
+    return null;
+  }
+
+  const result =
+    await addCurrentUserLikeState([
+      talent,
+    ]);
+
+  return result[0] ?? null;
 }
 
 /*
@@ -438,7 +616,7 @@ async function queryCategoryTalentsPage(
   categoryId,
   {
     limitCount =
-      TALENTS_PER_LOAD,
+    TALENTS_PER_LOAD,
 
     cursor = null,
   } = {},
@@ -452,7 +630,7 @@ async function queryCategoryTalentsPage(
     Math.min(
       Math.max(
         Number(limitCount) ||
-          TALENTS_PER_LOAD,
+        TALENTS_PER_LOAD,
         1,
       ),
       TALENTS_PER_LOAD,
@@ -552,7 +730,7 @@ async function queryCategoryTalentsPage(
 
     const createdAt =
       lastData.createdAt instanceof
-      Timestamp
+        Timestamp
         ? lastData.createdAt
         : null;
 
@@ -591,6 +769,11 @@ async function queryCategoryTalentsPage(
 /*
  * =========================================================
  * CACHED CATEGORY PAGE
+ * =========================================================
+ *
+ * PUBLIC DATA ONLY.
+ *
+ * Do not access auth here.
  * =========================================================
  */
 
@@ -669,11 +852,11 @@ async function getCachedInitialTalentsData() {
         (a, b) =>
           Number(
             b.totalTalents ??
-              0,
+            0,
           ) -
           Number(
             a.totalTalents ??
-              0,
+            0,
           ),
       );
 
@@ -773,17 +956,87 @@ async function getCachedInitialTalentsData() {
  * PUBLIC INITIAL TALENTS DATA
  * =========================================================
  *
- * IMPORTANT:
+ * Cached public data is loaded first.
  *
- * No authenticated lookup happens here.
- *
- * This function is safe for Home/Discover
- * prerendering and caching.
+ * Then current-user like state is added.
  * =========================================================
  */
 
 export async function getInitialTalentsData() {
-  return getCachedInitialTalentsData();
+  const data =
+    await getCachedInitialTalentsData();
+
+  /*
+   * Remove duplicate talents before checking
+   * their like state.
+   */
+
+  const uniqueTalents =
+    [
+      ...new Map(
+        data.talents.map(
+          (talent) => [
+            talent.id,
+            talent,
+          ],
+        ),
+      ).values(),
+    ];
+
+  const talentsWithLikeState =
+    await addCurrentUserLikeState(
+      uniqueTalents,
+    );
+
+  const likeStateMap =
+    new Map(
+      talentsWithLikeState.map(
+        (talent) => [
+          talent.id,
+          talent.likedByMe,
+        ],
+      ),
+    );
+
+  /*
+   * Apply likedByMe to both the flat talents array
+   * and each category's talents.
+   */
+
+  return {
+    ...data,
+
+    talents:
+      data.talents.map(
+        (talent) => ({
+          ...talent,
+
+          likedByMe:
+            likeStateMap.get(
+              talent.id,
+            ) ?? false,
+        }),
+      ),
+
+    categories:
+      data.categories.map(
+        (category) => ({
+          ...category,
+
+          talents:
+            category.talents.map(
+              (talent) => ({
+                ...talent,
+
+                likedByMe:
+                  likeStateMap.get(
+                    talent.id,
+                  ) ?? false,
+              }),
+            ),
+        }),
+      ),
+  };
 }
 
 /*
@@ -795,15 +1048,29 @@ export async function getInitialTalentsData() {
 export async function getCategoryTalents(
   categoryId,
 ) {
-  return getCachedCategoryTalents(
-    categoryId,
-    null,
-  );
+  const data =
+    await getCachedCategoryTalents(
+      categoryId,
+      null,
+    );
+
+  return {
+    ...data,
+
+    talents:
+      await addCurrentUserLikeState(
+        data.talents,
+      ),
+  };
 }
 
 /*
  * =========================================================
  * LOAD MORE TALENTS
+ * =========================================================
+ *
+ * Public query first.
+ * Current-user state afterward.
  * =========================================================
  */
 
@@ -830,17 +1097,27 @@ export async function getMoreTalents({
   const { db } =
     await getPublicServerFirebase();
 
-  return queryCategoryTalentsPage(
-    db,
-    normalizedCategoryId,
-    {
-      limitCount:
-        TALENTS_PER_LOAD,
+  const data =
+    await queryCategoryTalentsPage(
+      db,
+      normalizedCategoryId,
+      {
+        limitCount:
+          TALENTS_PER_LOAD,
 
-      cursor:
-        normalizedCursor,
-    },
-  );
+        cursor:
+          normalizedCursor,
+      },
+    );
+
+  return {
+    ...data,
+
+    talents:
+      await addCurrentUserLikeState(
+        data.talents,
+      ),
+  };
 }
 
 /*
@@ -939,14 +1216,15 @@ async function getCachedTopTalents() {
  * =========================================================
  * TOP TALENTS
  * =========================================================
- *
- * Public cached data only.
- * No authentication lookup.
- * =========================================================
  */
 
 export async function getTopTalents() {
-  return getCachedTopTalents();
+  const talents =
+    await getCachedTopTalents();
+
+  return addCurrentUserLikeState(
+    talents,
+  );
 }
 
 /*
@@ -1005,14 +1283,15 @@ async function getCachedNewTalents() {
  * =========================================================
  * NEW TALENTS
  * =========================================================
- *
- * Public cached data only.
- * No authentication lookup.
- * =========================================================
  */
 
 export async function getNewTalents() {
-  return getCachedNewTalents();
+  const talents =
+    await getCachedNewTalents();
+
+  return addCurrentUserLikeState(
+    talents,
+  );
 }
 
 /*
@@ -1031,7 +1310,7 @@ async function getCachedTalentById(
 
   if (
     typeof normalizedId !==
-      "string" ||
+    "string" ||
     !normalizedId
   ) {
     return null;
@@ -1075,19 +1354,18 @@ async function getCachedTalentById(
  * =========================================================
  * GET TALENT BY ID
  * =========================================================
- *
- * Public data only.
- *
- * User-specific like state should be loaded
- * separately when required.
- * =========================================================
  */
 
 export async function getTalentById(
   talentId,
 ) {
-  return getCachedTalentById(
-    talentId,
+  const talent =
+    await getCachedTalentById(
+      talentId,
+    );
+
+  return addCurrentUserLikeStateToTalent(
+    talent,
   );
 }
 
@@ -1117,13 +1395,17 @@ async function getCachedTalentByUsername(
   if (
     !normalizedUsername ||
     normalizedUsername.length >
-      MAX_USERNAME_LENGTH
+    MAX_USERNAME_LENGTH
   ) {
     return null;
   }
 
   cacheLife(
     "minutes",
+  );
+
+  cacheTag(
+    `talent-username:${normalizedUsername}`,
   );
 
   const { db } =
@@ -1155,7 +1437,7 @@ async function getCachedTalentByUsername(
 
   if (
     typeof uid !==
-      "string" ||
+    "string" ||
     !uid
   ) {
     return null;
@@ -1192,16 +1474,18 @@ async function getCachedTalentByUsername(
  * =========================================================
  * GET TALENT BY USERNAME
  * =========================================================
- *
- * Public data only.
- * =========================================================
  */
 
 export async function getTalentByUsername(
   username,
 ) {
-  return getCachedTalentByUsername(
-    username,
+  const talent =
+    await getCachedTalentByUsername(
+      username,
+    );
+
+  return addCurrentUserLikeStateToTalent(
+    talent,
   );
 }
 
@@ -1373,7 +1657,9 @@ export async function toggleTalentLike({
           );
 
         /*
+         * ===================================================
          * LIKE
+         * ===================================================
          */
 
         if (liked) {
@@ -1443,7 +1729,9 @@ export async function toggleTalentLike({
         }
 
         /*
+         * ===================================================
          * UNLIKE
+         * ===================================================
          */
 
         if (
@@ -1546,10 +1834,25 @@ export async function toggleTalentLike({
  * GET CURRENT USER TALENT LIKES
  * =========================================================
  *
- * This is intentionally NOT cached.
+ * Returns a Set of talent IDs that the current user
+ * has liked.
  *
- * It is allowed to use getServerFirebase()
- * because it is user-specific.
+ * Example:
+ *
+ * Firestore:
+ *
+ * likes: [
+ *   { userId: "ABC" },
+ *   { userId: "XYZ" },
+ * ]
+ *
+ * Current user:
+ *
+ * user.uid === "XYZ"
+ *
+ * Result:
+ *
+ * Set(["talent-id"])
  * =========================================================
  */
 
@@ -1581,7 +1884,7 @@ export async function getCurrentUserTalentLikes(
         .filter(
           (id) =>
             typeof id ===
-              "string" &&
+            "string" &&
             id.trim(),
         )
         .map(
@@ -1633,16 +1936,22 @@ export async function getCurrentUserTalentLikes(
           data.likes,
         );
 
-      if (
+      /*
+       * CURRENT USER CHECK
+       *
+       * This checks whether one of the like objects
+       * contains the authenticated user's UID.
+       */
+
+      const liked =
         hasUserLiked(
           likes,
           user.uid,
-        )
-      ) {
+        );
+
+      if (liked) {
         likedIds.add(
-          normalizedIds[
-            index
-          ],
+          normalizedIds[index],
         );
       }
     },

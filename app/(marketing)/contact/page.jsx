@@ -1,9 +1,15 @@
 // app/contact/page.js
 
-"use client";
-
 import Link from "next/link";
-import { ArrowRight, Globe, Mail, MessageCircle, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Globe,
+  Mail,
+  MessageCircle,
+  Sparkles,
+} from "lucide-react";
+
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
 export default function ContactPage() {
@@ -13,10 +19,10 @@ export default function ContactPage() {
           HERO
       ===================================================== */}
 
-      <section className="relative overflow-hidden bg-slate-950">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950">
         {/* Decorative background */}
 
-        <div className="absolute inset-0 opacity-[0.06]">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
           <div
             className="absolute inset-0"
             style={{
@@ -27,40 +33,23 @@ export default function ContactPage() {
           />
         </div>
 
-        <div className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/[0.04] blur-3xl" />
+        <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/[0.04] blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-8 sm:px-8 sm:pb-20 lg:px-10 lg:pb-24 xl:px-14">
-          {/* Top */}
+        <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-white/[0.03] blur-3xl" />
 
-          <div className="flex items-center justify-between">
-            <Link href="/" className="group flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-slate-950 transition group-hover:scale-105">
-                Y
-              </div>
+        <Header />
 
-              <div className="leading-none">
-                <p className="text-[15px] font-black tracking-tight text-white">
-                  Youth Space
-                </p>
+        <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-20 sm:px-8 sm:pb-20 sm:pt-24 lg:px-10 lg:pb-24 lg:pt-28 xl:px-14">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-bold text-white/45 transition hover:text-white"
+          >
+            <ArrowRight size={14} className="rotate-180" />
+            Back home
+          </Link>
 
-                <p className="mt-1 text-[9px] text-white/40">
-                  Discover. Connect. Create.
-                </p>
-              </div>
-            </Link>
-
-            <Link
-              href="/"
-              className="rounded-lg px-3 py-2 text-xs font-bold text-white/60 transition hover:bg-white/10 hover:text-white"
-            >
-              Back home
-            </Link>
-          </div>
-
-          {/* Hero content */}
-
-          <div className="mt-20 max-w-3xl sm:mt-24 lg:mt-28">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 backdrop-blur-md">
+          <div className="mt-10 max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
                 <Sparkles size={10} />
               </span>
@@ -76,7 +65,7 @@ export default function ContactPage() {
               Let&apos;s talk.
             </h1>
 
-            <p className="mt-6 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
+            <p className="mt-6 max-w-2xl text-sm leading-7 text-white/55 sm:text-base sm:leading-8">
               Whether you have a question about Youth Space, want to report
               something, need help with your profile or simply want to share an
               idea, we&apos;re here to listen.
@@ -91,7 +80,7 @@ export default function ContactPage() {
 
       <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16 lg:px-10 lg:py-20 xl:px-14">
         <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
-          {/* Left */}
+          {/* LEFT */}
 
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
@@ -121,8 +110,8 @@ export default function ContactPage() {
               <a
                 href="https://wa.me/260962063468"
                 target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex items-center gap-2 text-sm font-black text-slate-950 hover:underline"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center gap-2 text-sm font-black text-slate-950 transition hover:gap-2.5 hover:underline"
               >
                 Chat on WhatsApp
                 <ArrowRight size={15} />
@@ -130,7 +119,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Contact cards */}
+          {/* RIGHT */}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <ContactCard
@@ -151,10 +140,14 @@ export default function ContactPage() {
               action="Send email"
             />
 
-            {/* TechGU */}
+            {/* TECHGU */}
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:col-span-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-white">
+                <Globe size={19} />
+              </div>
+
+              <p className="mt-6 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                 A TechGU product
               </p>
 
@@ -171,11 +164,11 @@ export default function ContactPage() {
               <a
                 href="https://techgu.com"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-slate-800"
               >
                 Visit TechGU
-                <Globe size={15} />
+                <ArrowRight size={15} />
               </a>
             </div>
           </div>
@@ -200,7 +193,7 @@ function ContactCard({ icon, label, title, description, href, action }) {
     <a
       href={href}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener noreferrer"
       className="group rounded-2xl border border-slate-200 bg-white p-6 transition duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-950/[0.05]"
     >
       <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-950 transition group-hover:bg-slate-950 group-hover:text-white">

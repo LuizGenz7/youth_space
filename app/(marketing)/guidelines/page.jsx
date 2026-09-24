@@ -12,12 +12,17 @@ import {
   Sparkles,
   TriangleAlert,
   Users,
+  Ban,
 } from "lucide-react";
+
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
 export default function GuidelinesPage() {
   return (
     <main className="min-h-screen bg-white text-slate-950">
+      <Header />
+
       {/* =====================================================
           HERO
       ===================================================== */}
@@ -36,43 +41,25 @@ export default function GuidelinesPage() {
           />
         </div>
 
-        <div className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/4 blur-3xl" />
+        <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/4 blur-3xl" />
 
-        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-white/3 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-white/3 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-8 sm:px-6 sm:pb-20 lg:px-8 lg:pb-24">
-          {/* Header */}
+        <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-16 sm:px-6 sm:pb-20 sm:pt-20 lg:px-8 lg:pb-24 lg:pt-24">
+          {/* Back */}
 
-          <div className="flex items-center justify-between">
-            <Link href="/" className="group flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-slate-950 transition group-hover:scale-105">
-                Y
-              </div>
-
-              <div className="leading-none">
-                <p className="text-[15px] font-black tracking-tight text-white">
-                  Youth Space
-                </p>
-
-                <p className="mt-1 text-[9px] text-white/40">
-                  A TechGU product
-                </p>
-              </div>
-            </Link>
-
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-white/60 transition hover:bg-white/10 hover:text-white"
-            >
-              <ArrowLeft size={13} />
-              Back home
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-bold text-white/45 transition hover:text-white"
+          >
+            <ArrowLeft size={14} />
+            Back home
+          </Link>
 
           {/* Hero content */}
 
-          <div className="mt-20 max-w-3xl sm:mt-24 lg:mt-28">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 backdrop-blur-md">
+          <div className="mt-14 max-w-3xl sm:mt-20 lg:mt-24">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-950">
                 <ShieldCheck size={11} />
               </span>
@@ -89,9 +76,13 @@ export default function GuidelinesPage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-sm leading-7 text-white/55 sm:text-base sm:leading-8">
-              Youth Space is built to help young people discover talent,
-              showcase their work and connect with opportunities. These
-              guidelines help us keep it useful, respectful and safe.
+              Youth Space is built to help people discover talent, showcase
+              their work and connect with opportunities. These guidelines help
+              us keep it useful, respectful and safe.
+            </p>
+
+            <p className="mt-6 text-xs font-medium text-white/30">
+              Last updated: September 24, 2026
             </p>
           </div>
         </div>
@@ -172,13 +163,28 @@ export default function GuidelinesPage() {
               ]}
             />
 
-            {/* Safety */}
+            {/* Illegal drugs */}
 
             <GuidelineSection
               number="04"
+              icon={Ban}
+              title="No illegal drug activity"
+              description="Youth Space does not allow the platform to be used for illegal drugs or controlled-substance activity."
+              items={[
+                "Do not sell, buy, distribute, advertise, promote or source illegal drugs or controlled substances.",
+                "Do not use your profile, services or portfolio to offer or arrange illegal drug-related activity.",
+                "Do not provide prices, contact details, locations or instructions intended to facilitate illegal drug distribution.",
+                "Educational, awareness, prevention, health or recovery content may be allowed when it does not facilitate illegal drug activity.",
+              ]}
+            />
+
+            {/* Safety */}
+
+            <GuidelineSection
+              number="05"
               icon={ShieldCheck}
               title="Keep the community safe"
-              description="Some content and behavior has no place on Youth Space."
+              description="Some content and behaviour has no place on Youth Space."
               items={[
                 "Do not use Youth Space to facilitate illegal activities.",
                 "Do not share malicious links, scams, phishing attempts or fraudulent offers.",
@@ -190,7 +196,7 @@ export default function GuidelinesPage() {
             {/* Services */}
 
             <GuidelineSection
-              number="05"
+              number="06"
               icon={CheckCircle2}
               title="Be responsible with services"
               description="Youth Space helps people discover talent, but users are responsible for their own agreements."
@@ -205,7 +211,7 @@ export default function GuidelinesPage() {
             {/* Messaging */}
 
             <GuidelineSection
-              number="06"
+              number="07"
               icon={MessageCircle}
               title="Communicate responsibly"
               description="Direct communication should remain professional and respectful."
@@ -237,8 +243,8 @@ export default function GuidelinesPage() {
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
               Help us keep Youth Space safe. If you encounter harmful,
-              misleading, abusive or inappropriate content, report it through
-              the available reporting tools or contact TechGU.
+              misleading, abusive, illegal or inappropriate content, report it
+              through the available reporting tools or contact TechGU.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">

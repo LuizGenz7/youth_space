@@ -190,8 +190,29 @@ export default function TermsPage() {
               </p>
 
               <p>
-                You must not use the platform to scam, harass, impersonate,
+                You must not use Youth Space to scam, harass, impersonate,
                 exploit or deliberately mislead other users.
+              </p>
+
+              <p>
+                <strong>Illegal drugs and controlled substances are not allowed
+                on Youth Space.</strong>{" "}
+                You must not use the platform to sell, buy, distribute,
+                advertise, promote, source or facilitate illegal drugs or
+                controlled substances.
+              </p>
+
+              <p>
+                This includes using profiles, services, portfolio items,
+                descriptions, images, contact information or other features to
+                arrange or facilitate illegal drug-related activity.
+              </p>
+
+              <p>
+                Educational, awareness, prevention, health or recovery-related
+                content may be allowed when it does not facilitate the sale,
+                purchase, distribution or use of illegal drugs or controlled
+                substances.
               </p>
             </TermsSection>
 
