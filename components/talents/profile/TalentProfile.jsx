@@ -3,7 +3,6 @@ import TalentContent from "./TalentContent";
 
 export default function TalentProfile({
   talent,
-  services,
   works,
 }) {
   return (
@@ -12,7 +11,7 @@ export default function TalentProfile({
 
       <TalentContent
         talent={talent}
-        services={services}
+        services={talent.services || []}
         works={works}
       />
     </>

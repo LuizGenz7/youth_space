@@ -4,7 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import TalentProfile from "@/components/talents/profile/TalentProfile";
 
-import { getProfileByUsername } from "@/data/profile";
+import { getTalentByUsername } from "@/data/talents";
 import { getWorksByTalent } from "@/data/works";
 
 export const instant = false;
@@ -12,21 +12,21 @@ export const instant = false;
 export default async function TalentPage({ params }) {
   const { username } = await params;
 
-  const profile = await getProfileByUsername(username);
+  const talent = await getTalentByUsername(username);
 
-  if (!profile) {
+  if (!talent) {
     notFound();
   }
 
-  const works = await getWorksByTalent(profile.uid);
+  const works = await getWorksByTalent(talent.uid);
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <Header />
 
       <TalentProfile
-        talent={profile}
-        services={profile.services || []}
+        talent={talent}
+        services={talent.services || []}
         works={works}
       />
 
