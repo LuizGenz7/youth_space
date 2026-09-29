@@ -3,7 +3,9 @@
 import Image from "next/image";
 import {
   BriefcaseBusiness,
+  Heart,
   ImagePlus,
+  Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -11,8 +13,11 @@ import {
 export default function PortfolioSection({
   works = [],
   onAddWork,
+  onEditWork,
   onDeleteWork,
+  onToggleLikeWork,
   deletingWorkId = null,
+  likingWorkId = null,
 }) {
   return (
     <div className="space-y-6">
@@ -46,14 +51,10 @@ export default function PortfolioSection({
           <button
             type="button"
             onClick={onAddWork}
-            className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 sm:w-auto"
+            disabled={!onAddWork}
+            className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            <Plus
-              size={17}
-              strokeWidth={2.5}
-              aria-hidden="true"
-            />
-
+            <Plus size={17} strokeWidth={2.5} aria-hidden="true" />
             Add work
           </button>
         </div>
@@ -67,7 +68,10 @@ export default function PortfolioSection({
                   key={work.id}
                   work={work}
                   deleting={deletingWorkId === work.id}
-                  onDelete={() => onDeleteWork(work.id)}
+                  liking={likingWorkId === work.id}
+                  onEdit={() => onEditWork?.(work)}
+                  onDelete={() => onDeleteWork?.(work.id)}
+                  onToggleLike={() => onToggleLikeWork?.(work.id)}
                 />
               ))}
 
@@ -101,22 +105,25 @@ function SectionIcon({ children }) {
 function WorkCard({
   work,
   deleting = false,
+  liking = false,
+  onEdit,
   onDelete,
+  onToggleLike,
 }) {
-  const image =
-    work.image ||
-    work.imageUrl ||
-    work.thumbnail ||
-    "";
+  const image = work?.image || "";
 
-  const title = work.title || "Untitled work";
+  const title = work?.title?.trim() || "Untitled work";
 
-  const description = work.description || "";
+  const description = work?.description?.trim() || "";
 
-  const category =
-    work.category ||
-    work.categoryName ||
-    "";
+  const category = work?.category?.trim() || "";
+
+  // The data layer uses `likes`.
+  const likeCount = Math.max(0, Number(work?.likes ?? 0));
+
+  const likedByMe = Boolean(work?.likedByMe);
+
+  const busy = deleting || liking;
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-950/[0.04]">
@@ -143,24 +150,40 @@ function WorkCard({
           </div>
         )}
 
-        {/* Delete */}
-        <button
-          type="button"
-          disabled={deleting}
-          onClick={onDelete}
-          aria-label={`Delete ${title}`}
-          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm outline-none transition duration-200 hover:border-slate-300 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {deleting ? (
-            <LoadingSpinner />
-          ) : (
-            <Trash2
-              size={17}
+        {/* Owner Actions */}
+        <div className="absolute right-3 top-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={busy}
+            aria-label={`Edit ${title}`}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm outline-none transition duration-200 hover:border-slate-300 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Pencil
+              size={16}
               strokeWidth={2}
               aria-hidden="true"
             />
-          )}
-        </button>
+          </button>
+
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={busy}
+            aria-label={`Delete ${title}`}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm outline-none transition duration-200 hover:border-slate-300 hover:text-slate-950 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {deleting ? (
+              <LoadingSpinner />
+            ) : (
+              <Trash2
+                size={17}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -180,6 +203,39 @@ function WorkCard({
             {description}
           </p>
         )}
+
+        {/* Engagement */}
+        <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+          <button
+            type="button"
+            onClick={onToggleLike}
+            disabled={busy}
+            aria-label={likedByMe ? `Unlike ${title}` : `Like ${title}`}
+            aria-pressed={likedByMe}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold outline-none transition ${
+              likedByMe
+                ? "bg-slate-950 text-white"
+                : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-950"
+            } disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            {liking ? (
+              <LoadingSpinner />
+            ) : (
+              <Heart
+                size={15}
+                strokeWidth={2}
+                fill={likedByMe ? "currentColor" : "none"}
+                aria-hidden="true"
+              />
+            )}
+
+            <span>{likeCount}</span>
+          </button>
+
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+            Work
+          </span>
+        </div>
       </div>
     </article>
   );
@@ -194,7 +250,8 @@ function AddWorkCard({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 text-center outline-none transition duration-200 hover:border-slate-400 hover:bg-white hover:shadow-lg hover:shadow-slate-950/[0.03] focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.99]"
+      disabled={!onClick}
+      className="group flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 text-center outline-none transition duration-200 hover:border-slate-400 hover:bg-white hover:shadow-lg hover:shadow-slate-950/[0.03] focus:border-slate-950 focus:ring-4 focus:ring-slate-950/[0.04] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
     >
       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white ring-1 ring-slate-200 transition duration-200 group-hover:bg-slate-100">
         <Plus
@@ -243,14 +300,14 @@ function PortfolioEmptyState({ onClick }) {
       <button
         type="button"
         onClick={onClick}
-        className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0"
+        disabled={!onClick}
+        className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 outline-none transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl focus:ring-4 focus:ring-slate-950/[0.04] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Plus
           size={17}
           strokeWidth={2.5}
           aria-hidden="true"
         />
-
         Add your first work
       </button>
     </div>
