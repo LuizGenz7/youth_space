@@ -1,8 +1,11 @@
+
 import {
   cacheLife,
   cacheTag,
   revalidateTag,
 } from "next/cache";
+
+import { connection } from "next/server";
 
 import {
   collection,
@@ -430,25 +433,20 @@ function serializeTalent(snapshot) {
  * ADD CURRENT USER LIKE STATE
  * =========================================================
  *
- * This is the important part.
- *
  * Public talent data can be cached.
  *
  * User-specific like state CANNOT be cached globally.
  *
- * We therefore:
+ * IMPORTANT:
  *
- * 1. Get the current authenticated user.
- * 2. Get the talent documents.
- * 3. Check:
+ * connection() tells Next.js that this section depends
+ * on the current request before getServerFirebase()
+ * accesses headers().
  *
- *    likes.some(
- *      like => like.userId === currentUser.uid
- *    )
+ * This prevents the prerendering error:
  *
- * 4. Return the talent with likedByMe.
- *
- * The full likes array is NEVER returned to the client.
+ * "During prerendering, headers() rejects when the
+ * prerender is complete..."
  * =========================================================
  */
 
@@ -461,6 +459,14 @@ async function addCurrentUserLikeState(
   ) {
     return talents ?? [];
   }
+
+  /*
+   * This part depends on the current request because
+   * getServerFirebase() reads the Authorization header.
+   *
+   * Keep this OUTSIDE the cached public functions.
+   */
+  await connection();
 
   const { auth, db } =
     await getServerFirebase();
