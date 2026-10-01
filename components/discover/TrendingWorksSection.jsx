@@ -16,84 +16,59 @@ export default async function TrendingWorksSection({ className = "" }) {
     result = null;
   }
 
+
   const works =
     result?.success && Array.isArray(result.works) ? result.works : [];
 
-  const heading = <TrendingHeading />;
+    
+    console.log("Trending works result:", result);
+  return (
+    <section className={className}>
+      <TrendingHeading />
 
-  /*
-   * --------------------------------------------------
-   * REQUEST FAILED
-   * --------------------------------------------------
-   */
-
-  if (!result?.success) {
-    return (
-      <section className={className}>
-        {heading}
-
+      {!result?.success ? (
         <WorkState
           title="Trending works are temporarily unavailable."
           description="Please try again later."
         />
-      </section>
-    );
-  }
-
-  /*
-   * --------------------------------------------------
-   * SUCCESS — NO WORKS
-   * --------------------------------------------------
-   */
-
-  if (works.length === 0) {
-    return (
-      <section className={className}>
-        {heading}
-
+      ) : works.length === 0 ? (
         <WorkState
           title="No trending works yet."
           description="Works will appear here as the community starts engaging with them."
           dashed
         />
-      </section>
-    );
-  }
+      ) : (
+        <>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
+            The 10 works receiving the most likes from the community.
+          </p>
 
-  /*
-   * --------------------------------------------------
-   * SUCCESS — WORKS
-   * --------------------------------------------------
-   */
-
-  return (
-    <section className={className}>
-      {heading}
-
-      <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
-        The 10 works receiving the most likes from the community.
-      </p>
-
-      <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {works.map((work) => (
-          <WorkCard key={work.id} work={work} talent={work.talent} />
-        ))}
-      </div>
+          <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {works.map((work) => (
+              <WorkCard
+                key={work.id}
+                work={work}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }
 
-/*
- * --------------------------------------------------
+/* --------------------------------------------------
  * HEADING
- * --------------------------------------------------
- */
+ * -------------------------------------------------- */
 
 function TrendingHeading() {
   return (
     <div className="flex items-end gap-3">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
-        <TrendingUp size={19} aria-hidden="true" />
+      <div
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white"
+        aria-hidden="true"
+      >
+        <TrendingUp size={19} />
       </div>
 
       <div>
@@ -109,9 +84,15 @@ function TrendingHeading() {
   );
 }
 
+/* --------------------------------------------------
+ * EMPTY / ERROR STATE
+ * -------------------------------------------------- */
 
-
-function WorkState({ title, description, dashed = false }) {
+function WorkState({
+  title,
+  description,
+  dashed = false,
+}) {
   return (
     <div
       className={[
@@ -121,9 +102,13 @@ function WorkState({ title, description, dashed = false }) {
           : "border border-slate-200",
       ].join(" ")}
     >
-      <p className="text-sm font-bold text-slate-700">{title}</p>
+      <p className="text-sm font-bold text-slate-700">
+        {title}
+      </p>
 
-      <p className="mt-1 text-xs text-slate-400">{description}</p>
+      <p className="mt-1 text-xs text-slate-400">
+        {description}
+      </p>
     </div>
   );
 }

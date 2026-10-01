@@ -1,14 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import {
-  Heart,
-  LoaderCircle,
-} from "lucide-react";
+import { useState, useTransition } from "react";
+import { Heart, LoaderCircle } from "lucide-react";
 
-import {
-  toggleTalentLikeAction,
-} from "@/actions/talents";
+import { toggleTalentLikeAction } from "@/actions/talents";
 
 export default function TalentLikeButton({
   talentId,
@@ -18,61 +13,22 @@ export default function TalentLikeButton({
   variant = "hero",
   className = "",
 }) {
-  const [isPending, startTransition] =
-    useTransition();
+  const [isPending, startTransition] = useTransition();
 
-  const [liked, setLiked] = useState(
-    Boolean(initialLiked),
-  );
+  const [liked, setLiked] = useState(Boolean(initialLiked));
 
-  const [likes, setLikes] = useState(
-    normalizeLikes(initialLikes),
-  );
+  const [likes, setLikes] = useState(normalizeLikes(initialLikes));
 
   /*
    * ========================================================================
-   * Sync with server-rendered props
-   * ========================================================================
-   *
-   * This is important when:
-   *
-   * - router.refresh() runs
-   * - the talent is loaded again
-   * - navigating back to the profile
-   * - another component causes the server data to refresh
-   *
-   * We do not overwrite the optimistic state while a like request
-   * is currently being processed.
-   */
-
-  useEffect(() => {
-    if (isPending) {
-      return;
-    }
-
-    setLiked(Boolean(initialLiked));
-    setLikes(normalizeLikes(initialLikes));
-  }, [
-    initialLiked,
-    initialLikes,
-    isPending,
-  ]);
-
-  /*
-   * ========================================================================
-   * Apply state
+   * Apply like state
    * ========================================================================
    */
 
-  function applyLikeState(
-    nextLiked,
-    nextLikes,
-  ) {
-    const normalizedLiked =
-      Boolean(nextLiked);
+  function applyLikeState(nextLiked, nextLikes) {
+    const normalizedLiked = Boolean(nextLiked);
 
-    const normalizedLikes =
-      normalizeLikes(nextLikes);
+    const normalizedLikes = normalizeLikes(nextLikes);
 
     setLiked(normalizedLiked);
     setLikes(normalizedLikes);
@@ -105,63 +61,46 @@ export default function TalentLikeButton({
     /*
      * Optimistic update.
      */
-    const optimisticLikes = Math.max(
-      0,
-      likes + (nextLiked ? 1 : -1),
-    );
 
-    applyLikeState(
-      nextLiked,
-      optimisticLikes,
-    );
+    const optimisticLikes = Math.max(0, likes + (nextLiked ? 1 : -1));
+
+    applyLikeState(nextLiked, optimisticLikes);
 
     startTransition(async () => {
       try {
-        const result =
-          await toggleTalentLikeAction({
-            talentId,
-            liked: nextLiked,
-          });
+        const result = await toggleTalentLikeAction({
+          talentId,
+          liked: nextLiked,
+        });
 
         if (!result?.success) {
           throw new Error(
-            result?.error ||
-              "Unable to update like.",
+            result?.error || result?.message || "Unable to update like.",
           );
         }
 
         /*
          * Server is authoritative.
          */
-        applyLikeState(
-          result.liked,
-          result.likes,
-        );
+
+        applyLikeState(result.liked, result.likes);
       } catch (error) {
-        console.error(
-          "Talent like failed:",
-          error,
-        );
+        console.error("Talent like failed:", error);
 
         /*
          * Roll back optimistic state.
          */
-        applyLikeState(
-          previousLiked,
-          previousLikes,
-        );
+
+        applyLikeState(previousLiked, previousLikes);
       }
     });
   }
 
   const isLiked = Boolean(liked);
 
-  const ariaLabel = isLiked
-    ? "Unlike talent"
-    : "Like talent";
+  const ariaLabel = isLiked ? "Unlike talent" : "Like talent";
 
-  const disabled =
-    isPending || !talentId;
+  const disabled = isPending || !talentId;
 
   /*
    * ========================================================================
@@ -232,9 +171,7 @@ export default function TalentLikeButton({
             size={17}
             strokeWidth={2}
             className={
-              isLiked
-                ? "fill-orange-500 text-orange-500"
-                : "text-white"
+              isLiked ? "fill-orange-500 text-orange-500" : "text-white"
             }
             aria-hidden="true"
           />
@@ -242,22 +179,16 @@ export default function TalentLikeButton({
 
         {/* Desktop / tablet text */}
 
-        <span className="hidden sm:inline">
-          {isLiked ? "Liked" : "Like"}
-        </span>
+        <span className="hidden sm:inline">{isLiked ? "Liked" : "Like"}</span>
 
         {/* Count */}
 
         <span
           className={`
-            ${
-              isLiked
-                ? "text-white"
-                : "text-white/70"
-            }
-            ${
-              "border-l border-white/15 pl-2"
-            }
+            ${isLiked ? "text-white" : "text-white/70"}
+            border-l
+            border-white/15
+            pl-2
             sm:pl-2.5
           `}
         >
@@ -318,11 +249,7 @@ export default function TalentLikeButton({
           <Heart
             size={15}
             strokeWidth={2}
-            className={
-              isLiked
-                ? "fill-white"
-                : ""
-            }
+            className={isLiked ? "fill-white" : ""}
             aria-hidden="true"
           />
         )}
@@ -380,11 +307,7 @@ export default function TalentLikeButton({
         <Heart
           size={15}
           strokeWidth={2}
-          className={
-            isLiked
-              ? "fill-white"
-              : ""
-          }
+          className={isLiked ? "fill-white" : ""}
           aria-hidden="true"
         />
       )}
@@ -407,8 +330,5 @@ function normalizeLikes(value) {
     return 0;
   }
 
-  return Math.max(
-    0,
-    Math.floor(number),
-  );
+  return Math.max(0, Math.floor(number));
 }

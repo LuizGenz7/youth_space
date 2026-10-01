@@ -37,7 +37,7 @@ export default async function LatestWork() {
         {works.length > 0 ? (
           <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
             {works.map((work) => (
-              <WorkCard key={work.id} work={work} talent={work.talent} />
+              <WorkCard key={work.id} work={work} />
             ))}
           </div>
         ) : (

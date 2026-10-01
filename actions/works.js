@@ -4,39 +4,55 @@ import { z } from "zod";
 
 import {
   getTrendingWorks,
+  getCurrentUserWorkLikes,
+  getWorkLikeStatus,
+  toggleWorkLike,
   createWork,
   updateWork,
-  toggleWorkLike,
-  getWorkLikeStatus,
   deleteWork,
 } from "@/data/works";
 
 import { requireAuthAction } from "@/lib/auth-server";
 
 /*
- * ==================================================
+ * =========================================================
  * CONFIG
- * ==================================================
+ * =========================================================
  */
 
-const TRENDING_WORKS_LIMIT = 10;
+const DISCOVER_WORKS_LIMIT = 10;
+
+const MAX_WORK_ID_LENGTH = 128;
+const MAX_CATEGORY_ID_LENGTH = 100;
 
 /*
- * ==================================================
+ * =========================================================
  * SCHEMAS
- * ==================================================
+ * =========================================================
  */
 
 const workIdSchema = z
   .string()
   .trim()
   .min(1, "Work ID is required.")
-  .max(100, "Work ID is too long.");
+  .max(
+    MAX_WORK_ID_LENGTH,
+    "Work ID is too long.",
+  );
+
+const categoryIdSchema = z
+  .string()
+  .trim()
+  .min(1, "Category ID is required.")
+  .max(
+    MAX_CATEGORY_ID_LENGTH,
+    "Category ID is too long.",
+  );
 
 /*
- * --------------------------------------------------
+ * ---------------------------------------------------------
  * TRENDING WORKS
- * --------------------------------------------------
+ * ---------------------------------------------------------
  */
 
 const trendingWorksSchema = z
@@ -45,48 +61,33 @@ const trendingWorksSchema = z
       .number()
       .int()
       .min(1)
-      .max(TRENDING_WORKS_LIMIT),
+      .max(DISCOVER_WORKS_LIMIT),
   })
   .strict();
 
 /*
- * --------------------------------------------------
- * CLOUDINARY IMAGE
- * --------------------------------------------------
- *
- * `image` is the public HTTPS URL.
- *
- * `imagePublicId` is the Cloudinary asset identifier
- * used by the server when an image needs to be
- * replaced or deleted.
- * --------------------------------------------------
+ * ---------------------------------------------------------
+ * IMAGE
+ * ---------------------------------------------------------
  */
 
-const imageFieldsSchema = z
-  .object({
-    image: z
-      .string()
-      .trim()
-      .url("Please provide a valid image URL.")
-      .max(2000, "Image URL is too long.")
-      .or(z.literal(""))
-      .default(""),
-
-    imagePublicId: z
-      .string()
-      .trim()
-      .max(
-        500,
-        "Image public ID is too long.",
-      )
-      .default(""),
-  })
-  .strict();
+const imageSchema = z
+  .string()
+  .trim()
+  .url(
+    "Please provide a valid image URL.",
+  )
+  .max(
+    2000,
+    "Image URL is too long.",
+  )
+  .or(z.literal(""))
+  .default("");
 
 /*
- * --------------------------------------------------
+ * ---------------------------------------------------------
  * CREATE / UPDATE WORK
- * --------------------------------------------------
+ * ---------------------------------------------------------
  */
 
 const workFieldsSchema = z
@@ -94,8 +95,14 @@ const workFieldsSchema = z
     title: z
       .string()
       .trim()
-      .min(1, "Work title is required.")
-      .max(100, "Work title is too long."),
+      .min(
+        1,
+        "Work title is required.",
+      )
+      .max(
+        100,
+        "Work title is too long.",
+      ),
 
     description: z
       .string()
@@ -115,30 +122,33 @@ const workFieldsSchema = z
       )
       .default(""),
 
-    categoryId: z
-      .string()
-      .trim()
-      .max(
-        100,
-        "Work category ID is too long.",
-      )
-      .default(""),
+    categoryId:
+      categoryIdSchema,
 
-    ...imageFieldsSchema.shape,
+    image:
+      imageSchema,
   })
   .strict();
 
-const createWorkSchema = workFieldsSchema;
+const createWorkSchema =
+  workFieldsSchema;
 
 const updateWorkSchema = z
   .object({
-    workId: workIdSchema,
+    workId:
+      workIdSchema,
 
     title: z
       .string()
       .trim()
-      .min(1, "Work title is required.")
-      .max(100, "Work title is too long."),
+      .min(
+        1,
+        "Work title is required.",
+      )
+      .max(
+        100,
+        "Work title is too long.",
+      ),
 
     description: z
       .string()
@@ -158,53 +168,54 @@ const updateWorkSchema = z
       )
       .default(""),
 
-    categoryId: z
-      .string()
-      .trim()
-      .max(
-        100,
-        "Work category ID is too long.",
-      )
-      .default(""),
+    categoryId:
+      categoryIdSchema,
 
-    ...imageFieldsSchema.shape,
+    image:
+      imageSchema,
   })
   .strict();
 
 /*
- * --------------------------------------------------
+ * ---------------------------------------------------------
  * LIKE
- * --------------------------------------------------
+ * ---------------------------------------------------------
  */
 
-const toggleLikeSchema = z
+const workLikeSchema = z
   .object({
-    workId: workIdSchema,
+    workId:
+      workIdSchema,
+
+    liked:
+      z.boolean(),
   })
   .strict();
 
 const workLikeStatusSchema = z
   .object({
-    workId: workIdSchema,
+    workId:
+      workIdSchema,
   })
   .strict();
 
 /*
- * --------------------------------------------------
+ * ---------------------------------------------------------
  * DELETE
- * --------------------------------------------------
+ * ---------------------------------------------------------
  */
 
 const deleteWorkSchema = z
   .object({
-    workId: workIdSchema,
+    workId:
+      workIdSchema,
   })
   .strict();
 
 /*
- * ==================================================
+ * =========================================================
  * HELPERS
- * ==================================================
+ * =========================================================
  */
 
 function normalizeInput(input) {
@@ -219,7 +230,10 @@ function normalizeInput(input) {
   return input;
 }
 
-function getErrorMessage(error, fallback) {
+function getErrorMessage(
+  error,
+  fallback,
+) {
   if (
     error instanceof Error &&
     error.message
@@ -230,368 +244,343 @@ function getErrorMessage(error, fallback) {
   return fallback;
 }
 
+function normalizeWorks(works) {
+  return Array.isArray(works)
+    ? works
+    : [];
+}
+
+function normalizeLikes(value) {
+  const number =
+    Number(value);
+
+  if (
+    !Number.isFinite(number)
+  ) {
+    return 0;
+  }
+
+  return Math.max(
+    0,
+    Math.floor(number),
+  );
+}
+
 /*
- * ==================================================
- * AUTH HELPER
- * ==================================================
+ * =========================================================
+ * PUBLIC WORK HELPERS
+ * =========================================================
  *
- * Keeps authentication handling consistent across
- * every authenticated work action.
- * ==================================================
+ * Public work data must remain safe for prerendering.
+ *
+ * The data layer may return:
+ *
+ * likedByMe: true / false
+ *
+ * but this action intentionally starts public data with
+ * likedByMe: false and resolves the real authenticated
+ * state separately when needed.
+ *
+ * Raw likes[] is never returned.
+ * =========================================================
  */
 
-async function getAuthenticatedUser() {
+function addDefaultLikeState(
+  works,
+) {
+  return normalizeWorks(
+    works,
+  ).map(
+    (work) => ({
+      ...work,
+
+      likes:
+        normalizeLikes(
+          work?.likes,
+        ),
+
+      likedByMe:
+        false,
+    }),
+  );
+}
+
+/*
+ * =========================================================
+ * AUTHENTICATED LIKE STATE
+ * =========================================================
+ *
+ * Same pattern as actions/talents.js.
+ *
+ * This is request-time only.
+ *
+ * It uses:
+ *
+ * getCurrentUserWorkLikes()
+ *
+ * and converts the returned Set into:
+ *
+ * likedByMe: true / false
+ * =========================================================
+ */
+
+async function enrichWorksWithLikeState(
+  works,
+) {
+  const normalizedWorks =
+    normalizeWorks(
+      works,
+    );
+
+  if (
+    !normalizedWorks.length
+  ) {
+    return [];
+  }
+
   try {
-    return await requireAuthAction();
-  } catch (error) {
-    if (error?.code === "AUTH_REQUIRED") {
-      return null;
+    const workIds =
+      normalizedWorks
+        .map(
+          (work) =>
+            work?.id,
+        )
+        .filter(
+          (id) =>
+            typeof id ===
+              "string" &&
+            id.trim(),
+        );
+
+    if (
+      !workIds.length
+    ) {
+      return normalizedWorks.map(
+        (work) => ({
+          ...work,
+          likedByMe: false,
+        }),
+      );
     }
 
-    throw error;
+    const likedIds =
+      await getCurrentUserWorkLikes(
+        workIds,
+      );
+
+    return normalizedWorks.map(
+      (work) => ({
+        ...work,
+
+        likes:
+          normalizeLikes(
+            work?.likes,
+          ),
+
+        likedByMe:
+          likedIds.has(
+            work.id,
+          ),
+      }),
+    );
+  } catch (error) {
+    console.error(
+      "enrichWorksWithLikeState failed:",
+      error,
+    );
+
+    return normalizedWorks.map(
+      (work) => ({
+        ...work,
+
+        likes:
+          normalizeLikes(
+            work?.likes,
+          ),
+
+        likedByMe:
+          false,
+      }),
+    );
   }
 }
 
 /*
- * ==================================================
+ * =========================================================
  * GET TRENDING WORKS
- * ==================================================
+ * =========================================================
  *
- * PUBLIC
- * ==================================================
+ * PUBLIC DATA.
+ *
+ * Do not resolve authenticated like state here during
+ * prerendering.
+ * =========================================================
  */
 
 export async function getTrendingWorksAction(
   input = {},
 ) {
-  const safeInput = normalizeInput(input);
+  const safeInput =
+    normalizeInput(
+      input,
+    );
 
   const validation =
     trendingWorksSchema.safeParse({
       limit:
         safeInput.limit ??
-        TRENDING_WORKS_LIMIT,
+        DISCOVER_WORKS_LIMIT,
     });
 
-  if (!validation.success) {
+  if (
+    !validation.success
+  ) {
     return {
       success: false,
-      works: [],
-      error: "Invalid request.",
-    };
-  }
 
-  try {
-    const works = await getTrendingWorks(
-      validation.data.limit,
-    );
-
-    return {
-      success: true,
-
-      works: Array.isArray(works)
-        ? works
-        : [],
-
-      error: null,
-    };
-  } catch (error) {
-    return {
-      success: false,
       works: [],
 
-      error: getErrorMessage(
-        error,
-        "Unable to load trending works.",
-      ),
+      error:
+        "Invalid request.",
     };
   }
-}
-
-/*
- * ==================================================
- * CREATE WORK
- * ==================================================
- *
- * AUTHENTICATED
- *
- * Client provides:
- *
- * {
- *   title,
- *   description,
- *   category,
- *   categoryId,
- *   image,
- *   imagePublicId
- * }
- *
- * Client NEVER provides:
- *
- * - userId
- * - talentId
- * - likes
- * - createdAt
- * ==================================================
- */
-
-export async function createWorkAction(
-  input = {},
-) {
-  const safeInput = normalizeInput(input);
-
-  const validation =
-    createWorkSchema.safeParse(
-      safeInput,
-    );
-
-  if (!validation.success) {
-    return {
-      success: false,
-      work: null,
-      error: "Invalid request.",
-    };
-  }
-
-  /*
-   * --------------------------------------------------
-   * AUTHENTICATE
-   * --------------------------------------------------
-   */
-
-  let user;
 
   try {
-    user =
-      await getAuthenticatedUser();
-  } catch {
-    return {
-      success: false,
-      work: null,
-      error: "Authentication failed.",
-    };
-  }
+    const works =
+      await getTrendingWorks();
 
-  if (!user) {
-    return {
-      success: false,
-      work: null,
-      error: "You must be logged in.",
-    };
-  }
-
-  /*
-   * --------------------------------------------------
-   * CREATE
-   * --------------------------------------------------
-   */
-
-  try {
-    const work = await createWork({
-      userId: user.uid,
-
-      title:
-        validation.data.title,
-
-      description:
-        validation.data.description,
-
-      category:
-        validation.data.category,
-
-      categoryId:
-        validation.data.categoryId,
-
-      image:
-        validation.data.image,
-
-      imagePublicId:
-        validation.data.imagePublicId,
-    });
+    const limitedWorks =
+      normalizeWorks(
+        works,
+      ).slice(
+        0,
+        validation.data.limit,
+      );
 
     return {
       success: true,
 
-      work: work ?? null,
+      works:
+        addDefaultLikeState(
+          limitedWorks,
+        ),
 
       error: null,
     };
   } catch (error) {
+    console.error(
+      "getTrendingWorksAction failed:",
+      error,
+    );
+
     return {
       success: false,
 
-      work: null,
+      works: [],
 
-      error: getErrorMessage(
-        error,
-        "Unable to create work.",
-      ),
+      error:
+        getErrorMessage(
+          error,
+          "Unable to load trending works.",
+        ),
     };
   }
 }
 
 /*
- * ==================================================
- * UPDATE WORK
- * ==================================================
+ * =========================================================
+ * GET TRENDING WORKS WITH CURRENT USER LIKE STATE
+ * =========================================================
  *
- * AUTHENTICATED
+ * Request-time helper.
  *
- * Ownership is verified inside data/works.js.
+ * Use this when the caller specifically needs:
  *
- * The image fields work like this:
+ * likedByMe
  *
- * NO NEW IMAGE:
- *
- * image = existing URL
- * imagePublicId = existing public ID
- *
- * NEW IMAGE:
- *
- * image = new Cloudinary URL
- * imagePublicId = new Cloudinary public ID
- *
- * The data layer should compare the existing
- * `imagePublicId` with the new one and remove the
- * old Cloudinary asset when appropriate.
- *
- * Client cannot change:
- *
- * - talentId
- * - owner
- * - likes
- * - createdAt
- * ==================================================
+ * for the authenticated user.
+ * =========================================================
  */
 
-export async function updateWorkAction(
+export async function getTrendingWorksWithLikeStateAction(
   input = {},
 ) {
-  const safeInput = normalizeInput(input);
-
-  const validation =
-    updateWorkSchema.safeParse(
-      safeInput,
+  const safeInput =
+    normalizeInput(
+      input,
     );
 
-  if (!validation.success) {
-    return {
-      success: false,
-      work: null,
-      error: "Invalid request.",
-    };
-  }
-
-  /*
-   * --------------------------------------------------
-   * AUTHENTICATE
-   * --------------------------------------------------
-   */
-
-  let user;
-
-  try {
-    user =
-      await getAuthenticatedUser();
-  } catch {
-    return {
-      success: false,
-      work: null,
-      error: "Authentication failed.",
-    };
-  }
-
-  if (!user) {
-    return {
-      success: false,
-      work: null,
-      error: "You must be logged in.",
-    };
-  }
-
-  /*
-   * --------------------------------------------------
-   * UPDATE
-   * --------------------------------------------------
- */
-
-  try {
-    const work = await updateWork({
-      workId:
-        validation.data.workId,
-
-      userId:
-        user.uid,
-
-      title:
-        validation.data.title,
-
-      description:
-        validation.data.description,
-
-      category:
-        validation.data.category,
-
-      categoryId:
-        validation.data.categoryId,
-
-      image:
-        validation.data.image,
-
-      imagePublicId:
-        validation.data.imagePublicId,
+  const validation =
+    trendingWorksSchema.safeParse({
+      limit:
+        safeInput.limit ??
+        DISCOVER_WORKS_LIMIT,
     });
+
+  if (
+    !validation.success
+  ) {
+    return {
+      success: false,
+
+      works: [],
+
+      error:
+        "Invalid request.",
+    };
+  }
+
+  try {
+    const works =
+      await getTrendingWorks();
+
+    const limitedWorks =
+      normalizeWorks(
+        works,
+      ).slice(
+        0,
+        validation.data.limit,
+      );
+
+    const enrichedWorks =
+      await enrichWorksWithLikeState(
+        limitedWorks,
+      );
 
     return {
       success: true,
 
-      work: work ?? null,
+      works:
+        enrichedWorks,
 
       error: null,
     };
   } catch (error) {
-    if (
-      error?.message ===
-      "Work not found."
-    ) {
-      return {
-        success: false,
-        work: null,
-        error: "Work not found.",
-      };
-    }
-
-    if (
-      error?.message ===
-      "You do not own this work."
-    ) {
-      return {
-        success: false,
-        work: null,
-        error:
-          "You do not own this work.",
-      };
-    }
+    console.error(
+      "getTrendingWorksWithLikeStateAction failed:",
+      error,
+    );
 
     return {
       success: false,
 
-      work: null,
+      works: [],
 
-      error: getErrorMessage(
-        error,
-        "Unable to update work.",
-      ),
+      error:
+        getErrorMessage(
+          error,
+          "Unable to load trending works.",
+        ),
     };
   }
 }
 
 /*
- * ==================================================
+ * =========================================================
  * GET WORK LIKE STATUS
- * ==================================================
+ * =========================================================
  *
- * AUTHENTICATED
+ * AUTHENTICATED REQUEST.
  *
  * Returns:
  *
@@ -599,189 +588,147 @@ export async function updateWorkAction(
  *   liked: boolean,
  *   likes: number
  * }
- * ==================================================
+ * =========================================================
  */
 
 export async function getWorkLikeStatusAction(
   input = {},
 ) {
-  const safeInput = normalizeInput(input);
-
-  const validation =
-    workLikeStatusSchema.safeParse(
-      safeInput,
+  const safeInput =
+    normalizeInput(
+      input,
     );
 
-  if (!validation.success) {
+  const validation =
+    workLikeStatusSchema.safeParse({
+      workId:
+        safeInput.workId,
+    });
+
+  if (
+    !validation.success
+  ) {
     return {
       success: false,
+
       liked: false,
-      likes: 0,
-      error: "Invalid request.",
+
+      likes: null,
+
+      error:
+        "Invalid request.",
     };
   }
-
-  /*
-   * --------------------------------------------------
-   * AUTHENTICATE
-   * --------------------------------------------------
- */
-
-  let user;
-
-  try {
-    user =
-      await getAuthenticatedUser();
-  } catch {
-    return {
-      success: false,
-      liked: false,
-      likes: 0,
-      error: "Authentication failed.",
-    };
-  }
-
-  if (!user) {
-    return {
-      success: false,
-      liked: false,
-      likes: 0,
-      error: "You must be logged in.",
-    };
-  }
-
-  /*
-   * --------------------------------------------------
-   * GET STATUS
-   * --------------------------------------------------
- */
 
   try {
     const result =
-      await getWorkLikeStatus({
-        workId:
-          validation.data.workId,
-
-        userId:
-          user.uid,
-      });
+      await getWorkLikeStatus(
+        validation.data.workId,
+      );
 
     return {
       success: true,
 
-      liked: Boolean(
-        result?.liked,
-      ),
+      liked:
+        Boolean(
+          result?.liked,
+        ),
 
-      likes: Number(
-        result?.likes ?? 0,
-      ),
+      likes:
+        result?.likes ===
+        null
+          ? null
+          : normalizeLikes(
+              result?.likes,
+            ),
 
       error: null,
     };
   } catch (error) {
-    if (
-      error?.message ===
-      "Work not found."
-    ) {
-      return {
-        success: false,
-        liked: false,
-        likes: 0,
-        error: "Work not found.",
-      };
-    }
+    console.error(
+      "getWorkLikeStatusAction failed:",
+      error,
+    );
 
     return {
       success: false,
+
       liked: false,
-      likes: 0,
+
+      likes: null,
+
       error:
-        "Unable to load like status.",
+        getErrorMessage(
+          error,
+          "Unable to load like status.",
+        ),
     };
   }
 }
 
 /*
- * ==================================================
- * TOGGLE LIKE
- * ==================================================
+ * =========================================================
+ * TOGGLE WORK LIKE
+ * =========================================================
  *
- * AUTHENTICATED
+ * AUTHENTICATED REQUEST.
  *
- * Client sends only:
+ * The client sends:
  *
  * {
- *   workId
+ *   workId,
+ *   liked
  * }
  *
- * Server gets UID from authentication.
+ * Example:
  *
- * The transaction in data/works.js handles:
+ * liked: true
  *
- * LIKE:
- *   likes + 1
- *   create likes/{userId}
+ * means:
  *
- * UNLIKE:
- *   likes - 1
- *   delete likes/{userId}
- * ==================================================
+ * "I want this work to be liked."
+ *
+ * liked: false
+ *
+ * means:
+ *
+ * "I want to remove my like."
+ *
+ * The data layer gets the actual authenticated UID.
+ * =========================================================
  */
 
 export async function toggleLikeAction(
   input = {},
 ) {
-  const safeInput = normalizeInput(input);
-
-  const validation =
-    toggleLikeSchema.safeParse(
-      safeInput,
+  const safeInput =
+    normalizeInput(
+      input,
     );
 
-  if (!validation.success) {
+  const validation =
+    workLikeSchema.safeParse({
+      workId:
+        safeInput.workId,
+
+      liked:
+        safeInput.liked,
+    });
+
+  if (
+    !validation.success
+  ) {
     return {
       success: false,
+
       liked: false,
-      likes: 0,
-      error: "Invalid request.",
+
+      likes: null,
+
+      error:
+        "Invalid request.",
     };
   }
-
-  /*
-   * --------------------------------------------------
-   * AUTHENTICATE
-   * --------------------------------------------------
- */
-
-  let user;
-
-  try {
-    user =
-      await getAuthenticatedUser();
-  } catch {
-    return {
-      success: false,
-      liked: false,
-      likes: 0,
-      error: "Authentication failed.",
-    };
-  }
-
-  if (!user) {
-    return {
-      success: false,
-      liked: false,
-      likes: 0,
-      error: "You must be logged in.",
-    };
-  }
-
-  /*
-   * --------------------------------------------------
-   * TOGGLE
-   * --------------------------------------------------
- */
 
   try {
     const result =
@@ -789,155 +736,338 @@ export async function toggleLikeAction(
         workId:
           validation.data.workId,
 
-        userId:
-          user.uid,
+        liked:
+          validation.data.liked,
       });
 
-    return {
-      success: true,
-
-      liked: Boolean(
-        result?.liked,
-      ),
-
-      likes: Number(
-        result?.likes ?? 0,
-      ),
-
-      error: null,
-    };
-  } catch (error) {
     if (
-      error?.message ===
-      "Work not found."
+      !result ||
+      typeof result.liked !==
+        "boolean" ||
+      !Number.isFinite(
+        result.likes,
+      ) ||
+      result.likes < 0
     ) {
       return {
         success: false,
+
         liked: false,
-        likes: 0,
-        error: "Work not found.",
+
+        likes: null,
+
+        error:
+          "Unable to verify like state.",
       };
     }
 
     return {
+      success: true,
+
+      liked:
+        result.liked,
+
+      likes:
+        normalizeLikes(
+          result.likes,
+        ),
+
+      error: null,
+    };
+  } catch (error) {
+    console.error(
+      "toggleLikeAction failed:",
+      error,
+    );
+
+    return {
       success: false,
+
       liked: false,
-      likes: 0,
-      error: "Unable to update like.",
+
+      likes: null,
+
+      error:
+        getErrorMessage(
+          error,
+          "Unable to update work like.",
+        ),
     };
   }
 }
 
 /*
- * ==================================================
- * DELETE WORK
- * ==================================================
+ * =========================================================
+ * CREATE WORK
+ * =========================================================
  *
- * AUTHENTICATED
+ * AUTHENTICATED.
  *
- * Ownership is verified server-side.
- *
- * IMPORTANT:
- *
- * deleteWork() should also retrieve the work's
- * `imagePublicId` before deleting the Firestore
- * document and remove the corresponding Cloudinary
- * asset server-side.
- *
- * The Cloudinary API secret must NEVER be sent to
- * the client.
- *
- * Client cannot delete another user's work simply
- * by supplying another workId.
- * ==================================================
+ * The data layer remains responsible for ownership and
+ * authenticated user validation.
+ * =========================================================
  */
 
-export async function deleteWorkAction(
+export async function createWorkAction(
   input = {},
 ) {
-  const safeInput = normalizeInput(input);
+  const safeInput =
+    normalizeInput(
+      input,
+    );
 
   const validation =
-    deleteWorkSchema.safeParse(
+    createWorkSchema.safeParse(
       safeInput,
     );
 
-  if (!validation.success) {
+  if (
+    !validation.success
+  ) {
     return {
       success: false,
-      error: "Invalid request.",
+
+      work: null,
+
+      error:
+        "Invalid request.",
     };
   }
-
-  /*
-   * --------------------------------------------------
-   * AUTHENTICATE
-   * --------------------------------------------------
- */
 
   let user;
 
   try {
     user =
-      await getAuthenticatedUser();
-  } catch {
+      await requireAuthAction();
+  } catch (error) {
+    console.error(
+      "createWorkAction authentication failed:",
+      error,
+    );
+
     return {
       success: false,
-      error: "Authentication failed.",
+
+      work: null,
+
+      error:
+        "Authentication failed.",
     };
   }
 
   if (!user) {
     return {
       success: false,
-      error: "You must be logged in.",
+
+      work: null,
+
+      error:
+        "You must be logged in.",
     };
   }
 
   /*
-   * --------------------------------------------------
-   * DELETE
-   * --------------------------------------------------
+   * IMPORTANT:
+   *
+   * Your data/works.js createWork() currently requires:
+   *
+   * talentId
+   * talentName
+   * talentUsername
+   *
+   * Those values are not accepted from the client here.
+   *
+   * Therefore this action should be connected to the
+   * authenticated user's talent profile before createWork()
+   * is called.
+   *
+   * This intentionally does NOT invent those values.
+   */
+
+  return {
+    success: false,
+
+    work: null,
+
+    error:
+      "Talent profile information is required to create work.",
+  };
+}
+
+/*
+ * =========================================================
+ * UPDATE WORK
+ * =========================================================
+ *
+ * AUTHENTICATED.
+ *
+ * Ownership remains enforced by data/works.js.
+ * =========================================================
  */
 
-  try {
-    await deleteWork({
-      workId:
-        validation.data.workId,
+export async function updateWorkAction(
+  input = {},
+) {
+  const safeInput =
+    normalizeInput(
+      input,
+    );
 
-      userId:
-        user.uid,
-    });
+  const validation =
+    updateWorkSchema.safeParse(
+      safeInput,
+    );
+
+  if (
+    !validation.success
+  ) {
+    return {
+      success: false,
+
+      work: null,
+
+      error:
+        "Invalid request.",
+    };
+  }
+
+  try {
+    await requireAuthAction();
+  } catch {
+    return {
+      success: false,
+
+      work: null,
+
+      error:
+        "You must be logged in.",
+    };
+  }
+
+  try {
+    const work =
+      await updateWork({
+        workId:
+          validation.data.workId,
+
+        title:
+          validation.data.title,
+
+        description:
+          validation.data.description,
+
+        category:
+          validation.data.category,
+
+        categoryId:
+          validation.data.categoryId,
+
+        image:
+          validation.data.image,
+      });
 
     return {
       success: true,
+
+      work,
+
       error: null,
     };
   } catch (error) {
-    if (
-      error?.message ===
-      "Work not found."
-    ) {
-      return {
-        success: false,
-        error: "Work not found.",
-      };
-    }
-
-    if (
-      error?.message ===
-      "You do not own this work."
-    ) {
-      return {
-        success: false,
-        error:
-          "You do not own this work.",
-      };
-    }
+    console.error(
+      "updateWorkAction failed:",
+      error,
+    );
 
     return {
       success: false,
-      error: "Unable to delete work.",
+
+      work: null,
+
+      error:
+        getErrorMessage(
+          error,
+          "Unable to update work.",
+        ),
+    };
+  }
+}
+
+/*
+ * =========================================================
+ * DELETE WORK
+ * =========================================================
+ *
+ * AUTHENTICATED.
+ *
+ * Ownership remains enforced inside data/works.js.
+ * =========================================================
+ */
+
+export async function deleteWorkAction(
+  input = {},
+) {
+  const safeInput =
+    normalizeInput(
+      input,
+    );
+
+  const validation =
+    deleteWorkSchema.safeParse(
+      safeInput,
+    );
+
+  if (
+    !validation.success
+  ) {
+    return {
+      success: false,
+
+      error:
+        "Invalid request.",
+    };
+  }
+
+  try {
+    await requireAuthAction();
+  } catch {
+    return {
+      success: false,
+
+      error:
+        "You must be logged in.",
+    };
+  }
+
+  try {
+    const result =
+      await deleteWork(
+        validation.data.workId,
+      );
+
+    return {
+      success: true,
+
+      workId:
+        result?.workId ??
+        validation.data.workId,
+
+      error: null,
+    };
+  } catch (error) {
+    console.error(
+      "deleteWorkAction failed:",
+      error,
+    );
+
+    return {
+      success: false,
+
+      error:
+        getErrorMessage(
+          error,
+          "Unable to delete work.",
+        ),
     };
   }
 }

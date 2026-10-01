@@ -22,20 +22,14 @@ import FilterButton from "@/components/talents/FilterButton";
 /* Cloudinary Work Image Configuration                                        */
 /* ========================================================================== */
 
-const MAX_WORK_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_WORK_IMAGE_SIZE = 3 * 1024 * 1024;
 
-const ALLOWED_WORK_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+const ALLOWED_WORK_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-const CLOUDINARY_CLOUD_NAME =
-  process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
 const CLOUDINARY_WORK_UPLOAD_PRESET =
-  process.env.NEXT_PUBLIC_CLOUDINARY_WORK_UPLOAD_PRESET ||
-  "youth_space_work";
+  process.env.NEXT_PUBLIC_CLOUDINARY_WORK_UPLOAD_PRESET || "youth_space_work";
 
 /* ========================================================================== */
 /* Skills Modal                                                               */
@@ -235,9 +229,7 @@ export function ServicesModal({
               const isObject = service && typeof service === "object";
 
               const name = isObject ? service.name : service;
-
               const description = isObject ? service.description : "";
-
               const price = isObject ? service.minPrice : "";
 
               return (
@@ -316,16 +308,14 @@ export function WorkModal({
   const isEditing = Boolean(work?.id);
 
   const [title, setTitle] = useState(work?.title || "");
-  const [description, setDescription] = useState(
-    work?.description || "",
-  );
+
+  const [description, setDescription] = useState(work?.description || "");
+
   const [category, setCategory] = useState(work?.category || "");
 
   const [imageFile, setImageFile] = useState(null);
+
   const [imagePreview, setImagePreview] = useState(work?.image || "");
-  const [imagePublicId, setImagePublicId] = useState(
-    work?.imagePublicId || "",
-  );
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -360,7 +350,7 @@ export function WorkModal({
     }
 
     if (file.size > MAX_WORK_IMAGE_SIZE) {
-      setError("Image must be 5 MB or smaller.");
+      setError("Image must be 3 MB or smaller.");
       event.target.value = "";
       return;
     }
@@ -389,10 +379,8 @@ export function WorkModal({
 
     if (isEditing) {
       setImagePreview(work?.image || "");
-      setImagePublicId(work?.imagePublicId || "");
     } else {
       setImagePreview("");
-      setImagePublicId("");
     }
 
     setError("");
@@ -418,20 +406,15 @@ export function WorkModal({
     if (!file) {
       return {
         image: imagePreview || "",
-        imagePublicId,
       };
     }
 
     if (!CLOUDINARY_CLOUD_NAME) {
-      throw new Error(
-        "Cloudinary is not configured. Please try again later.",
-      );
+      throw new Error("Cloudinary is not configured. Please try again later.");
     }
 
     if (!CLOUDINARY_WORK_UPLOAD_PRESET) {
-      throw new Error(
-        "The work image upload preset is not configured.",
-      );
+      throw new Error("The work image upload preset is not configured.");
     }
 
     if (!ALLOWED_WORK_IMAGE_TYPES.includes(file.type)) {
@@ -439,16 +422,14 @@ export function WorkModal({
     }
 
     if (file.size > MAX_WORK_IMAGE_SIZE) {
-      throw new Error("Image must be 5 MB or smaller.");
+      throw new Error("Image must be 3 MB or smaller.");
     }
 
     const formData = new FormData();
 
     formData.append("file", file);
-    formData.append(
-      "upload_preset",
-      CLOUDINARY_WORK_UPLOAD_PRESET,
-    );
+
+    formData.append("upload_preset", CLOUDINARY_WORK_UPLOAD_PRESET);
 
     const uploadUrl =
       `https://api.cloudinary.com/v1_1/` +
@@ -465,10 +446,7 @@ export function WorkModal({
           body: formData,
         });
       } catch (error) {
-        console.error(
-          "Cloudinary work image upload failed:",
-          error,
-        );
+        console.error("Cloudinary work image upload failed:", error);
 
         throw new Error(
           "Could not connect to the image upload service. Please try again.",
@@ -483,25 +461,16 @@ export function WorkModal({
         result = null;
       }
 
-      if (
-        !response.ok ||
-        !result?.secure_url ||
-        !result?.public_id
-      ) {
-        console.error(
-          "Cloudinary work image upload failed:",
-          result,
-        );
+      if (!response.ok || !result?.secure_url) {
+        console.error("Cloudinary work image upload failed:", result);
 
         throw new Error(
-          result?.error?.message ||
-            "Your work image could not be uploaded.",
+          result?.error?.message || "Your work image could not be uploaded.",
         );
       }
 
       return {
         image: result.secure_url,
-        imagePublicId: result.public_id,
       };
     } finally {
       setUploading(false);
@@ -547,31 +516,24 @@ export function WorkModal({
       setSaving(true);
       setError("");
 
-      /*
-       * ===============================================================
-       * 1. Upload a newly selected image to Cloudinary.
-       *
-       * If editing and no new image was selected, the existing
-       * Cloudinary image is preserved.
-       * ===============================================================
-       */
+      /* ================================================================ */
+      /* 1. Upload newly selected image                                   */
+      /* ================================================================ */
 
       let uploadedImage = {
         image: isEditing ? work?.image || "" : "",
-        imagePublicId: isEditing
-          ? work?.imagePublicId || ""
-          : "",
       };
 
       if (imageFile) {
         uploadedImage = await uploadImageToCloudinary(imageFile);
       }
 
-      /*
-       * ===============================================================
-       * 2. Build the work payload.
-       * ===============================================================
-       */
+      /* ================================================================ */
+      /* 2. Build the Work payload                                        */
+      /*                                                                    */
+      /* Only user-editable Work fields are sent from the client.         */
+      /* Server/data layer adds ownership, timestamps and likes.          */
+      /* ================================================================ */
 
       const payload = {
         title: cleanTitle,
@@ -579,14 +541,11 @@ export function WorkModal({
         category: cleanCategory,
         categoryId: getCategoryId(),
         image: uploadedImage.image,
-        imagePublicId: uploadedImage.imagePublicId,
       };
 
-      /*
-       * ===============================================================
-       * 3. Save the work through the server action.
-       * ===============================================================
-       */
+      /* ================================================================ */
+      /* 3. Save through the server action                                */
+      /* ================================================================ */
 
       const result = isEditing
         ? await updateWorkAction({
@@ -597,23 +556,25 @@ export function WorkModal({
 
       if (!result?.success) {
         setError(
-          result?.error ||
-            `Failed to ${isEditing ? "update" : "create"} work.`,
+          result?.error || `Failed to ${isEditing ? "update" : "create"} work.`,
         );
         return;
       }
 
-      /*
-       * ===============================================================
-       * 4. Return the normalized work to ProfileClient.
-       * ===============================================================
-       */
+      /* ================================================================ */
+      /* 4. Return the complete server result to ProfileClient            */
+      /* ================================================================ */
 
-      const savedWork = result.work || {
-        ...(isEditing ? work : {}),
-        ...payload,
-        id: work?.id,
-      };
+      const savedWork = result.work;
+
+      if (!savedWork) {
+        setError(
+          `Work ${
+            isEditing ? "updated" : "created"
+          }, but the saved work could not be returned.`,
+        );
+        return;
+      }
 
       if (isEditing) {
         onUpdated?.(savedWork);
@@ -626,10 +587,7 @@ export function WorkModal({
         error,
       );
 
-      setError(
-        error?.message ||
-          "Something went wrong. Please try again.",
-      );
+      setError(error?.message || "Something went wrong. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -735,9 +693,7 @@ export function WorkModal({
                 <div className="absolute inset-x-0 bottom-0 z-10 bg-slate-950/75 px-3 py-2">
                   <p className="truncate text-[10px] font-bold text-white">
                     {imageFile?.name ||
-                      (isEditing
-                        ? "Current work image"
-                        : "Image preview")}
+                      (isEditing ? "Current work image" : "Image preview")}
                   </p>
                 </div>
 
@@ -748,11 +704,7 @@ export function WorkModal({
                     className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-lg bg-white/95 text-slate-600 shadow-sm outline-none transition hover:bg-white hover:text-slate-950 focus:ring-4 focus:ring-white/50"
                     aria-label="Remove selected image"
                   >
-                    <X
-                      size={15}
-                      strokeWidth={2.3}
-                      aria-hidden="true"
-                    />
+                    <X size={15} strokeWidth={2.3} aria-hidden="true" />
                   </button>
                 )}
               </>
@@ -763,11 +715,7 @@ export function WorkModal({
                 }`}
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm">
-                  <ImagePlus
-                    size={18}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  />
+                  <ImagePlus size={18} strokeWidth={2} aria-hidden="true" />
                 </div>
 
                 <p className="mt-3 text-xs font-bold text-slate-700">
@@ -775,7 +723,7 @@ export function WorkModal({
                 </p>
 
                 <p className="mt-1 text-[10px] leading-4 text-slate-400">
-                  JPG, PNG or WebP · Max 5 MB
+                  JPG, PNG or WebP · Max 3 MB
                 </p>
 
                 <input
@@ -791,9 +739,7 @@ export function WorkModal({
             {imagePreview && (
               <label
                 className={`absolute inset-0 z-[15] ${
-                  busy
-                    ? "pointer-events-none"
-                    : "cursor-pointer"
+                  busy ? "pointer-events-none" : "cursor-pointer"
                 }`}
               >
                 <input
@@ -809,8 +755,7 @@ export function WorkModal({
 
           {imageFile && !busy && (
             <p className="mt-1.5 text-[10px] leading-4 text-slate-400">
-              New image selected. It will be uploaded when you save
-              this work.
+              New image selected. It will be uploaded when you save this work.
             </p>
           )}
 
@@ -845,9 +790,7 @@ export function WorkModal({
             className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3"
             role="alert"
           >
-            <p className="text-xs font-bold text-slate-700">
-              {error}
-            </p>
+            <p className="text-xs font-bold text-slate-700">{error}</p>
           </div>
         )}
 
@@ -855,9 +798,7 @@ export function WorkModal({
         <ModalActions
           saving={busy}
           onCancel={handleClose}
-          saveLabel={
-            isEditing ? "Save changes" : "Add work"
-          }
+          saveLabel={isEditing ? "Save changes" : "Add work"}
           submit
         />
       </form>
@@ -1013,8 +954,8 @@ export function DeleteAccountPasswordModal({
               </p>
 
               <p className="mt-1 text-[11px] leading-5 text-slate-500">
-                Your profile, portfolio, and account information will
-                be permanently deleted.
+                Your profile, portfolio, and account information will be
+                permanently deleted.
               </p>
 
               {email && (
@@ -1044,9 +985,7 @@ export function DeleteAccountPasswordModal({
             className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3"
             role="alert"
           >
-            <p className="text-xs font-bold text-slate-700">
-              {error}
-            </p>
+            <p className="text-xs font-bold text-slate-700">{error}</p>
           </div>
         )}
 
@@ -1065,9 +1004,7 @@ export function DeleteAccountPasswordModal({
             disabled={loading || !password.trim()}
             className={primaryButtonClassName}
           >
-            {loading
-              ? "Deleting account..."
-              : "Delete account"}
+            {loading ? "Deleting account..." : "Delete account"}
           </button>
         </div>
       </form>
@@ -1079,13 +1016,7 @@ export function DeleteAccountPasswordModal({
 /* Shared Modal Shell                                                         */
 /* ========================================================================== */
 
-function ModalShell({
-  title,
-  description,
-  icon: Icon,
-  onClose,
-  children,
-}) {
+function ModalShell({ title, description, icon: Icon, onClose, children }) {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/30 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
@@ -1110,9 +1041,7 @@ function ModalShell({
           </div>
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-bold text-slate-950">
-              {title}
-            </h2>
+            <h2 className="text-sm font-bold text-slate-950">{title}</h2>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
               {description}
@@ -1146,9 +1075,7 @@ function Field({ label, required = false, children }) {
       <label className="mb-2 block text-xs font-bold text-slate-700">
         {label}
 
-        {required && (
-          <span className="ml-1 text-slate-400">*</span>
-        )}
+        {required && <span className="ml-1 text-slate-400">*</span>}
       </label>
 
       {children}
@@ -1197,13 +1124,9 @@ function ModalActions({
 function EmptyModalState({ title, description }) {
   return (
     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-7 text-center">
-      <p className="text-xs font-bold text-slate-700">
-        {title}
-      </p>
+      <p className="text-xs font-bold text-slate-700">{title}</p>
 
-      <p className="mt-1 text-[11px] leading-5 text-slate-400">
-        {description}
-      </p>
+      <p className="mt-1 text-[11px] leading-5 text-slate-400">{description}</p>
     </div>
   );
 }

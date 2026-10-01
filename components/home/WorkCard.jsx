@@ -2,124 +2,138 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
-import {
-  ArrowRight,
-  CheckCircle2,
-  Heart,
-  MapPin,
-  UserRound,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, Heart, UserRound } from "lucide-react";
+import WorkLikeButton from "../talents/profile/WorkLikeButton";
 
-import { toggleLikeAction } from "@/actions/works";
 
-export default function WorkCard({ work, talent }) {
+
+export default function WorkCard({ work }) {
+  /*
+   * =========================================================
+   * WORK DATA
+   *
+   * This component uses ONLY the public serialized work.
+   *
+   * Public work:
+   *
+   * id
+   * talentId
+   * talentName
+   * talentUsername
+   * title
+   * description
+   * category
+   * image
+   * likes
+   * likedByMe
+   * createdAt
+   * updatedAt
+   *
+   * Internal fields such as:
+   *
+   * categoryId
+   * likeCount
+   * likes[]
+   *
+   * are NOT required by this component.
+   * =========================================================
+   */
+
   const {
-    id: talentId,
-    name,
-    initials,
-    role,
-    category: talentCategory,
-    location,
-    verified = false,
-  } = talent;
+    id,
+    talentId,
+    talentName,
+    talentUsername,
+    title,
+    description,
+    category,
+    image,
+    likes = 0,
+    likedByMe = false,
+  } = work || {};
 
-  const category =
-    work.category ||
-    talentCategory ||
-    role ||
-    "Work";
+  /*
+   * =========================================================
+   * DISPLAY DATA
+   * =========================================================
+   */
 
-  const initialLikes = Number(
-    work.likes ?? 0
-  );
+  const displayName = talentName || "Talent";
 
-  const [loved, setLoved] = useState(
-    Boolean(work.liked)
-  );
+  const username = talentUsername || "";
 
-  const [likeCount, setLikeCount] =
-    useState(initialLikes);
+  const profileHref = username
+    ? `/talents/${username}`
+    : talentId
+      ? `/talents/${talentId}`
+      : "/talents";
 
-  const [isPending, startTransition] =
-    useTransition();
+  /*
+   * =========================================================
+   * LIKE STATE
+   * =========================================================
+   */
 
-  function handleToggleLike() {
-    if (isPending) return;
+  const [likeState, setLikeState] = useState(() => ({
+    liked: Boolean(likedByMe),
+    likes: normalizeLikes(likes),
+  }));
 
-    const previousLoved = loved;
-    const previousLikes = likeCount;
+  /*
+   * =========================================================
+   * LIKE CALLBACK
+   *
+   * WorkLikeButton is responsible for communicating with
+   * the server action.
+   *
+   * This component only keeps the returned state.
+   * =========================================================
+   */
 
-    /*
-     * Optimistic UI
-     */
-    const nextLoved = !previousLoved;
-
-    setLoved(nextLoved);
-
-    setLikeCount(
-      nextLoved
-        ? previousLikes + 1
-        : Math.max(0, previousLikes - 1)
-    );
-
-    startTransition(async () => {
-      try {
-        const result =
-          await toggleLikeAction({
-            workId: work.id,
-          });
-
-        if (!result?.success) {
-          /*
-           * Roll back when authentication
-           * or the server operation fails.
-           */
-          setLoved(previousLoved);
-          setLikeCount(previousLikes);
-
-          return;
-        }
-
-        /*
-         * Server is the source of truth.
-         */
-        setLoved(
-          Boolean(result.liked)
-        );
-
-        setLikeCount(
-          Number(result.likes ?? 0)
-        );
-      } catch {
-        /*
-         * Roll back on unexpected errors.
-         */
-        setLoved(previousLoved);
-        setLikeCount(previousLikes);
-      }
+  function handleLike({ liked: nextLiked, likes: nextLikes }) {
+    setLikeState({
+      liked: Boolean(nextLiked),
+      likes: normalizeLikes(nextLikes),
     });
   }
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl">
+    <article
+      className="
+        group
+        flex
+        h-full
+        flex-col
+        overflow-hidden
+        rounded-2xl
+        border
+        border-slate-200
+        bg-white
+        transition-all
+        duration-300
+        hover:-translate-y-1
+        hover:border-slate-300
+        hover:shadow-xl
+      "
+    >
       {/* =================================================
           IMAGE
       ================================================= */}
 
       <Link
-        href={`/talents/${talentId}`}
+        href={profileHref}
         className="block"
-        aria-label={`View ${work.title} by ${name}`}
+        aria-label={`View ${title || "work"} by ${displayName}`}
       >
         <WorkImage
-          src={work.image}
-          alt={`${work.title} by ${name}`}
-          initials={initials}
+          src={image}
+          alt={`${title || "Work"} by ${displayName}`}
+          name={displayName}
           category={category}
-          likes={likeCount}
-          loved={loved}
+          likes={likeState.likes}
+          liked={likeState.liked}
         />
       </Link>
 
@@ -129,35 +143,42 @@ export default function WorkCard({ work, talent }) {
 
       <div className="flex flex-1 flex-col p-4">
         {/* =================================================
-            CATEGORY + VERIFIED
+            CATEGORY
         ================================================= */}
 
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
-            {category}
+          <span
+            className="
+              truncate
+              text-[9px]
+              font-black
+              uppercase
+              tracking-[0.14em]
+              text-slate-400
+            "
+          >
+            {category || "Work"}
           </span>
-
-          {verified && (
-            <span
-              className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold text-slate-500"
-              title="Verified talent"
-            >
-              <CheckCircle2
-                size={12}
-                className="fill-slate-950 text-white"
-              />
-              Verified
-            </span>
-          )}
         </div>
 
         {/* =================================================
             WORK TITLE
         ================================================= */}
 
-        <Link href={`/talents/${talentId}`}>
-          <h3 className="mt-2 line-clamp-2 text-sm font-black tracking-tight text-slate-900 transition-colors group-hover:text-slate-600">
-            {work.title}
+        <Link href={profileHref}>
+          <h3
+            className="
+              mt-2
+              line-clamp-2
+              text-sm
+              font-black
+              tracking-tight
+              text-slate-900
+              transition-colors
+              group-hover:text-slate-600
+            "
+          >
+            {title || "Untitled work"}
           </h3>
         </Link>
 
@@ -165,9 +186,17 @@ export default function WorkCard({ work, talent }) {
             DESCRIPTION
         ================================================= */}
 
-        {work.description && (
-          <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-slate-400">
-            {work.description}
+        {description && (
+          <p
+            className="
+              mt-1.5
+              line-clamp-2
+              text-[10px]
+              leading-4
+              text-slate-400
+            "
+          >
+            {description}
           </p>
         )}
 
@@ -175,36 +204,53 @@ export default function WorkCard({ work, talent }) {
             TALENT
         ================================================= */}
 
-        <Link
-          href={`/talents/${talentId}`}
-          className="mt-3 flex items-center gap-2"
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[8px] font-black text-slate-700">
-            {initials || (
-              <UserRound
-                size={13}
-                strokeWidth={1.8}
-                className="text-slate-400"
-              />
-            )}
+        <Link href={profileHref} className="mt-3 flex items-center gap-2">
+          <div
+            className="
+              flex
+              h-8
+              w-8
+              shrink-0
+              items-center
+              justify-center
+              overflow-hidden
+              rounded-full
+              bg-slate-100
+              text-[8px]
+              font-black
+              text-slate-700
+            "
+          >
+            <UserRound
+              size={13}
+              strokeWidth={1.8}
+              className="text-slate-400"
+              aria-hidden="true"
+            />
           </div>
 
           <div className="min-w-0">
-            <p className="truncate text-xs font-bold text-slate-800">
-              {name}
+            <p
+              className="
+                truncate
+                text-xs
+                font-bold
+                text-slate-800
+              "
+            >
+              {displayName}
             </p>
 
-            {location && (
-              <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[9px] text-slate-400">
-                <MapPin
-                  size={9}
-                  className="shrink-0"
-                />
-
-                <span className="truncate">
-                  {location}
-                </span>
-              </div>
+            {username && (
+              <p
+                className="
+                  truncate
+                  text-[9px]
+                  text-slate-400
+                "
+              >
+                @{username}
+              </p>
             )}
           </div>
         </Link>
@@ -214,55 +260,54 @@ export default function WorkCard({ work, talent }) {
         ================================================= */}
 
         <div className="mt-auto">
-          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-            {/* Likes */}
+          {/* STATS + LIKE BUTTON */}
 
-            <div className="flex items-center gap-1.5 text-[9px] font-semibold text-slate-400">
+          <div
+            className="
+              mt-4
+              flex
+              items-center
+              justify-between
+              border-t
+              border-slate-100
+              pt-3
+            "
+          >
+            {/* LIKES */}
+
+            <div
+              className="
+                flex
+                items-center
+                gap-1.5
+                text-[9px]
+                font-semibold
+                text-slate-400
+              "
+            >
               <Heart
                 size={11}
+                strokeWidth={1.9}
                 className={
-                  loved
-                    ? "fill-slate-950 text-slate-950"
-                    : ""
+                  likeState.liked ? "fill-slate-950 text-slate-950" : ""
                 }
+                aria-hidden="true"
               />
 
               <span>
-                {likeCount}{" "}
-                {likeCount === 1
-                  ? "like"
-                  : "likes"}
+                {likeState.likes} {likeState.likes === 1 ? "like" : "likes"}
               </span>
             </div>
 
-            {/* Like button */}
+            {/* LIKE BUTTON */}
 
-            <button
-              type="button"
-              onClick={handleToggleLike}
-              disabled={isPending}
-              aria-label={
-                loved
-                  ? `Unlike ${work.title}`
-                  : `Like ${work.title}`
-              }
-              aria-pressed={loved}
-              aria-busy={isPending}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
-                loved
-                  ? "bg-slate-950 text-white"
-                  : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              }`}
-            >
-              <Heart
-                size={14}
-                className={
-                  loved
-                    ? "fill-white"
-                    : ""
-                }
-              />
-            </button>
+            <WorkLikeButton
+              workId={id}
+              initialLiked={likeState.liked}
+              initialLikes={likeState.likes}
+              variant="card"
+              onLike={handleLike}
+            />
           </div>
 
           {/* =================================================
@@ -270,14 +315,38 @@ export default function WorkCard({ work, talent }) {
           ================================================= */}
 
           <Link
-            href={`/talents/${talentId}`}
-            className="group/button mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-bold text-white transition hover:bg-slate-800 hover:shadow-md"
+            href={profileHref}
+            className="
+              group/button
+              mt-4
+              inline-flex
+              h-10
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-slate-950
+              px-4
+              text-xs
+              font-bold
+              text-white
+              transition-all
+              duration-200
+              hover:bg-slate-800
+              hover:shadow-md
+              active:scale-[0.99]
+            "
           >
             View talent
-
             <ArrowRight
               size={14}
-              className="transition-transform duration-200 group-hover/button:translate-x-0.5"
+              className="
+                transition-transform
+                duration-200
+                group-hover/button:translate-x-0.5
+              "
+              aria-hidden="true"
             />
           </Link>
         </div>
@@ -290,80 +359,157 @@ export default function WorkCard({ work, talent }) {
    WORK IMAGE
 ========================================================= */
 
-function WorkImage({
-  src,
-  alt,
-  initials,
-  category,
-  likes,
-  loved,
-}) {
-  const [imageError, setImageError] =
-    useState(false);
+function WorkImage({ src, alt, name, category, likes, liked }) {
+  const [imageError, setImageError] = useState(false);
 
-  const showImage =
-    Boolean(src) && !imageError;
+  const showImage = Boolean(src) && !imageError;
 
   return (
-    <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-      {/* Fallback */}
+    <div
+      className="
+        relative
+        aspect-[4/3]
+        overflow-hidden
+        bg-slate-100
+      "
+    >
+      {/* FALLBACK */}
 
-      <WorkImageFallback
-        initials={initials}
-        category={category}
-      />
+      <WorkImageFallback name={name} category={category} />
 
-      {/* Image */}
+      {/* IMAGE */}
 
       {showImage && (
         <Image
           src={src}
           alt={alt}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
-          className="relative z-10 object-cover transition duration-500 group-hover:scale-105"
-          onError={() =>
-            setImageError(true)
-          }
+          sizes="
+            (max-width: 640px) 100vw,
+            (max-width: 1024px) 50vw,
+            20vw
+          "
+          className="
+            relative
+            z-10
+            object-cover
+            transition-transform
+            duration-500
+            group-hover:scale-105
+          "
+          onError={() => setImageError(true)}
         />
       )}
 
-      {/* Gradient */}
+      {/* GRADIENT */}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-20 bg-gradient-to-t from-slate-950/30 to-transparent" />
+      <div
+        className="
+          pointer-events-none
+          absolute
+          inset-x-0
+          bottom-0
+          z-20
+          h-20
+          bg-gradient-to-t
+          from-slate-950/30
+          to-transparent
+        "
+      />
 
-      {/* Category */}
+      {/* CATEGORY */}
 
-      <div className="absolute left-2.5 top-2.5 z-30 max-w-[65%]">
-        <span className="inline-flex max-w-full truncate rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-slate-700 shadow-sm backdrop-blur">
-          {category}
+      <div
+        className="
+          absolute
+          left-2.5
+          top-2.5
+          z-30
+          max-w-[65%]
+        "
+      >
+        <span
+          className="
+            inline-flex
+            max-w-full
+            truncate
+            rounded-full
+            bg-white/95
+            px-2.5
+            py-1.5
+            text-[9px]
+            font-black
+            uppercase
+            tracking-[0.14em]
+            text-slate-700
+            shadow-sm
+            backdrop-blur
+          "
+        >
+          {category || "Work"}
         </span>
       </div>
 
-      {/* Likes */}
+      {/* LIKES */}
 
-      <div className="absolute right-2.5 top-2.5 z-30 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-black text-slate-700 shadow-sm backdrop-blur">
+      <div
+        className="
+          absolute
+          right-2.5
+          top-2.5
+          z-30
+          flex
+          items-center
+          gap-1
+          rounded-full
+          bg-white/95
+          px-2.5
+          py-1.5
+          text-[9px]
+          font-black
+          text-slate-700
+          shadow-sm
+          backdrop-blur
+        "
+        aria-label={`${likes} ${likes === 1 ? "like" : "likes"}`}
+      >
         <Heart
           size={11}
-          className={
-            loved
-              ? "fill-slate-950 text-slate-950"
-              : ""
-          }
+          strokeWidth={1.9}
+          className={liked ? "fill-slate-950 text-slate-950" : ""}
+          aria-hidden="true"
         />
 
         {likes}
       </div>
 
-      {/* Youth Space Pick */}
+      {/* YOUTH SPACE PICK */}
 
-      <div className="absolute bottom-2.5 left-2.5 z-30 flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[9px] font-bold text-slate-700 shadow-sm backdrop-blur">
+      <div
+        className="
+          absolute
+          bottom-2.5
+          left-2.5
+          z-30
+          flex
+          items-center
+          gap-1.5
+          rounded-full
+          bg-white/95
+          px-2.5
+          py-1.5
+          text-[9px]
+          font-bold
+          text-slate-700
+          shadow-sm
+          backdrop-blur
+        "
+      >
         <CheckCircle2
           size={11}
           className="fill-slate-950 text-white"
           aria-hidden="true"
         />
-
         Youth Space Pick
       </div>
     </div>
@@ -374,24 +520,77 @@ function WorkImage({
    WORK IMAGE FALLBACK
 ========================================================= */
 
-function WorkImageFallback({
-  initials,
-  category,
-}) {
+function WorkImageFallback({ name, category }) {
+  const initials = getInitials(name);
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-      {/* Decorative shapes */}
+    <div
+      className="
+        absolute
+        inset-0
+        flex
+        items-center
+        justify-center
+        overflow-hidden
+        bg-gradient-to-br
+        from-slate-100
+        via-slate-50
+        to-white
+      "
+    >
+      {/* DECORATIVE SHAPES */}
 
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-slate-200/60 blur-2xl" />
+      <div
+        className="
+          absolute
+          -right-10
+          -top-10
+          h-32
+          w-32
+          rounded-full
+          bg-slate-200/60
+          blur-2xl
+        "
+      />
 
-      <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-slate-200/50 blur-2xl" />
+      <div
+        className="
+          absolute
+          -bottom-10
+          -left-10
+          h-32
+          w-32
+          rounded-full
+          bg-slate-200/50
+          blur-2xl
+        "
+      />
 
-      {/* Center */}
+      {/* CENTER */}
 
       <div className="relative flex flex-col items-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div
+          className="
+            flex
+            h-16
+            w-16
+            items-center
+            justify-center
+            rounded-2xl
+            border
+            border-slate-200
+            bg-white
+            shadow-sm
+          "
+        >
           {initials ? (
-            <span className="text-sm font-black text-slate-500">
+            <span
+              className="
+                text-sm
+                font-black
+                text-slate-500
+              "
+            >
               {initials}
             </span>
           ) : (
@@ -399,14 +598,57 @@ function WorkImageFallback({
               size={30}
               strokeWidth={1.5}
               className="text-slate-300"
+              aria-hidden="true"
             />
           )}
         </div>
 
-        <span className="mt-2 max-w-[120px] truncate text-[8px] font-black uppercase tracking-[0.14em] text-slate-300">
+        <span
+          className="
+            mt-2
+            max-w-[120px]
+            truncate
+            text-[8px]
+            font-black
+            uppercase
+            tracking-[0.14em]
+            text-slate-300
+          "
+        >
           {category || "Work"}
         </span>
       </div>
     </div>
   );
+}
+
+/* =========================================================
+   INITIALS
+========================================================= */
+
+function getInitials(name) {
+  if (!name) {
+    return "";
+  }
+
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+}
+
+/* =========================================================
+   LIKE NORMALIZER
+========================================================= */
+
+function normalizeLikes(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(number));
 }
