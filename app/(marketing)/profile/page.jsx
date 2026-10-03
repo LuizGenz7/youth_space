@@ -33,10 +33,11 @@ export default async function ProfilePage() {
     );
   }
 
+  console.log(works);
   return (
     <ProfileClient
       profile={profile}
-      works={works}
+      works={works.works}
       categories={categories}
     />
   );

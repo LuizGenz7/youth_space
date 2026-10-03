@@ -13,6 +13,7 @@ import {
 } from "@/data/works";
 
 import { requireAuthAction } from "@/lib/auth-server";
+import { getTalentById } from "@/data/talents";
 
 /*
  * =========================================================
@@ -348,7 +349,7 @@ async function enrichWorksWithLikeState(
         .filter(
           (id) =>
             typeof id ===
-              "string" &&
+            "string" &&
             id.trim(),
         );
 
@@ -636,11 +637,11 @@ export async function getWorkLikeStatusAction(
 
       likes:
         result?.likes ===
-        null
+          null
           ? null
           : normalizeLikes(
-              result?.likes,
-            ),
+            result?.likes,
+          ),
 
       error: null,
     };
@@ -743,7 +744,7 @@ export async function toggleLikeAction(
     if (
       !result ||
       typeof result.liked !==
-        "boolean" ||
+      "boolean" ||
       !Number.isFinite(
         result.likes,
       ) ||
@@ -808,37 +809,23 @@ export async function toggleLikeAction(
  * =========================================================
  */
 
-export async function createWorkAction(
-  input = {},
-) {
-  const safeInput =
-    normalizeInput(
-      input,
-    );
+export async function createWorkAction(input = {}) {
+  const safeInput = normalizeInput(input);
 
-  const validation =
-    createWorkSchema.safeParse(
-      safeInput,
-    );
+  const validation = createWorkSchema.safeParse(safeInput);
 
-  if (
-    !validation.success
-  ) {
+  if (!validation.success) {
     return {
       success: false,
-
       work: null,
-
-      error:
-        "Invalid request.",
+      error: "Invalid request.",
     };
   }
 
   let user;
 
   try {
-    user =
-      await requireAuthAction();
+    user = await requireAuthAction();
   } catch (error) {
     console.error(
       "createWorkAction authentication failed:",
@@ -847,51 +834,69 @@ export async function createWorkAction(
 
     return {
       success: false,
-
       work: null,
-
-      error:
-        "Authentication failed.",
+      error: "Authentication failed.",
     };
   }
 
   if (!user) {
     return {
       success: false,
-
       work: null,
-
-      error:
-        "You must be logged in.",
+      error: "You must be logged in.",
     };
   }
 
-  /*
-   * IMPORTANT:
-   *
-   * Your data/works.js createWork() currently requires:
-   *
-   * talentId
-   * talentName
-   * talentUsername
-   *
-   * Those values are not accepted from the client here.
-   *
-   * Therefore this action should be connected to the
-   * authenticated user's talent profile before createWork()
-   * is called.
-   *
-   * This intentionally does NOT invent those values.
-   */
+  try {
+    /*
+     * IMPORTANT:
+     * Get the talent profile using the authenticated user's UID.
+     *
+     * Do NOT accept talentId, talentName, or talentUsername
+     * from the client.
+     */
+    const talent = await getTalentById(user.uid);
 
-  return {
-    success: false,
+    if (!talent) {
+      return {
+        success: false,
+        work: null,
+        error: "Talent profile not found.",
+      };
+    }
 
-    work: null,
+    const work = await createWork({
+      talentId: user.uid,
+      talentName: talent.displayName,
+      talentUsername: talent.username,
 
-    error:
-      "Talent profile information is required to create work.",
-  };
+      title: validation.data.title,
+      description: validation.data.description,
+      category: validation.data.category,
+      categoryId: validation.data.categoryId,
+      image: validation.data.image,
+    });
+
+    return {
+      success: true,
+      work,
+      error: null,
+    };
+  } catch (error) {
+    console.error(
+      "createWorkAction failed:",
+      error,
+    );
+
+    return {
+      success: false,
+      work: null,
+      error: getErrorMessage(
+        error,
+        "Unable to create work.",
+      ),
+    };
+  }
 }
 
 /*

@@ -17,15 +17,9 @@ import ProfessionalSection from "./ProfessionalSection";
 import PortfolioSection from "./PortfolioSection";
 import AccountSection from "./AccountSection";
 
-import {
-  updateProfileAction,
-  deleteProfileAction,
-} from "@/actions/profile";
+import { updateProfileAction, deleteProfileAction } from "@/actions/profile";
 
-import {
-  deleteWorkAction,
-  toggleLikeAction,
-} from "@/actions/works";
+import { deleteWorkAction, toggleLikeAction } from "@/actions/works";
 
 import {
   ZAMBIA_PROVINCES,
@@ -61,14 +55,9 @@ const MAX_SERVICES = 20;
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 
-const ALLOWED_AVATAR_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-const CLOUDINARY_CLOUD_NAME =
-  process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
 const CLOUDINARY_AVATAR_UPLOAD_PRESET =
   process.env.NEXT_PUBLIC_CLOUDINARY_AVATAR_UPLOAD_PRESET ||
@@ -85,189 +74,143 @@ export default function ProfileClient({
 }) {
   const router = useRouter();
 
-  const showSnackbar = useSnackbarStore(
-    (state) => state.showSnackbar,
-  );
+  const showSnackbar = useSnackbarStore((state) => state.showSnackbar);
 
   /* ========================================================================
      Current data
      ======================================================================== */
 
-  const [currentProfile, setCurrentProfile] =
-    useState(profile);
+  const [currentProfile, setCurrentProfile] = useState(profile);
 
   /*
    * Make a local copy so portfolio interactions are instant.
    *
    * `likedByMe` is preserved if the server already supplied it.
    */
-  const [currentWorks, setCurrentWorks] =
-    useState(() =>
-      Array.isArray(works)
-        ? works.map((work) => ({
-            ...work,
-            likes: Number(work?.likes ?? 0),
-            likedByMe: Boolean(work?.likedByMe),
-          }))
-        : [],
-    );
+  const [currentWorks, setCurrentWorks] = useState(() =>
+    Array.isArray(works)
+      ? works.map((work) => ({
+          ...work,
+          likes: Number(work?.likes ?? 0),
+          likedByMe: Boolean(work?.likedByMe),
+        }))
+      : [],
+  );
 
   /* ========================================================================
      Navigation
      ======================================================================== */
 
-  const [activeSection, setActiveSection] =
-    useState("profile");
+  const [activeSection, setActiveSection] = useState("profile");
 
   /* ========================================================================
      Modal state
      ======================================================================== */
 
-  const [activeModal, setActiveModal] =
-    useState(null);
+  const [activeModal, setActiveModal] = useState(null);
 
   /*
    * null = Add Work
    *
    * work object = Edit Work
    */
-  const [activeWork, setActiveWork] =
-    useState(null);
+  const [activeWork, setActiveWork] = useState(null);
 
-  const [confirmAction, setConfirmAction] =
-    useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   /* ========================================================================
      General saving
      ======================================================================== */
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [savingAvailability, setSavingAvailability] =
-    useState(false);
+  const [savingAvailability, setSavingAvailability] = useState(false);
 
   /* ========================================================================
      Portfolio loading
      ======================================================================== */
 
-  const [deletingWorkId, setDeletingWorkId] =
-    useState(null);
+  const [deletingWorkId, setDeletingWorkId] = useState(null);
 
-  const [likingWorkId, setLikingWorkId] =
-    useState(null);
+  const [likingWorkId, setLikingWorkId] = useState(null);
 
   /* ========================================================================
      Destructive account actions
      ======================================================================== */
 
-  const [deletingProfile, setDeletingProfile] =
-    useState(false);
+  const [deletingProfile, setDeletingProfile] = useState(false);
 
-  const [loggingOut, setLoggingOut] =
-    useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   /* ========================================================================
      Delete account password
      ======================================================================== */
 
-  const [deletePasswordOpen, setDeletePasswordOpen] =
-    useState(false);
+  const [deletePasswordOpen, setDeletePasswordOpen] = useState(false);
 
-  const [deletePasswordLoading, setDeletePasswordLoading] =
-    useState(false);
+  const [deletePasswordLoading, setDeletePasswordLoading] = useState(false);
 
-  const [deletePasswordError, setDeletePasswordError] =
-    useState("");
+  const [deletePasswordError, setDeletePasswordError] = useState("");
 
   /* ========================================================================
      Profile form
      ======================================================================== */
 
-  const [profileForm, setProfileForm] =
-    useState({
-      displayName:
-        profile?.displayName || "",
+  const [profileForm, setProfileForm] = useState({
+    displayName: profile?.displayName || "",
 
-      username:
-        profile?.username || "",
+    username: profile?.username || "",
 
-      role:
-        profile?.role || "",
+    role: profile?.role || "",
 
-      categoryId:
-        profile?.categoryId || "",
+    categoryId: profile?.categoryId || "",
 
-      province:
-        profile?.province || "",
+    province: profile?.province || "",
 
-      district:
-        profile?.district || "",
+    district: profile?.district || "",
 
-      bio:
-        profile?.bio || "",
+    bio: profile?.bio || "",
 
-      phone:
-        profile?.phone || "",
+    phone: profile?.phone || "",
 
-      whatsapp:
-        profile?.whatsapp || "",
-    });
+    whatsapp: profile?.whatsapp || "",
+  });
 
   /* ========================================================================
      Professional
      ======================================================================== */
 
-  const [skills, setSkills] =
-    useState(
-      Array.isArray(profile?.skills)
-        ? profile.skills
-        : [],
-    );
+  const [skills, setSkills] = useState(
+    Array.isArray(profile?.skills) ? profile.skills : [],
+  );
 
-  const [services, setServices] =
-    useState(
-      Array.isArray(profile?.services)
-        ? profile.services
-        : [],
-    );
+  const [services, setServices] = useState(
+    Array.isArray(profile?.services) ? profile.services : [],
+  );
 
-  const [skillInput, setSkillInput] =
-    useState("");
+  const [skillInput, setSkillInput] = useState("");
 
   /* ========================================================================
      Avatar
      ======================================================================== */
 
-  const avatarInputRef =
-    useRef(null);
+  const avatarInputRef = useRef(null);
 
-  const [avatarPreview, setAvatarPreview] =
-    useState(
-      profile?.avatar || "",
-    );
+  const [avatarPreview, setAvatarPreview] = useState(profile?.avatar || "");
 
   /* ========================================================================
      Derived data
      ======================================================================== */
 
-  const availableDistricts =
-    useMemo(
-      () =>
-        getDistrictsByProvince(
-          profileForm.province,
-        ),
-      [profileForm.province],
-    );
+  const availableDistricts = useMemo(
+    () => getDistrictsByProvince(profileForm.province),
+    [profileForm.province],
+  );
 
-  const categoryOptions =
-    useMemo(
-      () =>
-        Array.isArray(categories)
-          ? categories
-          : [],
-      [categories],
-    );
+  const categoryOptions = useMemo(
+    () => (Array.isArray(categories) ? categories : []),
+    [categories],
+  );
 
   /* ========================================================================
      Global locks
@@ -283,8 +226,7 @@ export default function ProfileClient({
    * Portfolio interactions are separate from destructive operations.
    */
   const portfolioActionRunning =
-    Boolean(deletingWorkId) ||
-    Boolean(likingWorkId);
+    Boolean(deletingWorkId) || Boolean(likingWorkId);
 
   /* ========================================================================
      Snackbar helpers
@@ -316,11 +258,7 @@ export default function ProfileClient({
      ======================================================================== */
 
   function selectSection(section) {
-    if (
-      destructiveActionRunning ||
-      saving ||
-      portfolioActionRunning
-    ) {
+    if (destructiveActionRunning || saving || portfolioActionRunning) {
       return;
     }
 
@@ -349,34 +287,23 @@ export default function ProfileClient({
      ======================================================================== */
 
   function validateProfileForm() {
-    const displayName =
-      profileForm.displayName.trim();
+    const displayName = profileForm.displayName.trim();
 
-    const username =
-      profileForm.username
-        .trim()
-        .toLowerCase();
+    const username = profileForm.username.trim().toLowerCase();
 
-    const role =
-      profileForm.role.trim();
+    const role = profileForm.role.trim();
 
-    const categoryId =
-      profileForm.categoryId.trim();
+    const categoryId = profileForm.categoryId.trim();
 
-    const province =
-      profileForm.province.trim();
+    const province = profileForm.province.trim();
 
-    const district =
-      profileForm.district.trim();
+    const district = profileForm.district.trim();
 
-    const bio =
-      profileForm.bio.trim();
+    const bio = profileForm.bio.trim();
 
-    const phone =
-      profileForm.phone.trim();
+    const phone = profileForm.phone.trim();
 
-    const whatsapp =
-      profileForm.whatsapp.trim();
+    const whatsapp = profileForm.whatsapp.trim();
 
     if (displayName.length < 2) {
       return "Your name is too short.";
@@ -491,25 +418,17 @@ export default function ProfileClient({
       };
     }
 
-    if (
-      !service ||
-      typeof service !== "object" ||
-      Array.isArray(service)
-    ) {
+    if (!service || typeof service !== "object" || Array.isArray(service)) {
       return null;
     }
 
     return {
       id:
-        typeof service.id === "string" &&
-        service.id.trim()
+        typeof service.id === "string" && service.id.trim()
           ? service.id.trim()
           : crypto.randomUUID(),
 
-      name:
-        typeof service.name === "string"
-          ? service.name.trim()
-          : "",
+      name: typeof service.name === "string" ? service.name.trim() : "",
 
       description:
         typeof service.description === "string"
@@ -517,14 +436,10 @@ export default function ProfileClient({
           : "",
 
       price:
-        service.price !== undefined &&
-        service.price !== null
+        service.price !== undefined && service.price !== null
           ? String(service.price).trim()
-          : service.minPrice !== undefined &&
-              service.minPrice !== null
-            ? String(
-                service.minPrice,
-              ).trim()
+          : service.minPrice !== undefined && service.minPrice !== null
+            ? String(service.minPrice).trim()
             : "",
     };
   }
@@ -537,28 +452,18 @@ export default function ProfileClient({
     return list
       .map(normalizeService)
       .filter(Boolean)
-      .filter(
-        (service) =>
-          service.name,
-      )
+      .filter((service) => service.name)
       .map((service) => ({
         id: service.id,
 
-        name:
-          service.name.trim(),
+        name: service.name.trim(),
 
-        description:
-          service.description.trim(),
+        description: service.description.trim(),
 
         price:
-          typeof service.price ===
-          "number"
-            ? String(
-                service.price,
-              )
-            : String(
-                service.price || "",
-              ).trim(),
+          typeof service.price === "number"
+            ? String(service.price)
+            : String(service.price || "").trim(),
       }))
       .slice(0, MAX_SERVICES);
   }
@@ -567,48 +472,30 @@ export default function ProfileClient({
      Common profile payload
      ======================================================================== */
 
-  function getProfilePayload(
-    overrides = {},
-  ) {
+  function getProfilePayload(overrides = {}) {
     return {
-      displayName:
-        profileForm.displayName.trim(),
+      displayName: profileForm.displayName.trim(),
 
-      username:
-        profileForm.username
-          .trim()
-          .toLowerCase(),
+      username: profileForm.username.trim().toLowerCase(),
 
-      role:
-        profileForm.role.trim(),
+      role: profileForm.role.trim(),
 
-      categoryId:
-        profileForm.categoryId.trim(),
+      categoryId: profileForm.categoryId.trim(),
 
-      province:
-        profileForm.province.trim(),
+      province: profileForm.province.trim(),
 
-      district:
-        profileForm.district.trim(),
+      district: profileForm.district.trim(),
 
-      bio:
-        profileForm.bio.trim(),
+      bio: profileForm.bio.trim(),
 
-      phone:
-        profileForm.phone.trim(),
+      phone: profileForm.phone.trim(),
 
-      whatsapp:
-        profileForm.whatsapp.trim(),
+      whatsapp: profileForm.whatsapp.trim(),
 
       available:
-        overrides.available !==
-        undefined
-          ? Boolean(
-              overrides.available,
-            )
-          : Boolean(
-              currentProfile?.available,
-            ),
+        overrides.available !== undefined
+          ? Boolean(overrides.available)
+          : Boolean(currentProfile?.available),
 
       ...overrides,
     };
@@ -619,15 +506,11 @@ export default function ProfileClient({
      ======================================================================== */
 
   async function handleSaveProfile() {
-    if (
-      saving ||
-      destructiveActionRunning
-    ) {
+    if (saving || destructiveActionRunning) {
       return;
     }
 
-    const validationError =
-      validateProfileForm();
+    const validationError = validateProfileForm();
 
     if (validationError) {
       showError(validationError);
@@ -637,10 +520,7 @@ export default function ProfileClient({
     try {
       setSaving(true);
 
-      const result =
-        await updateProfileAction(
-          getProfilePayload(),
-        );
+      const result = await updateProfileAction(getProfilePayload());
 
       if (!result?.success) {
         throw new Error(
@@ -649,68 +529,40 @@ export default function ProfileClient({
         );
       }
 
-      const updatedProfile =
-        result.profile;
+      const updatedProfile = result.profile;
 
-      setCurrentProfile(
-        (current) => ({
-          ...current,
-          ...updatedProfile,
-        }),
-      );
+      setCurrentProfile((current) => ({
+        ...current,
+        ...updatedProfile,
+      }));
 
-      setProfileForm(
-        (current) => ({
-          ...current,
+      setProfileForm((current) => ({
+        ...current,
 
-          displayName:
-            updatedProfile?.displayName ??
-            current.displayName,
+        displayName: updatedProfile?.displayName ?? current.displayName,
 
-          username:
-            updatedProfile?.username ??
-            current.username,
+        username: updatedProfile?.username ?? current.username,
 
-          role:
-            updatedProfile?.role ??
-            current.role,
+        role: updatedProfile?.role ?? current.role,
 
-          categoryId:
-            updatedProfile?.categoryId ??
-            current.categoryId,
+        categoryId: updatedProfile?.categoryId ?? current.categoryId,
 
-          province:
-            updatedProfile?.province ??
-            current.province,
+        province: updatedProfile?.province ?? current.province,
 
-          district:
-            updatedProfile?.district ??
-            current.district,
+        district: updatedProfile?.district ?? current.district,
 
-          bio:
-            updatedProfile?.bio ??
-            current.bio,
+        bio: updatedProfile?.bio ?? current.bio,
 
-          phone:
-            updatedProfile?.phone ??
-            current.phone,
+        phone: updatedProfile?.phone ?? current.phone,
 
-          whatsapp:
-            updatedProfile?.whatsapp ??
-            current.whatsapp,
-        }),
-      );
+        whatsapp: updatedProfile?.whatsapp ?? current.whatsapp,
+      }));
 
-      showSuccess(
-        "Your profile has been updated.",
-      );
+      showSuccess("Your profile has been updated.");
 
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to save profile:",
-        error,
-      );
+      console.error("Failed to save profile:", error);
 
       showError(
         error?.message ||
@@ -726,95 +578,65 @@ export default function ProfileClient({
      ======================================================================== */
 
   async function handleSaveProfessional() {
-    if (
-      saving ||
-      destructiveActionRunning
-    ) {
+    if (saving || destructiveActionRunning) {
       return;
     }
 
-    const validationError =
-      validateProfileForm();
+    const validationError = validateProfileForm();
 
     if (validationError) {
       showError(validationError);
       return;
     }
 
-    const cleanSkills =
-      normalizeSkills(skills);
+    const cleanSkills = normalizeSkills(skills);
 
-    const cleanServices =
-      normalizeServices(
-        services,
-      );
+    const cleanServices = normalizeServices(services);
 
-    if (
-      cleanSkills.length >
-      MAX_SKILLS
-    ) {
-      showError(
-        "You can have up to 20 skills.",
-      );
+    if (cleanSkills.length > MAX_SKILLS) {
+      showError("You can have up to 20 skills.");
       return;
     }
 
-    if (
-      cleanServices.length >
-      MAX_SERVICES
-    ) {
-      showError(
-        "You can have up to 20 services.",
-      );
+    if (cleanServices.length > MAX_SERVICES) {
+      showError("You can have up to 20 services.");
       return;
     }
 
     try {
       setSaving(true);
 
-      const result =
-        await updateProfileAction(
-          getProfilePayload({
-            skills: cleanSkills,
-            services:
-              cleanServices,
-          }),
-        );
+      const result = await updateProfileAction(
+        getProfilePayload({
+          skills: cleanSkills,
+          services: cleanServices,
+        }),
+      );
 
       if (!result?.success) {
         throw new Error(
-          result?.error ||
-            "Professional information could not be updated.",
+          result?.error || "Professional information could not be updated.",
         );
       }
 
       setSkills(cleanSkills);
       setServices(cleanServices);
 
-      setCurrentProfile(
-        (current) => ({
-          ...current,
-          ...result.profile,
-          skills: cleanSkills,
-          services:
-            cleanServices,
-        }),
-      );
+      setCurrentProfile((current) => ({
+        ...current,
+        ...result.profile,
+        skills: cleanSkills,
+        services: cleanServices,
+      }));
 
-      showSuccess(
-        "Professional information has been updated.",
-      );
+      showSuccess("Professional information has been updated.");
 
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to save professional information:",
-        error,
-      );
+      console.error("Failed to save professional information:", error);
 
       showError(
-        error?.message ||
-          "Professional information could not be updated.",
+        error?.message || "Professional information could not be updated.",
       );
     } finally {
       setSaving(false);
@@ -826,90 +648,54 @@ export default function ProfileClient({
      ======================================================================== */
 
   function addSkill() {
-    if (
-      destructiveActionRunning ||
-      saving
-    ) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
-    const value =
-      skillInput.trim();
+    const value = skillInput.trim();
 
     if (!value) {
       return;
     }
 
     if (value.length > 100) {
-      showError(
-        "Skill is too long.",
-      );
+      showError("Skill is too long.");
       return;
     }
 
-    if (
-      skills.length >=
-      MAX_SKILLS
-    ) {
-      showError(
-        "You can have up to 20 skills.",
-      );
+    if (skills.length >= MAX_SKILLS) {
+      showError("You can have up to 20 skills.");
       return;
     }
 
-    const cleanSkills =
-      normalizeSkills(skills);
+    const cleanSkills = normalizeSkills(skills);
 
-    const exists =
-      cleanSkills.some(
-        (skill) =>
-          skill.toLowerCase() ===
-          value.toLowerCase(),
-      );
+    const exists = cleanSkills.some(
+      (skill) => skill.toLowerCase() === value.toLowerCase(),
+    );
 
     if (exists) {
       setSkillInput("");
 
-      showInfo(
-        "That skill is already in your profile.",
-      );
+      showInfo("That skill is already in your profile.");
 
       return;
     }
 
-    setSkills(
-      (current) => [
-        ...normalizeSkills(
-          current,
-        ),
-        value,
-      ],
-    );
+    setSkills((current) => [...normalizeSkills(current), value]);
 
     setSkillInput("");
   }
 
-  function removeSkill(
-    skillToRemove,
-  ) {
-    if (
-      destructiveActionRunning ||
-      saving
-    ) {
+  function removeSkill(skillToRemove) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
     setSkills((current) => {
-      const cleanSkills =
-        normalizeSkills(
-          current,
-        );
+      const cleanSkills = normalizeSkills(current);
 
-      return cleanSkills.filter(
-        (skill) =>
-          skill !==
-          skillToRemove,
-      );
+      return cleanSkills.filter((skill) => skill !== skillToRemove);
     });
   }
 
@@ -918,80 +704,52 @@ export default function ProfileClient({
      ======================================================================== */
 
   async function handleSaveSkills() {
-    if (
-      saving ||
-      destructiveActionRunning
-    ) {
+    if (saving || destructiveActionRunning) {
       return;
     }
 
-    const cleanSkills =
-      normalizeSkills(skills);
+    const cleanSkills = normalizeSkills(skills);
 
-    const cleanServices =
-      normalizeServices(
-        services,
-      );
+    const cleanServices = normalizeServices(services);
 
-    if (
-      cleanSkills.length >
-      MAX_SKILLS
-    ) {
-      showError(
-        "You can have up to 20 skills.",
-      );
+    if (cleanSkills.length > MAX_SKILLS) {
+      showError("You can have up to 20 skills.");
       return;
     }
 
     try {
       setSaving(true);
 
-      const result =
-        await updateProfileAction(
-          getProfilePayload({
-            skills: cleanSkills,
-            services:
-              cleanServices,
-          }),
-        );
+      const result = await updateProfileAction(
+        getProfilePayload({
+          skills: cleanSkills,
+          services: cleanServices,
+        }),
+      );
 
       if (!result?.success) {
-        throw new Error(
-          result?.error ||
-            "Failed to save skills.",
-        );
+        throw new Error(result?.error || "Failed to save skills.");
       }
 
       setSkills(cleanSkills);
       setServices(cleanServices);
 
-      setCurrentProfile(
-        (current) => ({
-          ...current,
-          ...result.profile,
-          skills: cleanSkills,
-          services:
-            cleanServices,
-        }),
-      );
+      setCurrentProfile((current) => ({
+        ...current,
+        ...result.profile,
+        skills: cleanSkills,
+        services: cleanServices,
+      }));
 
       setActiveModal(null);
 
-      showSuccess(
-        "Your skills have been saved.",
-      );
+      showSuccess("Your skills have been saved.");
 
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to save skills:",
-        error,
-      );
+      console.error("Failed to save skills:", error);
 
-      showError(
-        error?.message ||
-          "Failed to save your skills.",
-      );
+      showError(error?.message || "Failed to save your skills.");
     } finally {
       setSaving(false);
     }
@@ -1002,96 +760,60 @@ export default function ProfileClient({
      ======================================================================== */
 
   function addService(service) {
-    if (
-      destructiveActionRunning ||
-      saving
-    ) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
-    if (
-      services.length >=
-      MAX_SERVICES
-    ) {
-      showError(
-        "You can have up to 20 services.",
-      );
+    if (services.length >= MAX_SERVICES) {
+      showError("You can have up to 20 services.");
       return;
     }
 
-    const normalized =
-      normalizeService(service);
+    const normalized = normalizeService(service);
 
     if (!normalized) {
       return;
     }
 
-    const name =
-      normalized.name.trim();
+    const name = normalized.name.trim();
 
     if (!name) {
       return;
     }
 
     if (name.length > 150) {
-      showError(
-        "Service name is too long.",
-      );
+      showError("Service name is too long.");
       return;
     }
 
-    const exists =
-      services.some(
-        (existingService) => {
-          const existing =
-            normalizeService(
-              existingService,
-            );
+    const exists = services.some((existingService) => {
+      const existing = normalizeService(existingService);
 
-          return (
-            existing?.name
-              ?.trim()
-              .toLowerCase() ===
-            name.toLowerCase()
-          );
-        },
-      );
+      return existing?.name?.trim().toLowerCase() === name.toLowerCase();
+    });
 
     if (exists) {
-      showInfo(
-        "That service is already in your profile.",
-      );
+      showInfo("That service is already in your profile.");
 
       return;
     }
 
-    setServices(
-      (current) => [
-        ...current,
-        {
-          ...normalized,
-          name,
-        },
-      ],
-    );
+    setServices((current) => [
+      ...current,
+      {
+        ...normalized,
+        name,
+      },
+    ]);
   }
 
-  function removeService(
-    serviceToRemove,
-  ) {
-    if (
-      destructiveActionRunning ||
-      saving
-    ) {
+  function removeService(serviceToRemove) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
     setServices((current) =>
-      current.filter(
-        (service) =>
-          service !==
-          serviceToRemove,
-      ),
+      current.filter((service) => service !== serviceToRemove),
     );
   }
 
@@ -1100,80 +822,52 @@ export default function ProfileClient({
      ======================================================================== */
 
   async function handleSaveServices() {
-    if (
-      saving ||
-      destructiveActionRunning
-    ) {
+    if (saving || destructiveActionRunning) {
       return;
     }
 
-    const cleanSkills =
-      normalizeSkills(skills);
+    const cleanSkills = normalizeSkills(skills);
 
-    const cleanServices =
-      normalizeServices(
-        services,
-      );
+    const cleanServices = normalizeServices(services);
 
-    if (
-      cleanServices.length >
-      MAX_SERVICES
-    ) {
-      showError(
-        "You can have up to 20 services.",
-      );
+    if (cleanServices.length > MAX_SERVICES) {
+      showError("You can have up to 20 services.");
       return;
     }
 
     try {
       setSaving(true);
 
-      const result =
-        await updateProfileAction(
-          getProfilePayload({
-            skills: cleanSkills,
-            services:
-              cleanServices,
-          }),
-        );
+      const result = await updateProfileAction(
+        getProfilePayload({
+          skills: cleanSkills,
+          services: cleanServices,
+        }),
+      );
 
       if (!result?.success) {
-        throw new Error(
-          result?.error ||
-            "Failed to save services.",
-        );
+        throw new Error(result?.error || "Failed to save services.");
       }
 
       setSkills(cleanSkills);
       setServices(cleanServices);
 
-      setCurrentProfile(
-        (current) => ({
-          ...current,
-          ...result.profile,
-          skills: cleanSkills,
-          services:
-            cleanServices,
-        }),
-      );
+      setCurrentProfile((current) => ({
+        ...current,
+        ...result.profile,
+        skills: cleanSkills,
+        services: cleanServices,
+      }));
 
       setActiveModal(null);
 
-      showSuccess(
-        "Your services have been saved.",
-      );
+      showSuccess("Your services have been saved.");
 
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to save services:",
-        error,
-      );
+      console.error("Failed to save services:", error);
 
-      showError(
-        error?.message ||
-          "Failed to save your services.",
-      );
+      showError(error?.message || "Failed to save your services.");
     } finally {
       setSaving(false);
     }
@@ -1183,19 +877,12 @@ export default function ProfileClient({
      Availability
      ======================================================================== */
 
-  async function toggleAvailability(
-    value,
-  ) {
-    if (
-      saving ||
-      savingAvailability ||
-      destructiveActionRunning
-    ) {
+  async function toggleAvailability(value) {
+    if (saving || savingAvailability || destructiveActionRunning) {
       return;
     }
 
-    const validationError =
-      validateProfileForm();
+    const validationError = validateProfileForm();
 
     if (validationError) {
       showError(validationError);
@@ -1203,42 +890,27 @@ export default function ProfileClient({
     }
 
     try {
-      setSavingAvailability(
-        true,
-      );
+      setSavingAvailability(true);
 
-      const available =
-        Boolean(value);
+      const available = Boolean(value);
 
-      const result =
-        await updateProfileAction(
-          getProfilePayload({
-            available,
-            skills:
-              normalizeSkills(
-                skills,
-              ),
-            services:
-              normalizeServices(
-                services,
-              ),
-          }),
-        );
-
-      if (!result?.success) {
-        throw new Error(
-          result?.error ||
-            "Failed to update your availability.",
-        );
-      }
-
-      setCurrentProfile(
-        (current) => ({
-          ...current,
-          ...result.profile,
+      const result = await updateProfileAction(
+        getProfilePayload({
           available,
+          skills: normalizeSkills(skills),
+          services: normalizeServices(services),
         }),
       );
+
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to update your availability.");
+      }
+
+      setCurrentProfile((current) => ({
+        ...current,
+        ...result.profile,
+        available,
+      }));
 
       showSuccess(
         available
@@ -1248,19 +920,11 @@ export default function ProfileClient({
 
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to update availability:",
-        error,
-      );
+      console.error("Failed to update availability:", error);
 
-      showError(
-        error?.message ||
-          "Failed to update your availability.",
-      );
+      showError(error?.message || "Failed to update your availability.");
     } finally {
-      setSavingAvailability(
-        false,
-      );
+      setSavingAvailability(false);
     }
   }
 
@@ -1269,23 +933,15 @@ export default function ProfileClient({
      ======================================================================== */
 
   function openAvatarPicker() {
-    if (
-      destructiveActionRunning ||
-      saving ||
-      avatarInputRef.current ===
-        null
-    ) {
+    if (destructiveActionRunning || saving || avatarInputRef.current === null) {
       return;
     }
 
     avatarInputRef.current.click();
   }
 
-  async function handleAvatarFileChange(
-    event,
-  ) {
-    const file =
-      event.target.files?.[0];
+  async function handleAvatarFileChange(event) {
+    const file = event.target.files?.[0];
 
     event.target.value = "";
 
@@ -1293,41 +949,22 @@ export default function ProfileClient({
       return;
     }
 
-    if (
-      destructiveActionRunning ||
-      saving
-    ) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
-    if (
-      !ALLOWED_AVATAR_TYPES.includes(
-        file.type,
-      )
-    ) {
-      showError(
-        "Please choose a JPG, PNG or WebP image.",
-      );
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      showError("Please choose a JPG, PNG or WebP image.");
       return;
     }
 
-    if (
-      file.size >
-      MAX_AVATAR_SIZE
-    ) {
-      showError(
-        "Your profile photo must be 5 MB or smaller.",
-      );
+    if (file.size > MAX_AVATAR_SIZE) {
+      showError("Your profile photo must be 5 MB or smaller.");
       return;
     }
 
-    if (
-      !CLOUDINARY_CLOUD_NAME ||
-      !CLOUDINARY_AVATAR_UPLOAD_PRESET
-    ) {
-      showError(
-        "Image upload is not configured. Please try again later.",
-      );
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_AVATAR_UPLOAD_PRESET) {
+      showError("Image upload is not configured. Please try again later.");
       return;
     }
 
@@ -1336,22 +973,13 @@ export default function ProfileClient({
     try {
       setSaving(true);
 
-      localPreview =
-        URL.createObjectURL(
-          file,
-        );
+      localPreview = URL.createObjectURL(file);
 
-      setAvatarPreview(
-        localPreview,
-      );
+      setAvatarPreview(localPreview);
 
-      const cloudinaryFormData =
-        new FormData();
+      const cloudinaryFormData = new FormData();
 
-      cloudinaryFormData.append(
-        "file",
-        file,
-      );
+      cloudinaryFormData.append("file", file);
 
       cloudinaryFormData.append(
         "upload_preset",
@@ -1365,31 +993,22 @@ export default function ProfileClient({
       let uploadResponse;
 
       try {
-        uploadResponse =
-          await fetch(
-            uploadUrl,
-            {
-              method: "POST",
-              body: cloudinaryFormData,
-            },
-          );
+        uploadResponse = await fetch(uploadUrl, {
+          method: "POST",
+          body: cloudinaryFormData,
+        });
       } catch (error) {
-        console.error(
-          "Cloudinary upload request failed:",
-          error,
-        );
+        console.error("Cloudinary upload request failed:", error);
 
         throw new Error(
           "Could not connect to the image upload service. Please try again.",
         );
       }
 
-      let uploadResult =
-        null;
+      let uploadResult = null;
 
       try {
-        uploadResult =
-          await uploadResponse.json();
+        uploadResult = await uploadResponse.json();
       } catch {
         uploadResult = null;
       }
@@ -1399,67 +1018,47 @@ export default function ProfileClient({
         !uploadResult?.secure_url ||
         !uploadResult?.public_id
       ) {
-        console.error(
-          "Cloudinary upload failed:",
-          uploadResult,
-        );
+        console.error("Cloudinary upload failed:", uploadResult);
 
         throw new Error(
-          uploadResult?.error
-            ?.message ||
+          uploadResult?.error?.message ||
             "Your profile photo could not be uploaded.",
         );
       }
 
-      const avatar =
-        uploadResult.secure_url;
+      const avatar = uploadResult.secure_url;
 
-      const avatarPublicId =
-        uploadResult.public_id;
+      const avatarPublicId = uploadResult.public_id;
 
-      const response =
-        await updateProfileAction(
-          getProfilePayload({
-            avatar,
-            avatarPublicId,
-          }),
-        );
-
-      if (!response?.success) {
-        throw new Error(
-          response?.error ||
-            "Your profile photo could not be saved.",
-        );
-      }
-
-      setCurrentProfile(
-        (current) => ({
-          ...current,
-          ...response.profile,
+      const response = await updateProfileAction(
+        getProfilePayload({
           avatar,
           avatarPublicId,
         }),
       );
 
-      setAvatarPreview(
-        avatar,
-      );
+      if (!response?.success) {
+        throw new Error(
+          response?.error || "Your profile photo could not be saved.",
+        );
+      }
 
-      showSuccess(
-        "Your profile photo has been updated.",
-      );
+      setCurrentProfile((current) => ({
+        ...current,
+        ...response.profile,
+        avatar,
+        avatarPublicId,
+      }));
+
+      setAvatarPreview(avatar);
+
+      showSuccess("Your profile photo has been updated.");
 
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to save profile photo:",
-        error,
-      );
+      console.error("Failed to save profile photo:", error);
 
-      setAvatarPreview(
-        currentProfile?.avatar ||
-          "",
-      );
+      setAvatarPreview(currentProfile?.avatar || "");
 
       showError(
         error?.message ||
@@ -1467,9 +1066,7 @@ export default function ProfileClient({
       );
     } finally {
       if (localPreview) {
-        URL.revokeObjectURL(
-          localPreview,
-        );
+        URL.revokeObjectURL(localPreview);
       }
 
       setSaving(false);
@@ -1481,10 +1078,7 @@ export default function ProfileClient({
      ======================================================================== */
 
   function openSkills() {
-    if (
-      destructiveActionRunning ||
-      saving
-    ) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
@@ -1492,10 +1086,7 @@ export default function ProfileClient({
   }
 
   function openServices() {
-    if (
-      destructiveActionRunning ||
-      saving
-    ) {
+    if (destructiveActionRunning || saving) {
       return;
     }
 
@@ -1509,11 +1100,7 @@ export default function ProfileClient({
    */
 
   function openAddWork() {
-    if (
-      destructiveActionRunning ||
-      saving ||
-      portfolioActionRunning
-    ) {
+    if (destructiveActionRunning || saving || portfolioActionRunning) {
       return;
     }
 
@@ -1542,11 +1129,7 @@ export default function ProfileClient({
   }
 
   function closeModal() {
-    if (
-      destructiveActionRunning ||
-      saving ||
-      portfolioActionRunning
-    ) {
+    if (destructiveActionRunning || saving || portfolioActionRunning) {
       return;
     }
 
@@ -1558,36 +1141,23 @@ export default function ProfileClient({
      Work created
      ======================================================================== */
 
-  function handleWorkCreated(
-    work,
-  ) {
+  function handleWorkCreated(work) {
     if (!work) {
       return;
     }
 
     const normalizedWork = {
       ...work,
-      likes: Number(
-        work?.likes ?? 0,
-      ),
-      likedByMe: Boolean(
-        work?.likedByMe,
-      ),
+      likes: Number(work?.likes ?? 0),
+      likedByMe: Boolean(work?.likedByMe),
     };
 
-    setCurrentWorks(
-      (current) => [
-        normalizedWork,
-        ...current,
-      ],
-    );
+    setCurrentWorks((current) => [normalizedWork, ...current]);
 
     setActiveModal(null);
     setActiveWork(null);
 
-    showSuccess(
-      "Your work has been added to your portfolio.",
-    );
+    showSuccess("Your work has been added to your portfolio.");
 
     router.refresh();
   }
@@ -1596,60 +1166,42 @@ export default function ProfileClient({
      Work updated
      ======================================================================== */
 
-  function handleWorkUpdated(
-    updatedWork,
-  ) {
+  function handleWorkUpdated(updatedWork) {
     if (!updatedWork?.id) {
       return;
     }
 
-    setCurrentWorks(
-      (current) =>
-        current.map((work) => {
-          if (
-            work.id !==
-            updatedWork.id
-          ) {
-            return work;
-          }
+    setCurrentWorks((current) =>
+      current.map((work) => {
+        if (work.id !== updatedWork.id) {
+          return work;
+        }
 
-          return {
-            ...work,
-            ...updatedWork,
+        return {
+          ...work,
+          ...updatedWork,
 
-            /*
-             * Preserve local like state if the update response
-             * doesn't contain it.
-             */
-            likedByMe:
-              updatedWork.likedByMe !==
-              undefined
-                ? Boolean(
-                    updatedWork.likedByMe,
-                  )
-                : Boolean(
-                    work.likedByMe,
-                  ),
+          /*
+           * Preserve local like state if the update response
+           * doesn't contain it.
+           */
+          likedByMe:
+            updatedWork.likedByMe !== undefined
+              ? Boolean(updatedWork.likedByMe)
+              : Boolean(work.likedByMe),
 
-            likes:
-              updatedWork.likes !==
-              undefined
-                ? Number(
-                    updatedWork.likes,
-                  )
-                : Number(
-                    work.likes ?? 0,
-                  ),
-          };
-        }),
+          likes:
+            updatedWork.likes !== undefined
+              ? Number(updatedWork.likes)
+              : Number(work.likes ?? 0),
+        };
+      }),
     );
 
     setActiveModal(null);
     setActiveWork(null);
 
-    showSuccess(
-      "Your work has been updated.",
-    );
+    showSuccess("Your work has been updated.");
 
     router.refresh();
   }
@@ -1657,24 +1209,12 @@ export default function ProfileClient({
   /* ========================================================================
      Like / Unlike work
      ======================================================================== */
-
-  async function handleToggleLikeWork(
-    workId,
-  ) {
-    if (
-      !workId ||
-      likingWorkId ||
-      deletingWorkId ||
-      destructiveActionRunning
-    ) {
+  async function handleToggleLikeWork(workId) {
+    if (!workId || likingWorkId || deletingWorkId || destructiveActionRunning) {
       return;
     }
 
-    const targetWork =
-      currentWorks.find(
-        (work) =>
-          work.id === workId,
-      );
+    const targetWork = currentWorks.find((work) => work.id === workId);
 
     if (!targetWork) {
       return;
@@ -1686,100 +1226,91 @@ export default function ProfileClient({
      * --------------------------------------------------------------
      */
 
-    const previousLiked =
-      Boolean(
-        targetWork.likedByMe,
-      );
+    const previousLiked = Boolean(targetWork.likedByMe);
 
-    const previousLikes =
-      Number(
-        targetWork.likes ?? 0,
-      );
+    const previousLikes = Math.max(Number(targetWork.likes ?? 0), 0);
 
     /*
      * --------------------------------------------------------------
-     * Optimistic update.
+     * Calculate desired state.
+     * --------------------------------------------------------------
+     *
+     * The action expects:
+     *
+     * {
+     *   workId,
+     *   liked
+     * }
+     *
+     * "liked" means the desired final state.
      * --------------------------------------------------------------
      */
 
-    const optimisticLiked =
-      !previousLiked;
+    const optimisticLiked = !previousLiked;
 
-    const optimisticLikes =
-      Math.max(
-        previousLikes +
-          (optimisticLiked
-            ? 1
-            : -1),
-        0,
-      );
+    const optimisticLikes = Math.max(
+      previousLikes + (optimisticLiked ? 1 : -1),
+      0,
+    );
 
-    setCurrentWorks(
-      (current) =>
-        current.map((work) =>
-          work.id === workId
-            ? {
-                ...work,
+    /*
+     * --------------------------------------------------------------
+     * Optimistic UI update.
+     * --------------------------------------------------------------
+     */
 
-                likedByMe:
-                  optimisticLiked,
-
-                likes:
-                  optimisticLikes,
-              }
-            : work,
-        ),
+    setCurrentWorks((current) =>
+      current.map((work) =>
+        work.id === workId
+          ? {
+              ...work,
+              likedByMe: optimisticLiked,
+              likes: optimisticLikes,
+            }
+          : work,
+      ),
     );
 
     try {
       setLikingWorkId(workId);
 
-      const result =
-        await toggleLikeAction({
-          workId,
-        });
+      /*
+       * ------------------------------------------------------------
+       * Send both workId AND desired liked state.
+       * ------------------------------------------------------------
+       */
+
+      const result = await toggleLikeAction({
+        workId,
+        liked: optimisticLiked,
+      });
 
       if (!result?.success) {
-        throw new Error(
-          result?.error ||
-            "Unable to update like.",
-        );
+        throw new Error(result?.error || "Unable to update like.");
       }
 
       /*
        * ------------------------------------------------------------
        * Server is authoritative.
+       * ------------------------------------------------------------
        *
-       * Never trust the optimistic count after the request succeeds.
+       * Use the exact state and count returned by the server.
        * ------------------------------------------------------------
        */
 
-      setCurrentWorks(
-        (current) =>
-          current.map((work) =>
-            work.id === workId
-              ? {
-                  ...work,
-
-                  likedByMe:
-                    Boolean(
-                      result.liked,
-                    ),
-
-                  likes:
-                    Number(
-                      result.likes ??
-                        0,
-                    ),
-                }
-              : work,
-          ),
+      setCurrentWorks((current) =>
+        current.map((work) =>
+          work.id === workId
+            ? {
+                ...work,
+                likedByMe: Boolean(result.liked),
+                likes: Math.max(Number(result.likes ?? 0), 0),
+              }
+            : work,
+        ),
       );
     } catch (error) {
-      console.error(
-        "Failed to toggle work like:",
-        error,
-      );
+      console.error("Failed to toggle work like:", error);
 
       /*
        * ------------------------------------------------------------
@@ -1787,43 +1318,29 @@ export default function ProfileClient({
        * ------------------------------------------------------------
        */
 
-      setCurrentWorks(
-        (current) =>
-          current.map((work) =>
-            work.id === workId
-              ? {
-                  ...work,
-
-                  likedByMe:
-                    previousLiked,
-
-                  likes:
-                    previousLikes,
-                }
-              : work,
-          ),
+      setCurrentWorks((current) =>
+        current.map((work) =>
+          work.id === workId
+            ? {
+                ...work,
+                likedByMe: previousLiked,
+                likes: previousLikes,
+              }
+            : work,
+        ),
       );
 
-      showError(
-        error?.message ||
-          "Unable to update like. Please try again.",
-      );
+      showError(error?.message || "Unable to update like. Please try again.");
     } finally {
       setLikingWorkId(null);
     }
   }
-
   /* ========================================================================
      Delete work
      ======================================================================== */
 
-  function askDeleteWork(
-    workId,
-  ) {
-    if (
-      destructiveActionRunning ||
-      portfolioActionRunning
-    ) {
+  function askDeleteWork(workId) {
+    if (destructiveActionRunning || portfolioActionRunning) {
       return;
     }
 
@@ -1837,9 +1354,7 @@ export default function ProfileClient({
     });
   }
 
-  async function handleDeleteWork(
-    workId,
-  ) {
+  async function handleDeleteWork(workId) {
     if (
       !workId ||
       deletingWorkId ||
@@ -1852,9 +1367,7 @@ export default function ProfileClient({
     }
 
     try {
-      setDeletingWorkId(
-        workId,
-      );
+      setDeletingWorkId(workId);
 
       /*
        * IMPORTANT:
@@ -1865,43 +1378,28 @@ export default function ProfileClient({
        *
        * NOT the raw work ID.
        */
-      const result =
-        await deleteWorkAction({
-          workId,
-        });
+      const result = await deleteWorkAction({
+        workId,
+      });
 
       if (!result?.success) {
-        throw new Error(
-          result?.error ||
-            "Failed to delete work.",
-        );
+        throw new Error(result?.error || "Failed to delete work.");
       }
 
-      setCurrentWorks(
-        (current) =>
-          current.filter(
-            (work) =>
-              work.id !==
-              workId,
-          ),
+      setCurrentWorks((current) =>
+        current.filter((work) => work.id !== workId),
       );
 
       setConfirmAction(null);
 
-      showSuccess(
-        "Your work has been deleted.",
-      );
+      showSuccess("Your work has been deleted.");
 
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to delete work:",
-        error,
-      );
+      console.error("Failed to delete work:", error);
 
       showError(
-        error?.message ||
-          "We could not delete that work. Please try again.",
+        error?.message || "We could not delete that work. Please try again.",
       );
     } finally {
       setDeletingWorkId(null);
@@ -1913,76 +1411,53 @@ export default function ProfileClient({
      ======================================================================== */
 
   async function clearServiceWorkerAuth() {
-    if (
-      typeof navigator ===
-        "undefined" ||
-      !navigator.serviceWorker
-    ) {
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) {
       return;
     }
 
     try {
-      const registration =
-        await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.ready;
 
       if (!registration.active) {
         return;
       }
 
-      await new Promise(
-        (resolve) => {
-          const channel =
-            new MessageChannel();
+      await new Promise((resolve) => {
+        const channel = new MessageChannel();
 
-          let resolved = false;
+        let resolved = false;
 
-          const finish = () => {
-            if (resolved) {
-              return;
-            }
+        const finish = () => {
+          if (resolved) {
+            return;
+          }
 
-            resolved = true;
+          resolved = true;
 
-            clearTimeout(
-              timeout,
-            );
+          clearTimeout(timeout);
 
-            channel.port1.close();
+          channel.port1.close();
 
-            resolve();
-          };
+          resolve();
+        };
 
-          const timeout =
-            setTimeout(
-              finish,
-              1500,
-            );
+        const timeout = setTimeout(finish, 1500);
 
-          channel.port1.onmessage =
-            (event) => {
-              if (
-                event.data?.type ===
-                "AUTH_TOKEN_CLEARED"
-              ) {
-                finish();
-              }
-            };
+        channel.port1.onmessage = (event) => {
+          if (event.data?.type === "AUTH_TOKEN_CLEARED") {
+            finish();
+          }
+        };
 
-          registration.active.postMessage(
-            {
-              type: "CLEAR_AUTH_TOKEN",
-            },
-            [
-              channel.port2,
-            ],
-          );
-        },
-      );
+        registration.active.postMessage(
+          {
+            type: "CLEAR_AUTH_TOKEN",
+          },
+          [channel.port2],
+        );
+      });
     } catch (error) {
-      console.warn(
-        "Failed to clear service-worker auth:",
-        error,
-      );
+      console.warn("Failed to clear service-worker auth:", error);
     }
   }
 
@@ -1992,10 +1467,7 @@ export default function ProfileClient({
     try {
       await logout();
     } catch (error) {
-      console.warn(
-        "Firebase logout cleanup failed:",
-        error,
-      );
+      console.warn("Firebase logout cleanup failed:", error);
     }
   }
 
@@ -2004,9 +1476,7 @@ export default function ProfileClient({
      ======================================================================== */
 
   function openDeleteAccount() {
-    if (
-      destructiveActionRunning
-    ) {
+    if (destructiveActionRunning) {
       return;
     }
 
@@ -2016,9 +1486,7 @@ export default function ProfileClient({
   }
 
   function openLogoutConfirm() {
-    if (
-      destructiveActionRunning
-    ) {
+    if (destructiveActionRunning) {
       return;
     }
 
@@ -2031,9 +1499,7 @@ export default function ProfileClient({
      Permanent account deletion
      ======================================================================== */
 
-  async function handlePermanentAccountDeletion(
-    password,
-  ) {
+  async function handlePermanentAccountDeletion(password) {
     if (
       deletePasswordLoading ||
       deletingProfile ||
@@ -2043,46 +1509,32 @@ export default function ProfileClient({
       return;
     }
 
-    const trimmedPassword =
-      password?.trim();
+    const trimmedPassword = password?.trim();
 
     if (!trimmedPassword) {
-      setDeletePasswordError(
-        "Please enter your current password.",
-      );
+      setDeletePasswordError("Please enter your current password.");
 
-      showError(
-        "Please enter your current password.",
-      );
+      showError("Please enter your current password.");
 
       return;
     }
 
-    let firestoreDeleted =
-      false;
+    let firestoreDeleted = false;
 
     try {
-      setDeletePasswordLoading(
-        true,
-      );
+      setDeletePasswordLoading(true);
 
       setDeletePasswordError("");
 
-      await reauthenticateWithPassword(
-        trimmedPassword,
-      );
+      await reauthenticateWithPassword(trimmedPassword);
 
-      setDeletingProfile(
-        true,
-      );
+      setDeletingProfile(true);
 
-      const result =
-        await deleteProfileAction();
+      const result = await deleteProfileAction();
 
       if (!result?.success) {
         throw new Error(
-          result?.error ||
-            "Failed to delete your Youth Space account data.",
+          result?.error || "Failed to delete your Youth Space account data.",
         );
       }
 
@@ -2092,52 +1544,33 @@ export default function ProfileClient({
 
       await clearServiceWorkerAuth();
 
-      setDeletePasswordOpen(
-        false,
-      );
+      setDeletePasswordOpen(false);
 
-      setDeletePasswordError(
-        "",
-      );
+      setDeletePasswordError("");
 
       setConfirmAction(null);
 
-      showSuccess(
-        "Your Youth Space account has been permanently deleted.",
-      );
+      showSuccess("Your Youth Space account has been permanently deleted.");
 
       router.replace("/");
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to permanently delete account:",
-        error,
-      );
+      console.error("Failed to permanently delete account:", error);
 
-      const code =
-        error?.code;
+      const code = error?.code;
 
       if (
-        code ===
-          "auth/wrong-password" ||
-        code ===
-          "auth/invalid-credential"
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-credential"
       ) {
-        setDeletePasswordError(
-          "The password is incorrect. Please try again.",
-        );
+        setDeletePasswordError("The password is incorrect. Please try again.");
 
-        showError(
-          "The password is incorrect. Please try again.",
-        );
+        showError("The password is incorrect. Please try again.");
 
         return;
       }
 
-      if (
-        code ===
-        "auth/requires-recent-login"
-      ) {
+      if (code === "auth/requires-recent-login") {
         setDeletePasswordError(
           "For security, please sign in again before deleting your account.",
         );
@@ -2149,17 +1582,12 @@ export default function ProfileClient({
         return;
       }
 
-      if (
-        code ===
-        "auth/too-many-requests"
-      ) {
+      if (code === "auth/too-many-requests") {
         setDeletePasswordError(
           "Too many attempts. Please wait a moment and try again.",
         );
 
-        showError(
-          "Too many attempts. Please wait a moment and try again.",
-        );
+        showError("Too many attempts. Please wait a moment and try again.");
 
         return;
       }
@@ -2168,9 +1596,7 @@ export default function ProfileClient({
         const message =
           "Your Youth Space account data was deleted, but we could not finish deleting your sign-in account. Please contact support.";
 
-        setDeletePasswordError(
-          message,
-        );
+        setDeletePasswordError(message);
 
         showError(message);
 
@@ -2178,18 +1604,13 @@ export default function ProfileClient({
       }
 
       const message =
-        error?.message ||
-        "We could not delete your account. Please try again.";
+        error?.message || "We could not delete your account. Please try again.";
 
-      setDeletePasswordError(
-        message,
-      );
+      setDeletePasswordError(message);
 
       showError(message);
     } finally {
-      setDeletePasswordLoading(
-        false,
-      );
+      setDeletePasswordLoading(false);
 
       setDeletingProfile(false);
     }
@@ -2216,23 +1637,16 @@ export default function ProfileClient({
 
       setConfirmAction(null);
 
-      showSuccess(
-        "You have been signed out.",
-      );
+      showSuccess("You have been signed out.");
 
       router.replace("/");
       router.refresh();
     } catch (error) {
-      console.error(
-        "Failed to log out:",
-        error,
-      );
+      console.error("Failed to log out:", error);
 
       setConfirmAction(null);
 
-      showError(
-        "We could not complete the logout clean-up. Please try again.",
-      );
+      showError("We could not complete the logout clean-up. Please try again.");
 
       router.replace("/");
       router.refresh();
@@ -2254,45 +1668,29 @@ export default function ProfileClient({
       return;
     }
 
-    if (
-      confirmAction.type ===
-      "work"
-    ) {
-      handleDeleteWork(
-        confirmAction.workId,
-      );
+    if (confirmAction.type === "work") {
+      handleDeleteWork(confirmAction.workId);
 
       return;
     }
 
-    if (
-      confirmAction.type ===
-      "account"
-    ) {
+    if (confirmAction.type === "account") {
       setConfirmAction(null);
 
-      setDeletePasswordError(
-        "");
+      setDeletePasswordError("");
 
-      setDeletePasswordOpen(
-        true,
-      );
+      setDeletePasswordOpen(true);
 
       return;
     }
 
-    if (
-      confirmAction.type ===
-      "logout"
-    ) {
+    if (confirmAction.type === "logout") {
       handleConfirmedLogout();
     }
   }
 
   function handleCancelConfirm() {
-    if (
-      destructiveActionRunning
-    ) {
+    if (destructiveActionRunning) {
       return;
     }
 
@@ -2300,19 +1698,13 @@ export default function ProfileClient({
   }
 
   function handleCancelDeletePassword() {
-    if (
-      deletePasswordLoading
-    ) {
+    if (deletePasswordLoading) {
       return;
     }
 
-    setDeletePasswordOpen(
-      false,
-    );
+    setDeletePasswordOpen(false);
 
-    setDeletePasswordError(
-      "",
-    );
+    setDeletePasswordError("");
   }
 
   /* ========================================================================
@@ -2320,14 +1712,10 @@ export default function ProfileClient({
      ======================================================================== */
 
   const confirmationLoading =
-    confirmAction?.type ===
-    "logout"
+    confirmAction?.type === "logout"
       ? loggingOut
-      : confirmAction?.type ===
-          "work"
-        ? Boolean(
-            deletingWorkId,
-          )
+      : confirmAction?.type === "work"
+        ? Boolean(deletingWorkId)
         : false;
 
   /* ========================================================================
@@ -2364,37 +1752,26 @@ export default function ProfileClient({
             <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-950 text-xs font-black text-white">
               {currentProfile?.avatar ? (
                 <Image
-                  src={
-                    currentProfile.avatar
-                  }
-                  alt={
-                    currentProfile.displayName ||
-                    "Profile"
-                  }
+                  src={currentProfile.avatar}
+                  alt={currentProfile.displayName || "Profile"}
                   fill
                   sizes="40px"
                   className="object-cover"
                 />
               ) : (
-                currentProfile?.displayName
-                  ?.trim()
-                  ?.charAt(0)
-                  ?.toUpperCase() ||
+                currentProfile?.displayName?.trim()?.charAt(0)?.toUpperCase() ||
                 "U"
               )}
             </div>
 
             <div className="hidden min-w-0 text-left md:block">
               <p className="max-w-[140px] truncate text-xs font-black text-slate-950">
-                {currentProfile?.displayName ||
-                  "User"}
+                {currentProfile?.displayName || "User"}
               </p>
 
               {currentProfile?.email && (
                 <p className="mt-0.5 max-w-[140px] truncate text-[10px] font-medium text-slate-400">
-                  {
-                    currentProfile.email
-                  }
+                  {currentProfile.email}
                 </p>
               )}
             </div>
@@ -2417,10 +1794,8 @@ export default function ProfileClient({
           </h1>
 
           <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-            Manage your Youth Space
-            profile, professional
-            information, portfolio and
-            account settings.
+            Manage your Youth Space profile, professional information, portfolio
+            and account settings.
           </p>
         </div>
 
@@ -2437,79 +1812,41 @@ export default function ProfileClient({
               <SectionButton
                 icon={UserRound}
                 label="Profile"
-                active={
-                  activeSection ===
-                  "profile"
-                }
+                active={activeSection === "profile"}
                 disabled={
-                  destructiveActionRunning ||
-                  saving ||
-                  portfolioActionRunning
+                  destructiveActionRunning || saving || portfolioActionRunning
                 }
-                onClick={() =>
-                  selectSection(
-                    "profile",
-                  )
-                }
+                onClick={() => selectSection("profile")}
               />
 
               <SectionButton
-                icon={
-                  BriefcaseBusiness
-                }
+                icon={BriefcaseBusiness}
                 label="Professional"
-                active={
-                  activeSection ===
-                  "professional"
-                }
+                active={activeSection === "professional"}
                 disabled={
-                  destructiveActionRunning ||
-                  saving ||
-                  portfolioActionRunning
+                  destructiveActionRunning || saving || portfolioActionRunning
                 }
-                onClick={() =>
-                  selectSection(
-                    "professional",
-                  )
-                }
+                onClick={() => selectSection("professional")}
               />
 
               <SectionButton
                 icon={ImageIcon}
                 label="Portfolio"
-                active={
-                  activeSection ===
-                  "portfolio"
-                }
+                active={activeSection === "portfolio"}
                 disabled={
-                  destructiveActionRunning ||
-                  saving ||
-                  portfolioActionRunning
+                  destructiveActionRunning || saving || portfolioActionRunning
                 }
-                onClick={() =>
-                  selectSection(
-                    "portfolio",
-                  )
-                }
+                onClick={() => selectSection("portfolio")}
               />
 
               <SectionButton
                 icon={Settings}
                 label="Account"
-                active={
-                  activeSection ===
-                  "account"
-                }
+                active={activeSection === "account"}
                 disabled={
-                  destructiveActionRunning ||
-                  saving ||
-                  portfolioActionRunning
+                  destructiveActionRunning || saving || portfolioActionRunning
                 }
-                onClick={() =>
-                  selectSection(
-                    "account",
-                  )
-                }
+                onClick={() => selectSection("account")}
               />
             </nav>
           </aside>
@@ -2520,18 +1857,9 @@ export default function ProfileClient({
 
           <div className="lg:hidden">
             <FilterButton
-              icon={getSectionIcon(
-                activeSection,
-              )}
-              options={[
-                "Profile",
-                "Professional",
-                "Portfolio",
-                "Account",
-              ]}
-              value={capitalize(
-                activeSection,
-              )}
+              icon={getSectionIcon(activeSection)}
+              options={["Profile", "Professional", "Portfolio", "Account"]}
+              value={capitalize(activeSection)}
               full
               placeholder="Select section"
               onChange={(value) => {
@@ -2543,9 +1871,7 @@ export default function ProfileClient({
                   return;
                 }
 
-                setActiveSection(
-                  value.toLowerCase(),
-                );
+                setActiveSection(value.toLowerCase());
               }}
             />
           </div>
@@ -2559,60 +1885,30 @@ export default function ProfileClient({
                 Profile
                 ============================================================ */}
 
-            {activeSection ===
-              "profile" && (
+            {activeSection === "profile" && (
               <>
                 <input
-                  ref={
-                    avatarInputRef
-                  }
+                  ref={avatarInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   className="hidden"
-                  onChange={
-                    handleAvatarFileChange
-                  }
-                  disabled={
-                    destructiveActionRunning ||
-                    saving
-                  }
+                  onChange={handleAvatarFileChange}
+                  disabled={destructiveActionRunning || saving}
                 />
 
                 <ProfileSection
-                  profile={
-                    currentProfile
-                  }
-                  profileForm={
-                    profileForm
-                  }
-                  avatarPreview={
-                    avatarPreview
-                  }
-                  availableDistricts={
-                    availableDistricts
-                  }
-                  provinces={
-                    ZAMBIA_PROVINCES
-                  }
+                  profile={currentProfile}
+                  profileForm={profileForm}
+                  avatarPreview={avatarPreview}
+                  availableDistricts={availableDistricts}
+                  provinces={ZAMBIA_PROVINCES}
                   skills={skills}
-                  services={
-                    services
-                  }
-                  onUpdateForm={
-                    updateForm
-                  }
-                  onAvatarClick={
-                    openAvatarPicker
-                  }
-                  onOpenSkills={
-                    openSkills
-                  }
-                  onOpenServices={
-                    openServices
-                  }
-                  onSave={
-                    handleSaveProfile
-                  }
+                  services={services}
+                  onUpdateForm={updateForm}
+                  onAvatarClick={openAvatarPicker}
+                  onOpenSkills={openSkills}
+                  onOpenServices={openServices}
+                  onSave={handleSaveProfile}
                   saving={saving}
                   error=""
                 />
@@ -2623,41 +1919,20 @@ export default function ProfileClient({
                 Professional
                 ============================================================ */}
 
-            {activeSection ===
-              "professional" && (
+            {activeSection === "professional" && (
               <ProfessionalSection
-                profileForm={
-                  profileForm
-                }
-                profile={
-                  currentProfile
-                }
+                profileForm={profileForm}
+                profile={currentProfile}
                 skills={skills}
-                services={
-                  services
-                }
-                categoryOptions={
-                  categoryOptions
-                }
-                onUpdateForm={
-                  updateForm
-                }
-                onToggleAvailability={
-                  toggleAvailability
-                }
-                onOpenSkills={
-                  openSkills
-                }
-                onOpenServices={
-                  openServices
-                }
-                onSave={
-                  handleSaveProfessional
-                }
+                services={services}
+                categoryOptions={categoryOptions}
+                onUpdateForm={updateForm}
+                onToggleAvailability={toggleAvailability}
+                onOpenSkills={openSkills}
+                onOpenServices={openServices}
+                onSave={handleSaveProfessional}
                 saving={saving}
-                savingAvailability={
-                  savingAvailability
-                }
+                savingAvailability={savingAvailability}
                 error=""
               />
             )}
@@ -2666,36 +1941,15 @@ export default function ProfileClient({
                 Portfolio
                 ============================================================ */}
 
-            {activeSection ===
-              "portfolio" && (
+            {activeSection === "portfolio" && (
               <PortfolioSection
-                works={
-                  currentWorks
-                }
-
-                onAddWork={
-                  openAddWork
-                }
-
-                onEditWork={
-                  openEditWork
-                }
-
-                onDeleteWork={
-                  askDeleteWork
-                }
-
-                onToggleLikeWork={
-                  handleToggleLikeWork
-                }
-
-                deletingWorkId={
-                  deletingWorkId
-                }
-
-                likingWorkId={
-                  likingWorkId
-                }
+                works={currentWorks}
+                onAddWork={openAddWork}
+                onEditWork={openEditWork}
+                onDeleteWork={askDeleteWork}
+                onToggleLikeWork={handleToggleLikeWork}
+                deletingWorkId={deletingWorkId}
+                likingWorkId={likingWorkId}
               />
             )}
 
@@ -2703,24 +1957,13 @@ export default function ProfileClient({
                 Account
                 ============================================================ */}
 
-            {activeSection ===
-              "account" && (
+            {activeSection === "account" && (
               <AccountSection
-                profile={
-                  currentProfile
-                }
-                onLogout={
-                  handleLogout
-                }
-                onDeleteAccount={
-                  openDeleteAccount
-                }
-                deletingProfile={
-                  deletingProfile
-                }
-                loggingOut={
-                  loggingOut
-                }
+                profile={currentProfile}
+                onLogout={handleLogout}
+                onDeleteAccount={openDeleteAccount}
+                deletingProfile={deletingProfile}
+                loggingOut={loggingOut}
               />
             )}
           </div>
@@ -2731,27 +1974,16 @@ export default function ProfileClient({
           Skills modal
           ================================================================== */}
 
-      {activeModal ===
-        "skills" && (
+      {activeModal === "skills" && (
         <SkillsModal
           skills={skills}
-          skillInput={
-            skillInput
-          }
+          skillInput={skillInput}
           saving={saving}
-          onInputChange={
-            setSkillInput
-          }
+          onInputChange={setSkillInput}
           onAdd={addSkill}
-          onRemove={
-            removeSkill
-          }
-          onSave={
-            handleSaveSkills
-          }
-          onClose={
-            closeModal
-          }
+          onRemove={removeSkill}
+          onSave={handleSaveSkills}
+          onClose={closeModal}
         />
       )}
 
@@ -2759,21 +1991,14 @@ export default function ProfileClient({
           Services modal
           ================================================================== */}
 
-      {activeModal ===
-        "services" && (
+      {activeModal === "services" && (
         <ServicesModal
           services={services}
           saving={saving}
           onAdd={addService}
-          onRemove={
-            removeService
-          }
-          onSave={
-            handleSaveServices
-          }
-          onClose={
-            closeModal
-          }
+          onRemove={removeService}
+          onSave={handleSaveServices}
+          onClose={closeModal}
         />
       )}
 
@@ -2781,30 +2006,17 @@ export default function ProfileClient({
           Work modal
           ================================================================== */}
 
-      {activeModal ===
-        "work" && (
+      {activeModal === "work" && (
         <WorkModal
           /*
            * null = create
            * object = edit
            */
           work={activeWork}
-
-          categories={
-            categoryOptions
-          }
-
-          onClose={
-            closeModal
-          }
-
-          onCreated={
-            handleWorkCreated
-          }
-
-          onUpdated={
-            handleWorkUpdated
-          }
+          categories={categoryOptions}
+          onClose={closeModal}
+          onCreated={handleWorkCreated}
+          onUpdated={handleWorkUpdated}
         />
       )}
 
@@ -2814,18 +2026,10 @@ export default function ProfileClient({
 
       {confirmAction && (
         <ConfirmModal
-          type={
-            confirmAction.type
-          }
-          loading={
-            confirmationLoading
-          }
-          onCancel={
-            handleCancelConfirm
-          }
-          onConfirm={
-            handleConfirm
-          }
+          type={confirmAction.type}
+          loading={confirmationLoading}
+          onCancel={handleCancelConfirm}
+          onConfirm={handleConfirm}
         />
       )}
 
@@ -2835,21 +2039,11 @@ export default function ProfileClient({
 
       {deletePasswordOpen && (
         <DeleteAccountPasswordModal
-          email={
-            currentProfile?.email
-          }
-          loading={
-            deletePasswordLoading
-          }
-          error={
-            deletePasswordError
-          }
-          onCancel={
-            handleCancelDeletePassword
-          }
-          onConfirm={
-            handlePermanentAccountDeletion
-          }
+          email={currentProfile?.email}
+          loading={deletePasswordLoading}
+          error={deletePasswordError}
+          onCancel={handleCancelDeletePassword}
+          onConfirm={handlePermanentAccountDeletion}
         />
       )}
     </main>
@@ -2884,11 +2078,7 @@ function SectionButton({
         "disabled:cursor-not-allowed disabled:opacity-50",
       ].join(" ")}
     >
-      <Icon
-        size={17}
-        strokeWidth={2}
-        aria-hidden="true"
-      />
+      <Icon size={17} strokeWidth={2} aria-hidden="true" />
 
       <span>{label}</span>
     </button>
@@ -2899,28 +2089,17 @@ function SectionButton({
    Helpers
    ========================================================================== */
 
-function getSectionIcon(
-  section,
-) {
+function getSectionIcon(section) {
   const icons = {
     profile: UserRound,
-    professional:
-      BriefcaseBusiness,
+    professional: BriefcaseBusiness,
     portfolio: ImageIcon,
     account: Settings,
   };
 
-  return (
-    icons[section] ||
-    UserRound
-  );
+  return icons[section] || UserRound;
 }
 
-function capitalize(
-  value = "",
-) {
-  return (
-    value.charAt(0).toUpperCase() +
-    value.slice(1)
-  );
+function capitalize(value = "") {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

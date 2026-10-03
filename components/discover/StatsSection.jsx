@@ -1,30 +1,40 @@
-import { BriefcaseBusiness, Sparkles, Users } from "lucide-react";
+import {
+  Compass,
+  BriefcaseBusiness,
+  MessageCircle,
+} from "lucide-react";
 
 import StatCard from "./StatCard";
 
-export default function StatsSection({ className = "" }) {
-  const totalTalents = 0;
-  const totalCategories = 0;
-  const totalWorks = 0;
-
+export default function StatsSection({
+  className = "",
+}) {
   return (
     <div
       className={`flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 ${className}`}
     >
       <div className="min-w-[160px] flex-1 sm:min-w-0">
-        <StatCard icon={Users} value={totalTalents} label="Talents" />
+        <StatCard
+          icon={Compass}
+          value="Discover"
+          label="Talents"
+        />
       </div>
 
       <div className="min-w-[160px] flex-1 sm:min-w-0">
         <StatCard
           icon={BriefcaseBusiness}
-          value={totalCategories}
-          label="Categories"
+          value="Showcase"
+          label="Their work"
         />
       </div>
 
       <div className="min-w-[160px] flex-1 sm:min-w-0">
-        <StatCard icon={Sparkles} value={totalWorks} label="Works" />
+        <StatCard
+          icon={MessageCircle}
+          value="Connect"
+          label="With talents"
+        />
       </div>
     </div>
   );

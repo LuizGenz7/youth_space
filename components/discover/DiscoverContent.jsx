@@ -43,9 +43,9 @@ export default function DiscoverContent() {
 
         {/* Stats */}
 
-        <Suspense fallback={<StatsLoading className="mt-7" />}>
+        {/* <Suspense fallback={<StatsLoading className="mt-7" />}>
           <StatsSection className="mt-7" />
-        </Suspense>
+        </Suspense> */}
 
         {/* Top categories */}
 
