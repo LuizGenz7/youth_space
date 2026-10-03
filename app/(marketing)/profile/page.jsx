@@ -33,7 +33,6 @@ export default async function ProfilePage() {
     );
   }
 
-  console.log(works);
   return (
     <ProfileClient
       profile={profile}

@@ -11,7 +11,6 @@ export default function WorkShowcaseCard({
   work,
 }) {
 
-  console.log(work);
   const talentName =
     talent?.name ||
     talent?.displayName ||

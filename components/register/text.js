@@ -490,10 +490,7 @@ export async function getMyProfileAction() {
         const user =
             await requireAuth();
 
-        console.log(
-            "Authenticated user:",
-            user
-        );
+
 
         const profile =
             await getProfileByUid(

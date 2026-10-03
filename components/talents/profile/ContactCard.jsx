@@ -17,14 +17,15 @@ export default function ContactCard({ talent }) {
   const phone = talent.phone || talent.whatsapp;
 
   async function handleShare() {
+
     const profileUrl =
       typeof window !== "undefined"
         ? window.location.href
         : "";
 
-    const shareTitle = `${talent.name} on Youth Space`;
+    const shareTitle = `${talent.displayName} on Youth Space`;
 
-    const shareText = `Check out ${talent.name}'s profile on Youth Space.`;
+    const shareText = `Check out ${talent.displayName}'s profile on Youth Space.`;
 
     try {
       if (
@@ -124,7 +125,7 @@ export default function ContactCard({ talent }) {
         <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
           Contact{" "}
           <span className="font-bold text-slate-700">
-            {talent.name}
+            {talent.displayName}
           </span>{" "}
           directly to ask about their services, pricing,
           or availability.
@@ -166,7 +167,7 @@ export default function ContactCard({ talent }) {
               aria-hidden="true"
             />
 
-            <span>Call {talent.name}</span>
+            <span>Call {talent.displayName}</span>
           </a>
         )}
 

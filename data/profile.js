@@ -1422,10 +1422,7 @@ function buildProfileUpdates(
 export async function updateProfile(
     updates = {},
 ) {
-    console.log(
-        "updateProfile called with updates:",
-        updates,
-    );
+ 
 
     const user =
         await getCurrentUser();
@@ -1691,30 +1688,6 @@ export async function updateProfile(
                     requestedUsername;
             }
 
-            console.log(
-                "Youth Space profile update:",
-                {
-                    uid: user.uid,
-
-                    displayName:
-                        cleanUpdates.displayName,
-
-                    username:
-                        cleanUpdates.username,
-
-                    avatar:
-                        cleanUpdates.avatar,
-
-                    avatarPublicId:
-                        cleanUpdates.avatarPublicId,
-
-                    fields:
-                        Object.keys(
-                            cleanUpdates,
-                        ),
-                },
-            );
-
             /* -------------------------------------------------------------- */
             /* Write profile                                                  */
             /* -------------------------------------------------------------- */
@@ -1877,21 +1850,7 @@ export async function updateProfile(
             ...updatedSnapshot.data(),
         });
 
-    console.log(
-        "Youth Space profile updated:",
-        {
-            uid: user.uid,
-
-            displayName:
-                updatedProfile.displayName,
-
-            avatar:
-                updatedProfile.avatar,
-
-            avatarPublicId:
-                updatedProfile.avatarPublicId,
-        },
-    );
+ 
 
     return updatedProfile;
 }

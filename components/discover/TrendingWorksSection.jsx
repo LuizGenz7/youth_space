@@ -21,7 +21,6 @@ export default async function TrendingWorksSection({ className = "" }) {
     result?.success && Array.isArray(result.works) ? result.works : [];
 
     
-    console.log("Trending works result:", result);
   return (
     <section className={className}>
       <TrendingHeading />

@@ -50,16 +50,10 @@ export default function TalentCard({
       if (user) {
         setCurrentUserId(user.uid);
 
-        console.log(
-          "[TalentCard] Current authenticated user ID:",
-          user.uid,
-        );
       } else {
         setCurrentUserId(null);
 
-        console.log(
-          "[TalentCard] No authenticated user.",
-        );
+    
       }
     });
 
